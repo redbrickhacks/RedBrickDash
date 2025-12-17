@@ -25,6 +25,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // This matches everything except for static files
-  matcher: ['/((?!_next/static|static|favicon.ico).*)'],
+  // This matches everything except for static files and Tally webhook endpoints
+  matcher: ['/((?!_next/static|static|favicon.ico|api/tally/).*)'],
 };

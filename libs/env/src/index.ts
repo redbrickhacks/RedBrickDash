@@ -1,4 +1,4 @@
-import { HibiscusRole } from '@hibiscus/types';
+import { HibiscusRole } from "@hibiscus/types";
 
 const DefaultRole = (() => {
   if (process.env.SSO_DEFAULT_ROLE != null) {
@@ -35,7 +35,7 @@ export const getEnv = () => {
         refreshTokenName: process.env.NEXT_PUBLIC_HIBISCUS_REFRESH_COOKIE_NAME,
         maxAge: process.env.NEXT_PUBLIC_HIBISCUS_COOKIE_MAX_AGE,
         disableSSO:
-          process.env.NEXT_PUBLIC_DISABLE_SSO?.toLowerCase() === 'true',
+          process.env.NEXT_PUBLIC_DISABLE_SSO?.toLowerCase() === "true",
       },
       AppURL: {
         baseDomain: process.env.NEXT_PUBLIC_HIBISCUS_DOMAIN,
@@ -50,9 +50,10 @@ export const getEnv = () => {
         TallyApps2023XUrl: process.env.NEXT_PUBLIC_TALLY_APPS_2023_X,
         TallyApps2024Url: process.env.NEXT_PUBLIC_TALLY_APPS_2024,
         TallyAPIToken: process.env.TALLY_API_MASTER_TOKEN,
+        TallySigningSecret: process.env.TALLY_SIGNING_SECRET,
       },
       RSVPForm: {
-        ResumeStorageBucketName: 'rsvp-resume-hacker-2023',
+        ResumeStorageBucketName: "rsvp-resume-hacker-2023",
         WaiverURL: process.env.NEXT_PUBLIC_WAIVER_URL,
         HackerPacketURL: process.env.NEXT_PUBLIC_HACKER_PACKET_URL,
       },
