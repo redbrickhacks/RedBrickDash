@@ -312,7 +312,7 @@ const Index = () => {
     return <></>;
   }
 
-  if (![HibiscusRole.JUDGE, HibiscusRole.ADMIN].includes(user?.role)) {
+  if (![HibiscusRole.JUDGE, HibiscusRole.SUPERADMIN].includes(user?.role)) {
     window.location.assign(env.Hibiscus.AppURL.portal);
     return <></>;
   }

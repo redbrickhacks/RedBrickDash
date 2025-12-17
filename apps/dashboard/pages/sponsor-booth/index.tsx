@@ -185,7 +185,7 @@ const Index = () => {
     return <>Loading</>;
   }
   // Limit access to only sponsor or admin role
-  if (![HibiscusRole.SPONSOR, HibiscusRole.ADMIN].includes(user?.role)) {
+  if (![HibiscusRole.SPONSOR, HibiscusRole.SUPERADMIN].includes(user?.role)) {
     router.push('/');
     return <></>;
   }
@@ -511,7 +511,7 @@ const Index = () => {
             setError={() => {}}
             setPinnedEvents={setPinnedEvents}
             refresh={() => {}}
-            admin={user.role === HibiscusRole.ADMIN}
+            admin={user.role === HibiscusRole.SUPERADMIN}
           />
         )}
       </Modal>

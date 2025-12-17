@@ -51,7 +51,7 @@ export namespace Colors2023 {
       light: BLUE.LIGHT,
       standard: BLUE.STANDARD,
     },
-    [HibiscusRole.ADMIN]: {
+    [HibiscusRole.SUPERADMIN]: {
       light: RED.LIGHT,
       standard: RED.STANDARD,
     },

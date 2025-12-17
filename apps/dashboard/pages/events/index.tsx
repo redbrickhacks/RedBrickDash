@@ -337,7 +337,7 @@ function EventPage() {
             setError={setError}
             setPinnedEvents={setPinnedEvents}
             refresh={refresh}
-            admin={user.role === HibiscusRole.ADMIN}
+            admin={user.role === HibiscusRole.SUPERADMIN}
           />
         )}
       </Modal>
