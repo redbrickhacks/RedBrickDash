@@ -1,0 +1,6 @@
+export enum SubmissionStatus {
+  NOT_SUBMITTED = 'NOT_SUBMITTED',
+  SUBMITTED = 'SUBMITTED',
+  FINALIST = 'FINALIST',
+  NOT_SELECTED = 'NOT_SELECTED',
+}
