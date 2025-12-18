@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAppDispatch } from '../hooks/redux/hooks';
 import { removeTabRoute } from '../store/menu-slice';
 import RSVPClosedPlaceholder from '../components/hacker-portal/rsvp-closed-placeholder';
-import { get } from '@vercel/edge-config';
+// import { get } from '@vercel/edge-config'; // Disabled - Vercel-specific feature
 import { useRouter } from 'next/router';
 import { useHibiscusSupabase } from '@hibiscus/hibiscus-supabase-context';
 
@@ -142,13 +142,15 @@ const LayoutContainer = styled.div`
 `;
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  const appsOpen = await get('APPS_OPEN_HACKSC_X_2023');
-  const waitlistOpen = await get('APPS_WAITLIST_OPEN_HACKSC_X_2023');
-  const hackerPortalOpen = await get('HACKER_PORTAL_OPEN_HACKSC_X_2023');
+  // Feature flags - set these to control app behavior
+  // Previously used Vercel Edge Config, now hardcoded for self-hosted deployment
+  const appsOpen = process.env.APPS_OPEN === 'true';
+  const waitlistOpen = process.env.WAITLIST_OPEN === 'true';
+  const hackerPortalOpen = process.env.HACKER_PORTAL_OPEN === 'true';
 
   return {
     props: {
-      appsOpen: true,
+      appsOpen,
       hackerPortalOpen,
       waitlistOpen,
     } as ServerSideProps,

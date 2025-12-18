@@ -10,7 +10,7 @@ import { Button } from '@hibiscus/ui-kit-2023';
 import styled from 'styled-components';
 import { isHackerPostAppStatus } from '../../common/utils';
 import { GetServerSideProps } from 'next';
-import { get } from '@vercel/edge-config';
+// import { get } from '@vercel/edge-config'; // Disabled - Vercel-specific feature
 
 interface ServerSideProps {
   appsOpen: boolean;
@@ -99,7 +99,7 @@ const CenterContainer = styled.div`
 `;
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const appsOpen = await get('appsOpen');
+  const appsOpen = process.env.APPS_OPEN === 'true';
   return {
     props: {
       appsOpen,

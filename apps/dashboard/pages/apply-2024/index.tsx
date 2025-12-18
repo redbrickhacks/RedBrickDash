@@ -6,7 +6,7 @@ import { Button } from '@hibiscus/ui-kit-2023';
 import styled from 'styled-components';
 import { isHackerPostAppStatus } from '../../common/utils';
 import { GetServerSideProps } from 'next';
-import { get } from '@vercel/edge-config';
+// import { get } from '@vercel/edge-config'; // Disabled - Vercel-specific feature
 import { HackformTally } from '../../components/hackform-tally/hackform-tally';
 import { useRouter } from 'next/router';
 import { getEnv } from '@hibiscus/env';
@@ -99,9 +99,15 @@ export function Index({ appsOpen, waitlistOpen }: ServerSideProps) {
     );
   }
 
+  // Build Tally URL with hibiscusUserId for webhook identification
+  const baseTallyUrl = getEnv().Hibiscus.Hackform.TallyApps2024Url;
+  const tallyUrlWithUserId = `${baseTallyUrl}${
+    baseTallyUrl.includes('?') ? '&' : '?'
+  }hibiscusUserId=${user.id}`;
+
   return (
     <MarginContainer>
-      <HackformTally tallyUrl={getEnv().Hibiscus.Hackform.TallyApps2024Url} />
+      <HackformTally tallyUrl={tallyUrlWithUserId} />
     </MarginContainer>
   );
 }
@@ -162,11 +168,11 @@ const RedButton = styled.button`
 `;
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const appsOpen = await get('APPS_OPEN_HACKSC_X_2023');
-  const waitlistOpen = await get('APPS_WAITLIST_OPEN_HACKSC_X_2023');
+  const appsOpen = process.env.APPS_OPEN === 'true';
+  const waitlistOpen = process.env.WAITLIST_OPEN === 'true';
   return {
     props: {
-      appsOpen: true,
+      appsOpen,
       waitlistOpen,
     } as ServerSideProps,
   };
