@@ -29,223 +29,161 @@ interface HackerPortalProps {
 }
 
 export function HackerPortal({ isEventOpen, appsOpen }: HackerPortalProps) {
-  // const [modalOpen, setModalOpen] = useState(false);
-  // const { user, updateUser } = useHibiscusUser();
-  // const closeModal = () => setModalOpen(false);
-  // const userColors = getColorsForRole(user?.role ?? HibiscusRole.HACKER);
-  // const [choice, setChoice] = useState<RSVPChoice | null>(null);
-  // const { supabase: hbc } = useHibiscusSupabase();
-  // const client = hbc.getClient();
-  // const router = useRouter();
-  // const WelcomeHeader = () => (
-  //   <div
-  //     style={{
-  //       display: 'inline-flex',
-  //       width: '100%',
-  //       justifyContent: 'space-between',
-  //       alignItems: 'center',
-  //     }}
-  //   >
-  //     <WelcomeContainer>
-  //       <H1
-  //         style={{
-  //           color: userColors.light,
-  //           fontSize: '30px',
-  //           textShadow: `0px 0px 10px ${userColors.standard}`,
-  //         }}
-  //       >
-  //         Welcome, {user.firstName}
-  //       </H1>
-  //       <H3 style={{ color: '#989898' }}>What would you like to do today?</H3>
-  //     </WelcomeContainer>
-  //   </div>
-  // );
-  // const getApplicationStatus = () => {
-  //   return (
-  //     <span
-  //       style={{
-  //         backgroundColor:
-  //           (user.applicationStatus === ApplicationStatus.NOT_APPLIED &&
-  //             Colors2023.GRAY.DARK) ||
-  //           (user.applicationStatus === ApplicationStatus.STARTED &&
-  //             Colors2023.YELLOW.DARK) ||
-  //           (user.applicationStatus === ApplicationStatus.ADMITTED &&
-  //             Colors2023.GREEN.DARK) ||
-  //           (user.applicationStatus === ApplicationStatus.NOT_ADMITTED &&
-  //             Colors2023.RED.DARK) ||
-  //           (user.applicationStatus === ApplicationStatus.IN_REVIEW &&
-  //             Colors2023.BLUE.DARK),
-  //         color:
-  //           (user.applicationStatus === ApplicationStatus.NOT_APPLIED &&
-  //             Colors2023.GRAY.LIGHT) ||
-  //           (user.applicationStatus === ApplicationStatus.STARTED &&
-  //             Colors2023.YELLOW.LIGHT) ||
-  //           (user.applicationStatus === ApplicationStatus.ADMITTED &&
-  //             Colors2023.GREEN.LIGHT) ||
-  //           (user.applicationStatus === ApplicationStatus.NOT_ADMITTED &&
-  //             Colors2023.RED.LIGHT) ||
-  //           (user.applicationStatus === ApplicationStatus.IN_REVIEW &&
-  //             Colors2023.BLUE.LIGHT),
-  //         fontWeight: 500,
-  //         padding: 8,
-  //         borderRadius: 8,
-  //         fontSize: '15px',
-  //       }}
-  //     >
-  //       {(user.applicationStatus === ApplicationStatus.NOT_APPLIED &&
-  //         'Not Applied') ||
-  //         (user.applicationStatus === ApplicationStatus.STARTED &&
-  //           'Application Started') ||
-  //         (user.applicationStatus === ApplicationStatus.ADMITTED &&
-  //           'Admitted') ||
-  //         (user.applicationStatus === ApplicationStatus.NOT_ADMITTED &&
-  //           'Not Admitted') ||
-  //         (user.applicationStatus === ApplicationStatus.IN_REVIEW &&
-  //           'In Review')}
-  //     </span>
-  //   );
-  // };
-  // const renderApplyMessage = () => {
-  //   if (user.applicationStatus === ApplicationStatus.NOT_APPLIED) {
-  //     return (
-  //       <BannerContainer>
-  //         <GlowSpan
-  //           color={Colors2023.GRAY.LIGHT}
-  //           shadowColor={Colors2023.BLUE.STANDARD}
-  //           style={{ fontSize: 20 }}
-  //         >
-  //           {appsOpen
-  //             ? 'You have not applied to HackSC X yet!'
-  //             : 'Applications for HackSC X has closed'}
-  //         </GlowSpan>
-  //         <ApplyButton>
-  //           <Link
-  //             href="/apply-2023-x"
-  //             anchortagpropsoverride={{ target: '_self' }}
-  //           >
-  //             {appsOpen ? 'Apply now' : 'Join the waitlist'}
-  //           </Link>
-  //         </ApplyButton>
-  //       </BannerContainer>
-  //     );
-  //   }
-  // };
-  // const RSVPPlaceholder = () => {
-  //   return (
-  //     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-  //       <CongratsMessage />
-  //       <div style={{ display: 'flex', gap: '10px' }}>
-  //         <Button
-  //           color="red"
-  //           onClick={() => {
-  //             setChoice('DECLINE');
-  //             setModalOpen(true);
-  //           }}
-  //         >
-  //           DECLINE YOUR SPOT
-  //         </Button>
-  //         <Button
-  //           color="black"
-  //           onClick={() => {
-  //             setChoice('ACCEPT');
-  //             setModalOpen(true);
-  //           }}
-  //         >
-  //           CONFIRM YOUR SPOT
-  //         </Button>
-  //       </div>
-  //     </div>
-  //   );
-  // };
-  // const DeclineSpotContent = () => (
-  //   <GrayBox
-  //     style={{
-  //       maxWidth: '30rem',
-  //       display: 'flex',
-  //       flexDirection: 'column',
-  //       gap: '20px',
-  //     }}
-  //   >
-  //     <div>
-  //       <H2>Are you sure?</H2>
-  //       <Text>
-  //         Once submitted, you confirm that you will not be able to join HackSC
-  //         X. This action is irreversible.
-  //       </Text>
-  //     </div>
-  //     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-  //       <Button
-  //         color="red"
-  //         onClick={async (e) => {
-  //           e.stopPropagation();
-  //           setModalOpen(false);
-  //           await client
-  //             .from('user_profiles')
-  //             .update({ attendance_confirmed: false })
-  //             .eq('user_id', user.id);
-  //           updateUser({ attendanceConfirmed: false });
-  //         }}
-  //       >
-  //         CONFIRM
-  //       </Button>
-  //     </div>
-  //   </GrayBox>
-  // );
-  // if (user.attendanceConfirmed === true) {
-  //   if (isEventOpen === null) {
-  //     return <></>;
-  //   } else if (isEventOpen) {
-  //     router.push('/leaderboard');
-  //     return <></>;
-  //   } else {
-  //     return <ConfirmedPlaceholder />;
-  //   }
-  // } else if (user.attendanceConfirmed === false) {
-  //   return <DeclinedPlaceholder />;
-  // }
-  // return (
-  //   <>
-  //     <WelcomeHeader />
-  //     {renderApplyMessage()}
-  //     <div
-  //       style={{
-  //         display: 'flex',
-  //         backgroundColor: '#3b3b3b',
-  //         padding: 20,
-  //         borderRadius: 10,
-  //         marginTop: 20,
-  //         boxShadow: `0px 0px 5px #8e8e8e`,
-  //       }}
-  //     >
-  //       <GlowSpan color={Colors2023.GRAY.LIGHT} style={{ fontSize: 20 }}>
-  //         Your Application Status: {getApplicationStatus()}
-  //       </GlowSpan>
-  //     </div>
-  //     <MessageContainer>
-  //       {user.applicationStatus === ApplicationStatus.ADMITTED ? (
-  //         <>
-  //           <Modal isOpen={modalOpen} closeModal={closeModal}>
-  //             {choice === 'ACCEPT' && <RSVPForm closeModal={closeModal} />}
-  //             {choice === 'DECLINE' && <DeclineSpotContent />}
-  //           </Modal>
-  //           <RSVPPlaceholder />
-  //         </>
-  //       ) : user.applicationStatus === ApplicationStatus.NOT_ADMITTED ? (
-  //         <RejectionMessage />
-  //       ) : (
-  //         <ComingSoon />
-  //       )}
-  //     </MessageContainer>
-  //   </>
-  // );
-
   const [modalOpen, setModalOpen] = useState(false);
   const { user, updateUser } = useHibiscusUser();
   const closeModal = () => setModalOpen(false);
+  const userColors = getColorsForRole(user?.role ?? HibiscusRole.HACKER);
   const [choice, setChoice] = useState<RSVPChoice | null>(null);
   const { supabase: hbc } = useHibiscusSupabase();
   const client = hbc.getClient();
+  const router = useRouter();
+  const WelcomeHeader = () => (
+    <div
+      style={{
+        display: 'inline-flex',
+        width: '100%',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <WelcomeContainer>
+        <H1
+          style={{
+            color: userColors.light,
+            fontSize: '30px',
+            textShadow: `0px 0px 10px ${userColors.standard}`,
+          }}
+        >
+          Welcome, {user.firstName}
+        </H1>
+        <H3 style={{ color: '#989898' }}>What would you like to do today?</H3>
+      </WelcomeContainer>
+    </div>
+  );
+  const getApplicationStatus = () => {
+    return (
+      <span
+        style={{
+          backgroundColor:
+            (user.applicationStatus === ApplicationStatus.NOT_APPLIED &&
+              Colors2023.GRAY.DARK) ||
+            (user.applicationStatus === ApplicationStatus.STARTED &&
+              Colors2023.YELLOW.DARK) ||
+            (user.applicationStatus === ApplicationStatus.ADMITTED &&
+              Colors2023.GREEN.DARK) ||
+            (user.applicationStatus === ApplicationStatus.NOT_ADMITTED &&
+              Colors2023.RED.DARK) ||
+            (user.applicationStatus === ApplicationStatus.IN_REVIEW &&
+              Colors2023.BLUE.DARK),
+          color:
+            (user.applicationStatus === ApplicationStatus.NOT_APPLIED &&
+              Colors2023.GRAY.LIGHT) ||
+            (user.applicationStatus === ApplicationStatus.STARTED &&
+              Colors2023.YELLOW.LIGHT) ||
+            (user.applicationStatus === ApplicationStatus.ADMITTED &&
+              Colors2023.GREEN.LIGHT) ||
+            (user.applicationStatus === ApplicationStatus.NOT_ADMITTED &&
+              Colors2023.RED.LIGHT) ||
+            (user.applicationStatus === ApplicationStatus.IN_REVIEW &&
+              Colors2023.BLUE.LIGHT),
+          fontWeight: 500,
+          padding: 8,
+          borderRadius: 8,
+          fontSize: '15px',
+        }}
+      >
+        {(user.applicationStatus === ApplicationStatus.NOT_APPLIED &&
+          'Not Applied') ||
+          (user.applicationStatus === ApplicationStatus.STARTED &&
+            'Application Started') ||
+          (user.applicationStatus === ApplicationStatus.ADMITTED &&
+            'Admitted') ||
+          (user.applicationStatus === ApplicationStatus.NOT_ADMITTED &&
+            'Not Admitted') ||
+          (user.applicationStatus === ApplicationStatus.IN_REVIEW &&
+            'In Review')}
+      </span>
+    );
+  };
+  const renderApplyMessage = () => {
+    if (user.applicationStatus === ApplicationStatus.NOT_APPLIED) {
+      return (
+        <Container>
+          <Stars>
+            <StarTop style={{ position: 'absolute', top: -150, zIndex: -1 }} />
+            <StarBottom
+              style={{ position: 'absolute', right: 0, bottom: 0, zIndex: -1 }}
+            />
+          </Stars>
+          <CenterContainer>
+            <Heading>HackSC 2024 Application</Heading>
+            <TextBody>
+              Ready for another fun year of hacking? Join us at our SoCal Tech
+              Week 24 hour hackathon! While the application deadline has passed,
+              you can still join our waitlist.
+            </TextBody>
 
+            <HackSCGuy
+              style={{ marginBottom: -30, zIndex: 1, marginTop: 30 }}
+            />
+            <Link
+              href={'/apply-2024'}
+              passHref
+              anchortagpropsoverride={{ target: '_self' }}
+            >
+              <RedButton>Join the Waitlist</RedButton>
+            </Link>
+          </CenterContainer>
+        </Container>
+        // <BannerContainer>
+        //   <GlowSpan
+        //     color={Colors2023.GRAY.LIGHT}
+        //     shadowColor={Colors2023.BLUE.STANDARD}
+        //     style={{ fontSize: 20 }}
+        //   >
+        //     {appsOpen
+        //       ? "You have not applied to HackSC X yet!"
+        //       : "Applications for HackSC X has closed"}
+        //   </GlowSpan>
+        //   <ApplyButton>
+        //     <Link
+        //       href="/apply-2023-x"
+        //       anchortagpropsoverride={{ target: "_self" }}
+        //     >
+        //       {appsOpen ? "Apply now" : "Join the waitlist"}
+        //     </Link>
+        //   </ApplyButton>
+        // </BannerContainer>
+      );
+    }
+  };
+  const RSVPPlaceholder = () => {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <CongratsMessage />
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <Button
+            color="red"
+            onClick={() => {
+              setChoice('DECLINE');
+              setModalOpen(true);
+            }}
+          >
+            DECLINE YOUR SPOT
+          </Button>
+          <Button
+            color="black"
+            onClick={() => {
+              setChoice('ACCEPT');
+              setModalOpen(true);
+            }}
+          >
+            CONFIRM YOUR SPOT
+          </Button>
+        </div>
+      </div>
+    );
+  };
   const DeclineSpotContent = () => (
     <GrayBox
       style={{
@@ -253,20 +191,17 @@ export function HackerPortal({ isEventOpen, appsOpen }: HackerPortalProps) {
         display: 'flex',
         flexDirection: 'column',
         gap: '20px',
-        background: 'white',
-        color: '#ff6347',
-        borderColor: '#ffb1a3',
       }}
     >
       <div>
         <H2>Are you sure?</H2>
         <Text>
-          Once submitted, you confirm that you will not be able to join SoCal
-          Tech Week. This action is irreversible.
+          Once submitted, you confirm that you will not be able to join HackSC
+          X. This action is irreversible.
         </Text>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <RedButton
+        <Button
           color="red"
           onClick={async (e) => {
             e.stopPropagation();
@@ -279,120 +214,213 @@ export function HackerPortal({ isEventOpen, appsOpen }: HackerPortalProps) {
           }}
         >
           CONFIRM
-        </RedButton>
+        </Button>
       </div>
     </GrayBox>
   );
-
-  if (user === null) {
-    return (
-      <Container>
-        <CenterContainer>
-          <Heading3>Loading...</Heading3>
-        </CenterContainer>
-      </Container>
-    );
-  }
-
-  if (user.applicationStatus == ApplicationStatus.NOT_APPLIED) {
-    return (
-      <Container>
-        <Stars>
-          <StarTop style={{ position: 'absolute', top: -150, zIndex: -1 }} />
-          <StarBottom
-            style={{ position: 'absolute', right: 0, bottom: 0, zIndex: -1 }}
-          />
-        </Stars>
-        <CenterContainer>
-          <Heading>HackSC 2024 Application</Heading>
-          <TextBody>
-            Ready for another fun year of hacking? Join us at our SoCal Tech
-            Week 24 hour hackathon! While the application deadline has passed,
-            you can still join our waitlist.
-          </TextBody>
-
-          <HackSCGuy style={{ marginBottom: -30, zIndex: 1, marginTop: 30 }} />
-          <Link
-            href={'/apply-2024'}
-            passHref
-            anchortagpropsoverride={{ target: '_self' }}
-          >
-            <RedButton>Join the Waitlist</RedButton>
-          </Link>
-        </CenterContainer>
-      </Container>
-    );
-  }
-
-  if (user.applicationStatus == ApplicationStatus.IN_REVIEW) {
-    return (
-      <Container>
-        <CenterContainer>
-          <HackSCGuy />
-          <Heading3>
-            Your application has been submitted! We will get back to you a few
-            days before the event in the case that a spot opens up.
-          </Heading3>
-        </CenterContainer>
-      </Container>
-    );
-  }
-
-  if (
-    user.applicationStatus == ApplicationStatus.ADMITTED &&
-    user.attendanceConfirmed == null
-  ) {
-    return (
-      <Container>
-        <CenterContainer>
-          <CongratsMessage />
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <RedButton
-              onClick={() => {
-                setChoice('DECLINE');
-                setModalOpen(true);
-              }}
-            >
-              DECLINE YOUR SPOT
-            </RedButton>
-            <GreenButton
-              onClick={() => {
-                setChoice('ACCEPT');
-                setModalOpen(true);
-              }}
-            >
-              CONFIRM YOUR SPOT
-            </GreenButton>
-          </div>
-        </CenterContainer>
-
-        <Modal isOpen={modalOpen} closeModal={closeModal}>
-          {choice === 'ACCEPT' && <RSVPForm closeModal={closeModal} />}
-          {choice === 'DECLINE' && <DeclineSpotContent />}
-        </Modal>
-      </Container>
-    );
-  }
-
   if (user.attendanceConfirmed === true) {
-    return (
-      <Container>
-        <CenterContainer>
-          <ConfirmedPlaceholder />
-        </CenterContainer>
-      </Container>
-    );
+    if (isEventOpen === null) {
+      return <></>;
+    } else if (isEventOpen) {
+      router.push('/leaderboard');
+      return <></>;
+    } else {
+      return <ConfirmedPlaceholder />;
+    }
+  } else if (user.attendanceConfirmed === false) {
+    return <DeclinedPlaceholder />;
   }
+  return (
+    <>
+      <WelcomeHeader />
+      {renderApplyMessage()}
+      <div
+        style={{
+          display: 'flex',
+          backgroundColor: '#3b3b3b',
+          padding: 20,
+          borderRadius: 10,
+          marginTop: 20,
+          boxShadow: `0px 0px 5px #8e8e8e`,
+        }}
+      >
+        <GlowSpan color={Colors2023.GRAY.LIGHT} style={{ fontSize: 20 }}>
+          Your Application Status: {getApplicationStatus()}
+        </GlowSpan>
+      </div>
+      <MessageContainer>
+        {user.applicationStatus === ApplicationStatus.ADMITTED ? (
+          <>
+            <Modal isOpen={modalOpen} closeModal={closeModal}>
+              {choice === 'ACCEPT' && <RSVPForm closeModal={closeModal} />}
+              {choice === 'DECLINE' && <DeclineSpotContent />}
+            </Modal>
+            <RSVPPlaceholder />
+          </>
+        ) : user.applicationStatus === ApplicationStatus.NOT_ADMITTED ? (
+          <RejectionMessage />
+        ) : (
+          <ComingSoon />
+        )}
+      </MessageContainer>
+    </>
+  );
 
-  if (user.attendanceConfirmed === false) {
-    return (
-      <Container>
-        <CenterContainer>
-          <DeclinedPlaceholder />
-        </CenterContainer>
-      </Container>
-    );
-  }
+  // COMMENTED OUT - Duplicate definitions, using uncommented code above instead
+  // const [modalOpen, setModalOpen] = useState(false);
+  // const { user, updateUser } = useHibiscusUser();
+  // const closeModal = () => setModalOpen(false);
+  // const [choice, setChoice] = useState<RSVPChoice | null>(null);
+  // const { supabase: hbc } = useHibiscusSupabase();
+  // const client = hbc.getClient();
+
+  // const DeclineSpotContent = () => (
+  //   <GrayBox
+  //     style={{
+  //       maxWidth: "30rem",
+  //       display: "flex",
+  //       flexDirection: "column",
+  //       gap: "20px",
+  //       background: "white",
+  //       color: "#ff6347",
+  //       borderColor: "#ffb1a3",
+  //     }}
+  //   >
+  //     <div>
+  //       <H2>Are you sure?</H2>
+  //       <Text>
+  //         Once submitted, you confirm that you will not be able to join SoCal
+  //         Tech Week. This action is irreversible.
+  //       </Text>
+  //     </div>
+  //     <div style={{ display: "flex", justifyContent: "flex-end" }}>
+  //       <RedButton
+  //         color="red"
+  //         onClick={async (e) => {
+  //           e.stopPropagation();
+  //           setModalOpen(false);
+  //           await client
+  //             .from("user_profiles")
+  //             .update({ attendance_confirmed: false })
+  //             .eq("user_id", user.id);
+  //           updateUser({ attendanceConfirmed: false });
+  //         }}
+  //       >
+  //         CONFIRM
+  //       </RedButton>
+  //     </div>
+  //   </GrayBox>
+  // );
+
+  // if (user === null) {
+  //   return (
+  //     <Container>
+  //       <CenterContainer>
+  //         <Heading3>Loading...</Heading3>
+  //       </CenterContainer>
+  //     </Container>
+  //   );
+  // }
+
+  // if (user.applicationStatus == ApplicationStatus.NOT_APPLIED) {
+  //   return (
+  //     <Container>
+  //       <Stars>
+  //         <StarTop style={{ position: "absolute", top: -150, zIndex: -1 }} />
+  //         <StarBottom
+  //           style={{ position: "absolute", right: 0, bottom: 0, zIndex: -1 }}
+  //         />
+  //       </Stars>
+  //       <CenterContainer>
+  //         <Heading>HackSC 2024 Application</Heading>
+  //         <TextBody>
+  //           Ready for another fun year of hacking? Join us at our SoCal Tech
+  //           Week 24 hour hackathon! While the application deadline has passed,
+  //           you can still join our waitlist.
+  //         </TextBody>
+
+  //         <HackSCGuy style={{ marginBottom: -30, zIndex: 1, marginTop: 30 }} />
+  //         <Link
+  //           href={"/apply-2024"}
+  //           passHref
+  //           anchortagpropsoverride={{ target: "_self" }}
+  //         >
+  //           <RedButton>Join the Waitlist</RedButton>
+  //         </Link>
+  //       </CenterContainer>
+  //     </Container>
+  //   );
+  // }
+
+  // if (user.applicationStatus == ApplicationStatus.IN_REVIEW) {
+  //   return (
+  //     <Container>
+  //       <CenterContainer>
+  //         <HackSCGuy />
+  //         <Heading3>
+  //           Your application has been submitted! We will get back to you a few
+  //           days before the event in the case that a spot opens up.
+  //         </Heading3>
+  //       </CenterContainer>
+  //     </Container>
+  //   );
+  // }
+
+  // if (
+  //   user.applicationStatus == ApplicationStatus.ADMITTED &&
+  //   user.attendanceConfirmed == null
+  // ) {
+  //   return (
+  //     <Container>
+  //       <CenterContainer>
+  //         <CongratsMessage />
+  //         <div style={{ display: "flex", gap: "10px" }}>
+  //           <RedButton
+  //             onClick={() => {
+  //               setChoice("DECLINE");
+  //               setModalOpen(true);
+  //             }}
+  //           >
+  //             DECLINE YOUR SPOT
+  //           </RedButton>
+  //           <GreenButton
+  //             onClick={() => {
+  //               setChoice("ACCEPT");
+  //               setModalOpen(true);
+  //             }}
+  //           >
+  //             CONFIRM YOUR SPOT
+  //           </GreenButton>
+  //         </div>
+  //       </CenterContainer>
+
+  //       <Modal isOpen={modalOpen} closeModal={closeModal}>
+  //         {choice === "ACCEPT" && <RSVPForm closeModal={closeModal} />}
+  //         {choice === "DECLINE" && <DeclineSpotContent />}
+  //       </Modal>
+  //     </Container>
+  //   );
+  // }
+
+  // if (user.attendanceConfirmed === true) {
+  //   return (
+  //     <Container>
+  //       <CenterContainer>
+  //         <ConfirmedPlaceholder />
+  //       </CenterContainer>
+  //     </Container>
+  //   );
+  // }
+
+  // if (user.attendanceConfirmed === false) {
+  //   return (
+  //     <Container>
+  //       <CenterContainer>
+  //         <DeclinedPlaceholder />
+  //       </CenterContainer>
+  //     </Container>
+  //   );
+  // }
 }
 
 export default HackerPortal;
@@ -539,53 +567,53 @@ const StarBottom = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-// const ApplyButton = styled.button`
-//   cursor: pointer;
-//   background-color: ${Colors2023.GREEN.DARK};
-//   color: #f4f4f4;
-//   font-weight: 500;
-//   padding: 8px;
-//   border-radius: 8px;
-//   font-size: 15px;
-//   transition: all 0.3s;
-//   margin-left: 10px;
+const ApplyButton = styled.button`
+  cursor: pointer;
+  background-color: ${Colors2023.GREEN.DARK};
+  color: #f4f4f4;
+  font-weight: 500;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.3s;
+  margin-left: 10px;
 
-//   &:hover {
-//     background-color: #026440;
-//     color: #e9ffc5;
-//     transition: all 0.3s;
-//   }
+  &:hover {
+    background-color: #026440;
+    color: #e9ffc5;
+    transition: all 0.3s;
+  }
 
-//   @media (max-width: 400px) {
-//     margin-left: 0px;
-//   }
-// `;
+  @media (max-width: 400px) {
+    margin-left: 0px;
+  }
+`;
 
-// const MessageContainer = styled.div`
-//   display: flex;
-//   flex-direction: column;
+const MessageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
 
-//   justify-content: center;
-//   align-items: center;
-//   gap: 5px;
-//   padding-top: 50px;
-// `;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  padding-top: 50px;
+`;
 
-// const BannerContainer = styled.div`
-//   display: flex;
-//   background-color: #3b3b3b;
-//   padding: 15px;
-//   border-radius: 10px;
-//   margin-top: 20px;
-//   box-shadow: 0px 0px 5px #8e8e8e;
+const BannerContainer = styled.div`
+  display: flex;
+  background-color: #3b3b3b;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 20px;
+  box-shadow: 0px 0px 5px #8e8e8e;
 
-//   @media (max-width: 400px) {
-//     flex-direction: column;
-//   }
-// `;
+  @media (max-width: 400px) {
+    flex-direction: column;
+  }
+`;
 
-// const WelcomeContainer = styled.div`
-//   @media (max-width: 400px) {
-//     margin-top: 5rem;
-//   }
-// `;
+const WelcomeContainer = styled.div`
+  @media (max-width: 400px) {
+    margin-top: 5rem;
+  }
+`;
