@@ -46,6 +46,8 @@ describe('GET /api/verify-token', () => {
     const env: Bindings = {
       SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
       SUPABASE_URL: process.env.SUPABASE_URL,
+      INVITE_REDIRECT_URL: 'http://localhost:4201',
+      MASTER_TOKEN: 'test-master-token',
     };
     const res = await app.fetch(
       new Request(`http://localhost/api/verify-token/${token}`),
@@ -63,6 +65,8 @@ describe('GET /api/verify-token', () => {
     const env: Bindings = {
       SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
       SUPABASE_URL: process.env.SUPABASE_URL,
+      INVITE_REDIRECT_URL: 'http://localhost:4201',
+      MASTER_TOKEN: 'test-master-token',
     };
     const res = await app.fetch(
       new Request(`http://localhost/api/verify-token/blahblah`),
