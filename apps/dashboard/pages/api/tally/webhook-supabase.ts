@@ -95,7 +95,7 @@ async function updateDb(
 
   const res = await supabase
     .from('user_profiles')
-    .update({ app_id: applicationId, application_status: 3 })
+    .update({ app_id: applicationId, application_status: 2 }) // REGISTERED
     .eq('user_id', userId)
     .select();
 

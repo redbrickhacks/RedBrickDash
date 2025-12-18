@@ -186,6 +186,7 @@
     "jest-environment-miniflare": "^2.14.1",
     "jsdom": "~20.0.3",
     "miniflare": "^3.20230904.0",
+    "node-mocks-http": "^1.17.2",
     "nx": "15.4.1",
     "postcss": "^8.4.47",
     "prettier": "^2.6.2",
