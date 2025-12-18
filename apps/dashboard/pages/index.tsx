@@ -14,6 +14,13 @@ import RSVPClosedPlaceholder from '../components/hacker-portal/rsvp-closed-place
 // import { get } from '@vercel/edge-config'; // Disabled - Vercel-specific feature
 import { useRouter } from 'next/router';
 import { useHibiscusSupabase } from '@hibiscus/hibiscus-supabase-context';
+import {
+  OnlineRoundPortal,
+  FinalistRSVP,
+  NotSelectedPlaceholder,
+} from '../components/online-round-portal';
+import ConfirmedPlaceholder from '../components/hacker-portal/confirmed-placeholder';
+import DeclinedPlaceholder from '../components/hacker-portal/declined-placeholder';
 
 const RSVP_PERIOD = 4 * 24 * 60 * 60 * 1000; // 4 days in milliseconds
 
@@ -85,22 +92,42 @@ export function Index({ appsOpen, waitlistOpen }: ServerSideProps) {
 
   const Dashboard = () => {
     if (user.role === HibiscusRole.HACKER) {
-      if (
-        !appsOpen &&
-        !waitlistOpen &&
-        !isHackerPostAppStatus(user.applicationStatus)
-      ) {
-        return <AppsClosedPlaceholder />;
-      } else if (
-        user.applicationStatus === ApplicationStatus.ADMITTED &&
-        user.attendanceConfirmed === null &&
-        !rsvpFormOpen
-      ) {
-        return <RSVPClosedPlaceholder />;
-      } else if (user.attendanceConfirmed === true) {
-        router.push('/leaderboard');
-        return <></>;
+      // Not applied - show apply button or apps closed
+      if (user.applicationStatus === ApplicationStatus.NOT_APPLIED) {
+        if (!appsOpen && !waitlistOpen) {
+          return <AppsClosedPlaceholder />;
+        }
+        return (
+          <HackerPortal isEventOpen={hackerPortalOpen} appsOpen={appsOpen} />
+        );
       }
+
+      // Registered - show online round portal (team + submission)
+      if (user.applicationStatus === ApplicationStatus.REGISTERED) {
+        return <OnlineRoundPortal />;
+      }
+
+      // Finalist awaiting RSVP
+      if (user.applicationStatus === ApplicationStatus.FINALIST) {
+        return <FinalistRSVP />;
+      }
+
+      // Confirmed for nationals
+      if (user.applicationStatus === ApplicationStatus.CONFIRMED) {
+        return <ConfirmedPlaceholder />;
+      }
+
+      // Declined spot
+      if (user.applicationStatus === ApplicationStatus.DECLINED) {
+        return <DeclinedPlaceholder />;
+      }
+
+      // Not selected
+      if (user.applicationStatus === ApplicationStatus.NOT_SELECTED) {
+        return <NotSelectedPlaceholder />;
+      }
+
+      // Fallback to legacy hacker portal for any other status
       return (
         <HackerPortal isEventOpen={hackerPortalOpen} appsOpen={appsOpen} />
       );
