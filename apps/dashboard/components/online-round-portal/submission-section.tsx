@@ -14,10 +14,15 @@ interface SubmissionSectionProps {
   onUpdate: (team: any) => void;
 }
 
+// Submission deadline: January 14, 2026 11:59 PM PST (UTC-8)
+const SUBMISSION_DEADLINE = new Date('2026-01-15T07:59:00Z');
+
 export function SubmissionSection({ team, onUpdate }: SubmissionSectionProps) {
   const { supabase } = useHibiscusSupabase();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const isPastDeadline = new Date() > SUBMISSION_DEADLINE;
 
   const [formData, setFormData] = useState({
     trackId: team.track_id || '',
@@ -41,6 +46,12 @@ export function SubmissionSection({ team, onUpdate }: SubmissionSectionProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isPastDeadline) {
+      toast.error('Submission deadline has passed');
+      return;
+    }
+
     setLoading(true);
 
     if (!formData.trackId) {
@@ -100,13 +111,22 @@ export function SubmissionSection({ team, onUpdate }: SubmissionSectionProps) {
     <Container>
       <Header>
         <h2>Final Submission</h2>
-        {isSubmitted && (
+        {isPastDeadline ? (
+          <ClosedBadge>Submissions Closed</ClosedBadge>
+        ) : isSubmitted ? (
           <StatusBadge>
             Submitted on{' '}
             {new Date(team.final_submitted_at).toLocaleDateString()}
           </StatusBadge>
-        )}
+        ) : null}
       </Header>
+
+      {isPastDeadline && !isSubmitted && (
+        <ClosedMessage>
+          The submission deadline has passed. No new submissions are being
+          accepted.
+        </ClosedMessage>
+      )}
 
       <Form onSubmit={handleSubmit}>
         <FormGroup>
@@ -167,8 +187,14 @@ export function SubmissionSection({ team, onUpdate }: SubmissionSectionProps) {
           <HelpText>YouTube link (unlisted or public)</HelpText>
         </FormGroup>
 
-        <SubmitButton type="submit" disabled={loading}>
-          {loading ? 'Saving...' : isSubmitted ? 'Update Submission' : 'Submit'}
+        <SubmitButton type="submit" disabled={loading || isPastDeadline}>
+          {isPastDeadline
+            ? 'Submissions Closed'
+            : loading
+            ? 'Saving...'
+            : isSubmitted
+            ? 'Update Submission'
+            : 'Submit'}
         </SubmitButton>
       </Form>
 
@@ -202,6 +228,23 @@ const StatusBadge = styled.span`
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-size: 0.875rem;
+`;
+
+const ClosedBadge = styled.span`
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+`;
+
+const ClosedMessage = styled.div`
+  background: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  text-align: center;
 `;
 
 const Form = styled.form`
