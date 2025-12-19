@@ -1,14 +1,8 @@
+import 'reflect-metadata';
 import { DashboardRepository } from '../../../repository/dashboard.repository';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { container } from 'tsyringe';
-import { HibiscusSupabaseClient } from '@hibiscus/hibiscus-supabase-client';
-import { getEnv } from '@hibiscus/env';
-
-const getTokensFromCookies = (req: NextApiRequest) => {
-  const accessToken = req.cookies[getEnv().Hibiscus.Cookies.accessTokenName];
-  const refreshToken = req.cookies[getEnv().Hibiscus.Cookies.refreshTokenName];
-  return { accessToken, refreshToken };
-};
+import { getAuthenticatedUser } from '../../../common/auth';
 
 /**
  * inviteApprove - When the team leader accepts the join request by another user]
@@ -23,6 +17,11 @@ export default async function handler(
 ) {
   if (req.method !== 'PUT') {
     return res.status(401).send({ message: 'Method not supported' });
+  }
+
+  const user = await getAuthenticatedUser(req);
+  if (!user) {
+    return res.status(401).json({ message: 'Unauthorized' });
   }
 
   try {
@@ -43,13 +42,10 @@ export default async function handler(
     const teamId: string = result.data[0]['team_id'];
     const invitedId: string = result.data[0]['invited_id'];
 
-    // check if user is the one making invite
-    const { accessToken, refreshToken } = getTokensFromCookies(req);
-    const hbc = container.resolve(HibiscusSupabaseClient);
-    // const user = await hbc.getUserProfile(accessToken, refreshToken);
-    // if(user.user_id!==invitedId) {
-    //   throw new Error("You may not accept this invite");
-    // }
+    // Verify the authenticated user is the one who was invited
+    if (user.user_id !== invitedId) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
 
     //check to make sure team isn't full
     result = await repo.getAllTeamMembers(teamId);
