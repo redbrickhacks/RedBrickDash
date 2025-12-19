@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { container } from 'tsyringe';
 import { DashboardRepository } from '../../../repository/dashboard.repository';
-import { TSRV_RELEASE_FLAG } from '../../../common/constants';
+import { getAuthenticatedUser } from '../../../common/auth';
 
 /**
  * Creates a team in the teams table
@@ -15,20 +15,24 @@ export default async function createTeam(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  const user = await getAuthenticatedUser(req);
+  if (!user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   const repo = container.resolve(DashboardRepository);
   const name: string = req.body.name;
   const description: string | null = req.body.description;
   const photoKey: string | null = req.body.photoKey;
   const organizerId: string = req.body.organizerId;
 
+  if (user.user_id !== organizerId) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+
   try {
-    //check to make sure accepted member doesn't already have a team
-    //test name isnt "". Null and "" should be caught by frontend anyway but just in case
     if (!name) {
       throw new Error('Name cannot be empty.');
-    }
-    if (!organizerId) {
-      throw new Error('Organizer ID is empty.');
     }
 
     //this could be redundant since supabase checks organizer_id is unique.

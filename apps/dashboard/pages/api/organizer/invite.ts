@@ -3,11 +3,17 @@ import { DashboardRepository } from '../../../repository/dashboard.repository';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { container } from 'tsyringe';
 import { UserRepository } from '../../../repository/user.repository';
+import { getAuthenticatedUser } from '../../../common/auth';
 
-export default async function invite( //anyone in a team can invite
+export default async function invite(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  const user = await getAuthenticatedUser(req);
+  if (!user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   try {
     const repo = container.resolve(DashboardRepository);
     const userRepo = container.resolve(UserRepository);
@@ -19,6 +25,10 @@ export default async function invite( //anyone in a team can invite
       throw new Error(
         'One of more required parameters is missing from message body.'
       );
+    }
+
+    if (user.user_id !== organizerId) {
+      return res.status(403).json({ message: 'Forbidden' });
     }
 
     const { data, error } = await repo.getUserTeam(organizerId);

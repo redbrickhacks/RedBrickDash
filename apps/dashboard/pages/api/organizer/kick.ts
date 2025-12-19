@@ -1,11 +1,18 @@
+import 'reflect-metadata';
 import { DashboardRepository } from '../../../repository/dashboard.repository';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { container } from 'tsyringe';
+import { getAuthenticatedUser } from '../../../common/auth';
 
 export default async function kickTeamMember(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  const user = await getAuthenticatedUser(req);
+  if (!user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   try {
     const repo = container.resolve(DashboardRepository);
     const kickId: string = req.body.kickId;
@@ -14,7 +21,7 @@ export default async function kickTeamMember(
       throw new Error('One or more of the required parameters is missing.');
     }
 
-    //verify user is organizer of team
+    // Get team info for the user being kicked
     const userTeamResponse = await repo.getUserTeam(kickId);
     if (userTeamResponse.error) {
       throw new Error(userTeamResponse.error.message);
@@ -24,13 +31,11 @@ export default async function kickTeamMember(
     if (teamInfoResponse.error) {
       throw new Error(teamInfoResponse.error.message);
     }
-    const organizerId = teamInfoResponse.data.organizer_id;
-    const isOrganizer = await repo.verifyUserIsOrganizer(organizerId, teamId);
 
-    if (!isOrganizer) {
-      throw new Error(
-        'User is not the organizer and not authorized to this function.'
-      );
+    // Verify the authenticated user is the organizer of the team
+    const organizerId = teamInfoResponse.data.organizer_id;
+    if (user.user_id !== organizerId) {
+      return res.status(403).json({ message: 'Forbidden' });
     }
 
     //find kickId in user_profiles and set team_id to null

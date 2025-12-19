@@ -1,11 +1,18 @@
+import 'reflect-metadata';
 import { DashboardRepository } from '../../../repository/dashboard.repository';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { container } from 'tsyringe';
+import { getAuthenticatedUser } from '../../../common/auth';
 
 export default async function disbandTeam(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  const user = await getAuthenticatedUser(req);
+  if (!user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   try {
     const repo = container.resolve(DashboardRepository);
     const teamId: string = req.body.team_id;
@@ -13,6 +20,10 @@ export default async function disbandTeam(
 
     if (!teamId) throw new Error('Team ID is missing.');
     if (!organizerId) throw new Error('Organizer ID is missing.');
+
+    if (user.user_id !== organizerId) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
 
     // verify user is organizer of team
     const isOrganizer = await repo.verifyUserIsOrganizer(organizerId, teamId);
