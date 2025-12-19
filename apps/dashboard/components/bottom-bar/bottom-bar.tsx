@@ -11,9 +11,8 @@ import HackSCLogoNoWords from '../svg/hacksc-logo-nowords';
 export function BottomBar() {
   return (
     <StyledBottomBar>
-      <HackSCLogoNoWords />
       <UserText>
-        Powered by <span style={{ fontWeight: 700 }}>HackSC</span>
+        Powered by <span style={{ fontWeight: 700 }}>RedBrick Hacks</span>
       </UserText>
     </StyledBottomBar>
   );

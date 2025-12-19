@@ -144,13 +144,8 @@ function StyledSideNav() {
       {isSmallScreen ? null : (
         <MainWrapper>
           <HeadingContainer>
-            <Image
-              src={hibiscusIcon}
-              alt="HackSC Logo"
-              width={40}
-              height={40}
-            />
-            <StyledH1> HackSC X </StyledH1>
+            <Image src={hibiscusIcon} alt="RBH Logo" width={40} height={40} />
+            <StyledH1> RedBrick Hacks III</StyledH1>
           </HeadingContainer>
 
           {items.map((it) => (

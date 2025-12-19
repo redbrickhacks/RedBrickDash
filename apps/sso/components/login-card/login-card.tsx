@@ -17,8 +17,6 @@ import {
   OneLineText,
 } from '@hibiscus/ui-kit-2023';
 import Link from 'next/link';
-import HackSCLogo from '../svg/hacksc-logo';
-import HackSCGuy from '../svg/hacksc-guy';
 
 export function LoginCard() {
   const [hideErrorMessage, setHideErrorMessage] = useState(true);
@@ -60,9 +58,14 @@ export function LoginCard() {
       {/* Add Styled Shapes for page */}
       <BackgroundShapes></BackgroundShapes>
       <StyledAuthCard>
-        <HackSCGuy />
         <HeadingContainer>
-          <HackSCLogo />
+          <Image
+            style={{ margin: '5px 0 0 20px' }}
+            width="200"
+            height="100"
+            src="/hacksc-logo2.svg"
+            alt="RBH logo"
+          />
           <h2 className="m-0 mb-[10px] text-lg">Sign-In</h2>
         </HeadingContainer>
         <StyledForm onSubmit={handleSubmit}>

@@ -39,7 +39,7 @@ const SideNav = ({ options }: Props) => {
         }}
       >
         <div style={{ margin: '50px 0px 50px 0px' }}>
-          <Image src={HackSCLogo2} alt="HackSC" width={150} height={75} />
+          <Image src={HackSCLogo2} alt="RBH" width={150} height={75} />
         </div>
 
         {options.map((option) => (
@@ -56,9 +56,9 @@ const SideNav = ({ options }: Props) => {
 
       <div style={{ width: '100%' }}>
         <div style={{ fontSize: 11, margin: 25 }}>
-          <div style={{ marginBottom: 5 }}>Contact HackSC Support</div>
-          <div>(213)-513-1234</div>
-          <div>team@hacksc.com</div>
+          <div style={{ marginBottom: 5 }}>Contact RBH Support</div>
+          <div>+91 90500 14105</div>
+          <div>redbrickhacks@ashoka.edu.in</div>
         </div>
         <LogoutButton onClick={logout}>
           <div>Log out</div>

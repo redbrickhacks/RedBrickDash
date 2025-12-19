@@ -84,9 +84,14 @@ export function SignUpCard(props: SignUpProps) {
       {/* Add Styled Shapes for page */}
       <BackgroundShapes></BackgroundShapes>
       <StyledAuthCard>
-        <HackSCGuyDrawing />
         <HeadingContainer>
-          <HackSCLogo />
+          <Image
+            style={{ margin: '5px 0 0 20px' }}
+            width="200"
+            height="100"
+            src="/hacksc-logo2.svg"
+            alt="RBH logo"
+          />
           <h2 className="m-0 mb-[10px] text-lg">Create an Account</h2>
         </HeadingContainer>
         <StyledForm onSubmit={handleSubmit}>

@@ -18,14 +18,13 @@ export function TopBar(props: TopBarProps) {
   return (
     <StyledTopBar>
       <Link href="/" anchortagpropsoverride={{ target: '_self' }}>
-        {/* <Image
+        <Image
           style={{ margin: '5px 0 0 20px' }}
           width="200"
           height="100"
-          src="/hacksc-logo.svg"
-          alt="HackSC logo"
-        /> */}
-        <HackSCLogo />
+          src="/hacksc-logo2.svg"
+          alt="RBH logo"
+        />
       </Link>
       <RightUtilityContainer>
         <UserText>{props.userTag}</UserText>
