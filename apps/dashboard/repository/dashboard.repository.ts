@@ -1,20 +1,10 @@
 import { injectable } from 'tsyringe';
 import { HibiscusSupabaseClient } from '@hibiscus/hibiscus-supabase-client';
-import { SESClient, SendTemplatedEmailCommand } from '@aws-sdk/client-ses';
-import { getEnv } from '@hibiscus/env';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 @injectable()
 export class DashboardRepository {
   private client: SupabaseClient;
-  private static readonly env = getEnv();
-  private static readonly ses = new SESClient({
-    credentials: {
-      accessKeyId: DashboardRepository.env.Hibiscus.AWS.accessKeyID,
-      secretAccessKey: DashboardRepository.env.Hibiscus.AWS.secretAccessKey,
-    },
-    region: DashboardRepository.env.Hibiscus.AWS.region,
-  });
 
   constructor(private readonly hbc: HibiscusSupabaseClient) {
     hbc.setOptions({ useServiceKey: true });
@@ -279,45 +269,5 @@ export class DashboardRepository {
       .select();
 
     return { data, error };
-  }
-
-  async sendTeamInviteEmail(
-    toAddress: string,
-    recipient: string,
-    organizerName: string,
-    teamName: string,
-    invitationId: string
-  ) {
-    const TEMPLATE_NAME = 'InviteTemplate';
-    const acceptInviteLink =
-      getEnv().Hibiscus.AppURL.portal +
-      `/invite/accept?inviteId=${invitationId}`;
-    const rejectInviteLink =
-      getEnv().Hibiscus.AppURL.portal +
-      `/invite/reject?inviteId=${invitationId}`;
-
-    const createTemplateEmail = (templateName: string) => {
-      return new SendTemplatedEmailCommand({
-        Destination: { ToAddresses: [toAddress] },
-        TemplateData: JSON.stringify({
-          name: recipient,
-          organizerName: organizerName,
-          teamName: teamName,
-          acceptInviteLink: acceptInviteLink,
-          rejectInviteLink: rejectInviteLink,
-        }),
-        Source: 'noreply@notifications.hacksc.com',
-        Template: templateName,
-      });
-    };
-
-    const sendTemplatedEmail = createTemplateEmail(TEMPLATE_NAME);
-
-    try {
-      await DashboardRepository.ses.send(sendTemplatedEmail);
-      return; //if successful, just return. Otherwise throw error which will be caught in invite.ts
-    } catch (err) {
-      throw new Error('Failed to send email.' + err);
-    }
   }
 }
