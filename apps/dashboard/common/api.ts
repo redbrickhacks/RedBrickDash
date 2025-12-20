@@ -170,6 +170,8 @@ export class TeamServiceAPI {
           lastName: data.data.invitee.lastName,
           email: data.data.invitee.email,
         },
+        acceptLink: data.data.acceptLink,
+        emailFailed: data.data.emailFailed,
       },
       status,
     };
@@ -191,8 +193,19 @@ export class TeamServiceAPI {
     return { data: res.data, status: res.status };
   }
 
-  static async removeInvite(inviteId: string) {
-    // TODO
+  static async removeInvite(inviteId: string): Promise<TeamServiceResponse> {
+    const res = await axios.delete(
+      `/api/organizer/cancel-invite?inviteId=${inviteId}`,
+      {
+        validateStatus: (status) => {
+          return status >= 200 && status <= 503;
+        },
+      }
+    );
+    if (res.status >= 400) {
+      return { error: { message: res.data.message }, status: res.status };
+    }
+    return { data: res.data, status: res.status };
   }
 }
 

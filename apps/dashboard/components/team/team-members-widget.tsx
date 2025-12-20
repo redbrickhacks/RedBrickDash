@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { AiFillCrown, AiFillPlusCircle } from 'react-icons/ai';
 import { GrayBox } from '../gray-box/gray-box';
-import { TeamMember } from '../../common/types';
+import { Invite, TeamMember } from '../../common/types';
 import { toast } from 'react-hot-toast';
 import { useTeam } from '../../hooks/use-team/use-team';
 import { TeamServiceAPI } from '../../common/api';
@@ -39,6 +39,22 @@ function TeamMembersWidget() {
         `Successfully kicked ${member.first_name} ${member.last_name} from list!`
       );
       removeMember(member.user_id);
+    }
+  };
+
+  const handleOnClickRemoveInvite: (
+    invite: Invite
+  ) => React.MouseEventHandler<HTMLButtonElement> = (invite) => async () => {
+    const { error } = await TeamServiceAPI.removeInvite(invite.id);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(
+        `Removed invite for ${invite.user_profiles.first_name} ${invite.user_profiles.last_name}`
+      );
+      updateTeam({
+        invites: team.invites.filter((i) => i.id !== invite.id),
+      });
     }
   };
 
@@ -161,7 +177,11 @@ function TeamMembersWidget() {
             </LeftItemContainer>
             <ItemButtonsContainer>
               <Text style={{ color: 'gray' }}>Invite sent</Text>
-              {isUserAdmin && <Button color="red">REMOVE</Button>}
+              {isUserAdmin && (
+                <Button color="red" onClick={handleOnClickRemoveInvite(item)}>
+                  REMOVE
+                </Button>
+              )}
             </ItemButtonsContainer>
           </ListItemContainer>
         ))}
