@@ -30,6 +30,9 @@ export const getEnv = () => {
         secretAccessKey: process.env.HIBISCUS_AWS_SECRET_ACCESS_KEY,
         region: process.env.HIBISCUS_AWS_REGION,
       },
+      Resend: {
+        apiKey: process.env.HIBISCUS_RESEND_API_KEY,
+      },
       Cookies: {
         accessTokenName: process.env.NEXT_PUBLIC_HIBISCUS_ACCESS_COOKIE_NAME,
         refreshTokenName: process.env.NEXT_PUBLIC_HIBISCUS_REFRESH_COOKIE_NAME,
