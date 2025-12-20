@@ -1,119 +1,30 @@
 import styled from 'styled-components';
-import { useState } from 'react';
 import { ApplicationStatus } from '@hibiscus/types';
 import Link from 'next/link';
 import {
   FaClipboardCheck,
   FaTrophy,
-  FaComments,
   FaCheck,
   FaRocket,
   FaXmark,
   FaHeartBroken,
 } from 'react-icons/fa6';
 import { getEnv } from '@hibiscus/env';
+import { CountdownTimer } from '../countdown-timer/countdown-timer';
+import { ProgressTracker } from '../progress-tracker/progress-tracker';
+import { TracksSection } from '../tracks-section/tracks-section';
+import { DiscordSection } from '../discord-section/discord-section';
+import { useDiscordVerification } from '../../hooks/use-discord-verification/use-discord-verification';
 
 interface NeoHackerPortalProps {
   user: {
     firstName: string;
     applicationStatus: ApplicationStatus;
     attendanceConfirmed: boolean | null;
+    teamId?: string | null;
+    submissionStatus?: number;
   };
   onRSVP?: (choice: 'ACCEPT' | 'DECLINE') => void;
-}
-
-interface Step {
-  id: number;
-  title: string;
-  description: string;
-  status: 'completed' | 'current' | 'upcoming' | 'locked';
-  action?: {
-    label: string;
-    href: string;
-  };
-}
-
-function getSteps(user: NeoHackerPortalProps['user']): Step[] {
-  const { applicationStatus } = user;
-
-  const isRegistered =
-    applicationStatus === ApplicationStatus.REGISTERED ||
-    applicationStatus === ApplicationStatus.FINALIST ||
-    applicationStatus === ApplicationStatus.CONFIRMED ||
-    applicationStatus === ApplicationStatus.DECLINED ||
-    applicationStatus === ApplicationStatus.NOT_SELECTED;
-
-  const isFinalist = applicationStatus === ApplicationStatus.FINALIST;
-  const isConfirmed = applicationStatus === ApplicationStatus.CONFIRMED;
-  const isDeclined = applicationStatus === ApplicationStatus.DECLINED;
-  const isNotSelected = applicationStatus === ApplicationStatus.NOT_SELECTED;
-
-  const discordUrl = getEnv().Hibiscus.Discord.InviteUrl || '#';
-
-  return [
-    {
-      id: 1,
-      title: 'Create Account',
-      description: 'Sign up for RedBrick Hacks III',
-      status: 'completed',
-    },
-    {
-      id: 2,
-      title: 'Complete Profile',
-      description: 'Tell us about yourself to join the online round',
-      status: isRegistered ? 'completed' : 'current',
-      action: !isRegistered
-        ? { label: 'Complete Profile', href: '/apply' }
-        : undefined,
-    },
-    {
-      id: 3,
-      title: 'Online Round',
-      description: 'Participate in the online hackathon (open until Jan 10)',
-      status: isRegistered ? 'current' : 'upcoming',
-    },
-    {
-      id: 4,
-      title: 'Finalist Selection',
-      description: 'Top performers will be invited to national finals',
-      status:
-        isFinalist || isConfirmed || isDeclined || isNotSelected
-          ? 'completed'
-          : isRegistered
-          ? 'upcoming'
-          : 'locked',
-    },
-    {
-      id: 5,
-      title: 'RSVP to Finals',
-      description: 'Confirm your spot at the national finals',
-      status: isNotSelected
-        ? 'locked'
-        : isConfirmed || isDeclined
-        ? 'completed'
-        : isFinalist
-        ? 'current'
-        : 'upcoming',
-    },
-    {
-      id: 6,
-      title: 'Join Discord Server',
-      description: 'Connect with other hackers and get updates',
-      status: isRegistered ? 'current' : 'upcoming',
-      action: isRegistered
-        ? { label: 'Join Discord', href: discordUrl }
-        : undefined,
-    },
-    {
-      id: 7,
-      title: 'Form or Join a Team',
-      description: 'Team up with other participants (up to 4 members)',
-      status: isRegistered ? 'current' : 'upcoming',
-      action: isRegistered
-        ? { label: 'Manage Team', href: '/team' }
-        : undefined,
-    },
-  ];
 }
 
 function getStatusConfig(status: ApplicationStatus) {
@@ -136,28 +47,45 @@ function getStatusConfig(status: ApplicationStatus) {
 }
 
 export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
-  const [showAllSteps, setShowAllSteps] = useState(false);
-  const steps = getSteps(user);
   const statusConfig = getStatusConfig(user.applicationStatus);
+  const discordVerification = useDiscordVerification();
   const discordUrl = getEnv().Hibiscus.Discord.InviteUrl || '#';
 
-  const currentStepIndex = steps.findIndex((s) => s.status === 'current');
-  const visibleSteps = showAllSteps
-    ? steps
-    : steps.slice(0, Math.max(currentStepIndex + 2, 4));
+  // Get submission deadline from env or default to Jan 10, 2025
+  const deadlineStr = getEnv().Hibiscus.Submission?.Deadline;
+  const submissionDeadline = deadlineStr
+    ? new Date(deadlineStr)
+    : new Date('2025-01-10T23:59:59Z');
+
+  const hasTeam = !!user.teamId;
+  const hasSubmitted = (user.submissionStatus ?? 1) >= 2;
+  const showCountdown = user.applicationStatus === ApplicationStatus.REGISTERED;
+  const showProgressTracker =
+    user.applicationStatus === ApplicationStatus.NOT_APPLIED ||
+    user.applicationStatus === ApplicationStatus.REGISTERED;
+  const showTracks =
+    user.applicationStatus === ApplicationStatus.NOT_APPLIED ||
+    user.applicationStatus === ApplicationStatus.REGISTERED;
 
   return (
     <PortalContainer>
       {/* Welcome Banner */}
       <WelcomeBanner>
-        <WelcomeText>
-          <span className="hey">Hey there,</span>
-          <span className="name">{user.firstName}!</span>
-        </WelcomeText>
-        <WelcomeSubtext>
-          Welcome to <strong>RedBrick Hacks III</strong>. Let&apos;s get you
-          ready to build something amazing.
-        </WelcomeSubtext>
+        <WelcomeContent>
+          <WelcomeText>
+            <span className="hey">Hey there,</span>
+            <span className="name">{user.firstName}!</span>
+          </WelcomeText>
+          <WelcomeSubtext>
+            Welcome to <strong>RedBrick Hacks III</strong>. Let&apos;s get you
+            ready to build something amazing.
+          </WelcomeSubtext>
+        </WelcomeContent>
+        {showCountdown && (
+          <CountdownWrapper>
+            <CountdownTimer deadline={submissionDeadline} />
+          </CountdownWrapper>
+        )}
       </WelcomeBanner>
 
       {/* Status Card */}
@@ -167,6 +95,16 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
           {statusConfig.label}
         </StatusBadge>
       </StatusCard>
+
+      {/* Progress Tracker */}
+      {showProgressTracker && (
+        <ProgressTracker
+          applicationStatus={user.applicationStatus}
+          isDiscordVerified={discordVerification.isVerified}
+          hasTeam={hasTeam}
+          hasSubmitted={hasSubmitted}
+        />
+      )}
 
       {/* Action Card - Show based on current status */}
       {user.applicationStatus === ApplicationStatus.NOT_APPLIED && (
@@ -195,19 +133,25 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
           <ActionContent>
             <ActionTitle>You&apos;re in the online round!</ActionTitle>
             <ActionDescription>
-              Welcome aboard! Join our Discord to connect with other hackers and
-              start forming teams.
+              {hasSubmitted
+                ? 'Your submission is in! You can update it anytime before the deadline.'
+                : hasTeam
+                ? 'Your team is ready. Submit your project before the deadline!'
+                : 'Create a team or go solo, then submit your project.'}
             </ActionDescription>
           </ActionContent>
-          <ActionButton
-            as="a"
-            href={discordUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            $color="#00D4C8"
-          >
-            Join Discord
-          </ActionButton>
+          <ActionButtonGroup>
+            {!hasTeam && (
+              <Link href="/team" passHref>
+                <ActionButton $color="#666">Manage Team</ActionButton>
+              </Link>
+            )}
+            <Link href="/submit" passHref>
+              <ActionButton $color="#00D4C8">
+                {hasSubmitted ? 'Update Submission' : 'Submit Project'}
+              </ActionButton>
+            </Link>
+          </ActionButtonGroup>
         </ActionCard>
       )}
 
@@ -298,71 +242,15 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
         </ActionCard>
       )}
 
-      {/* Steps Tracker */}
-      <StepsSection>
-        <SectionHeader>
-          <SectionTitle>Your Journey</SectionTitle>
-          <StepCounter>
-            {steps.filter((s) => s.status === 'completed').length} /{' '}
-            {steps.length} completed
-          </StepCounter>
-        </SectionHeader>
+      {/* Tracks Section */}
+      {showTracks && <TracksSection />}
 
-        <StepsList>
-          {visibleSteps.map((step, index) => (
-            <StepItem key={step.id} $status={step.status}>
-              <StepNumber $status={step.status}>
-                {step.status === 'completed' ? <FaCheck size={14} /> : step.id}
-              </StepNumber>
-              <StepContent>
-                <StepTitle $status={step.status}>{step.title}</StepTitle>
-                <StepDescription>{step.description}</StepDescription>
-                {step.action && step.status === 'current' && (
-                  <Link href={step.action.href} passHref>
-                    <StepAction>{step.action.label}</StepAction>
-                  </Link>
-                )}
-              </StepContent>
-              {index < visibleSteps.length - 1 && (
-                <StepConnector $status={step.status} />
-              )}
-            </StepItem>
-          ))}
-        </StepsList>
-
-        {!showAllSteps && steps.length > visibleSteps.length && (
-          <SeeMoreButton onClick={() => setShowAllSteps(true)}>
-            See all steps ({steps.length - visibleSteps.length} more)
-          </SeeMoreButton>
-        )}
-
-        {showAllSteps && (
-          <SeeMoreButton onClick={() => setShowAllSteps(false)}>
-            Show less
-          </SeeMoreButton>
-        )}
-      </StepsSection>
-
-      {/* Discord CTA */}
-      <DiscordCard>
-        <DiscordIconWrapper>
-          <FaComments />
-        </DiscordIconWrapper>
-        <DiscordContent>
-          <DiscordTitle>Join the Community</DiscordTitle>
-          <DiscordDescription>
-            Connect with fellow hackers, get help, and stay updated on all
-            things RedBrick Hacks III.
-          </DiscordDescription>
-        </DiscordContent>
-        <DiscordButton
-          href={discordUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Join Discord
-        </DiscordButton>
-      </DiscordCard>
+      {/* Discord Section */}
+      <DiscordSection
+        isVerified={discordVerification.isVerified}
+        discordUsername={discordVerification.discordUsername}
+        isLoading={discordVerification.isLoading}
+      />
     </PortalContainer>
   );
 }
@@ -553,197 +441,21 @@ const RSVPButtonGroup = styled.div`
   }
 `;
 
-const StepsSection = styled.div`
-  background: #fff;
-  border: 3px solid #000;
-  box-shadow: 4px 4px 0 #000;
-  padding: 1.5rem;
-`;
-
-const SectionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px dashed #ccc;
-`;
-
-const SectionTitle = styled.h2`
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-`;
-
-const StepCounter = styled.span`
-  font-size: 0.85rem;
-  color: #666;
-  background: #f5f5f5;
-  padding: 0.25rem 0.75rem;
-  border: 1px solid #ddd;
-`;
-
-const StepsList = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const StepItem = styled.div<{ $status: string }>`
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
+const WelcomeContent = styled.div`
   position: relative;
-  padding-bottom: 1.5rem;
-  opacity: ${(p) => (p.$status === 'locked' ? 0.5 : 1)};
+  z-index: 1;
 `;
 
-const StepNumber = styled.div<{ $status: string }>`
-  width: 36px;
-  height: 36px;
+const CountdownWrapper = styled.div`
+  margin-top: 1.5rem;
+`;
+
+const ActionButtonGroup = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-  border: 2px solid #000;
-  background: ${(p) =>
-    p.$status === 'completed'
-      ? '#95D5B2'
-      : p.$status === 'current'
-      ? '#FFE566'
-      : '#fff'};
-  color: #000;
-`;
-
-const StepContent = styled.div`
-  flex: 1;
-  padding-top: 0.25rem;
-`;
-
-const StepTitle = styled.h4<{ $status: string }>`
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  text-decoration: ${(p) =>
-    p.$status === 'completed' ? 'line-through' : 'none'};
-  color: ${(p) => (p.$status === 'completed' ? '#666' : '#000')};
-`;
-
-const StepDescription = styled.p`
-  margin: 0;
-  font-size: 0.85rem;
-  color: #666;
-  line-height: 1.4;
-`;
-
-const StepAction = styled.span`
-  display: inline-block;
-  margin-top: 0.5rem;
-  color: #ff5c5c;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-
-  &:hover {
-    color: #cc4a4a;
-  }
-`;
-
-const StepConnector = styled.div<{ $status: string }>`
-  position: absolute;
-  left: 17px;
-  top: 40px;
-  width: 2px;
-  height: calc(100% - 44px);
-  background: ${(p) => (p.$status === 'completed' ? '#95D5B2' : '#ddd')};
-`;
-
-const SeeMoreButton = styled.button`
-  width: 100%;
-  padding: 0.75rem;
-  margin-top: 0.5rem;
-  background: #f5f5f5;
-  border: 2px dashed #ccc;
-  font-family: inherit;
-  font-size: 0.9rem;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: #eee;
-    border-color: #999;
-    color: #333;
-  }
-`;
-
-const DiscordCard = styled.div`
-  background: #5865f2;
-  border: 3px solid #000;
-  box-shadow: 4px 4px 0 #000;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  color: #fff;
+  gap: 0.75rem;
 
   @media (max-width: 600px) {
+    width: 100%;
     flex-direction: column;
-    text-align: center;
-  }
-`;
-
-const DiscordIconWrapper = styled.div`
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  flex-shrink: 0;
-  font-size: 1.5rem;
-`;
-
-const DiscordContent = styled.div`
-  flex: 1;
-`;
-
-const DiscordTitle = styled.h3`
-  margin: 0 0 0.25rem 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-`;
-
-const DiscordDescription = styled.p`
-  margin: 0;
-  opacity: 0.9;
-  line-height: 1.5;
-`;
-
-const DiscordButton = styled.a`
-  background: #fff;
-  color: #5865f2;
-  border: 2px solid #000;
-  box-shadow: 3px 3px 0 #000;
-  padding: 0.75rem 1.5rem;
-  font-weight: 700;
-  font-size: 0.9rem;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.1s ease;
-  white-space: nowrap;
-
-  &:hover {
-    transform: translate(2px, 2px);
-    box-shadow: 1px 1px 0 #000;
-  }
-
-  &:active {
-    transform: translate(3px, 3px);
-    box-shadow: none;
   }
 `;
