@@ -116,22 +116,18 @@ export function HackerPortal({ isEventOpen, appsOpen }: HackerPortalProps) {
             />
           </Stars>
           <CenterContainer>
-            <Heading>HackSC 2024 Application</Heading>
+            <Heading>RedBrick Hacks III</Heading>
             <TextBody>
-              Ready for another fun year of hacking? Join us at our SoCal Tech
-              Week 24 hour hackathon! While the application deadline has passed,
-              you can still join our waitlist.
+              Ready for an exciting hackathon experience? Register now to secure
+              your spot and start building something amazing!
             </TextBody>
 
-            <HackSCGuy
-              style={{ marginBottom: -30, zIndex: 1, marginTop: 30 }}
-            />
             <Link
-              href={'/apply-2024'}
+              href={'/apply'}
               passHref
               anchortagpropsoverride={{ target: '_self' }}
             >
-              <RedButton>Join the Waitlist</RedButton>
+              <RedButton>Register Now</RedButton>
             </Link>
           </CenterContainer>
         </Container>
