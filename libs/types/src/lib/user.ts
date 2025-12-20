@@ -13,5 +13,6 @@ export interface HibiscusUser {
   applicationStatusLastChanged?: Date;
   teamId?: string;
   attendanceConfirmed?: boolean;
+  submissionStatus?: number;
   points?: number;
 }

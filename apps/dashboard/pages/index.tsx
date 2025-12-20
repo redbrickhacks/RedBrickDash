@@ -2,25 +2,14 @@ import styled from 'styled-components';
 import useHibiscusUser from '../hooks/use-hibiscus-user/use-hibiscus-user';
 import { ApplicationStatus, HibiscusRole } from '@hibiscus/types';
 import HackerPortal from '../components/hacker-portal/hacker-portal';
-import IdentityPortal from '../components/identity-portal/identity-portal';
-import SponsorPortal from '../components/sponsor-portal/sponsor-portal';
+import NeoHackerPortal from '../components/hacker-portal/neo-hacker-portal';
 import { GetServerSideProps } from 'next';
 import AppsClosedPlaceholder from '../components/hacker-portal/apps-closed-placeholder';
-import { isHackerPostAppStatus } from '../common/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppDispatch } from '../hooks/redux/hooks';
 import { removeTabRoute } from '../store/menu-slice';
-import RSVPClosedPlaceholder from '../components/hacker-portal/rsvp-closed-placeholder';
-// import { get } from '@vercel/edge-config'; // Disabled - Vercel-specific feature
 import { useRouter } from 'next/router';
 import { useHibiscusSupabase } from '@hibiscus/hibiscus-supabase-context';
-import {
-  OnlineRoundPortal,
-  FinalistRSVP,
-  NotSelectedPlaceholder,
-} from '../components/online-round-portal';
-import ConfirmedPlaceholder from '../components/hacker-portal/confirmed-placeholder';
-import DeclinedPlaceholder from '../components/hacker-portal/declined-placeholder';
 
 const RSVP_PERIOD = 4 * 24 * 60 * 60 * 1000; // 4 days in milliseconds
 
@@ -90,46 +79,52 @@ export function Index({ appsOpen, waitlistOpen }: ServerSideProps) {
     return <>Loading</>;
   }
 
+  const handleRSVP = async (choice: 'ACCEPT' | 'DECLINE') => {
+    // ApplicationStatus enum maps to 1-indexed DB values:
+    // 1=NOT_APPLIED, 2=REGISTERED, 3=FINALIST, 4=CONFIRMED, 5=DECLINED, 6=NOT_SELECTED
+    const newStatusValue = choice === 'ACCEPT' ? 4 : 5;
+
+    const { error } = await supabase
+      .getClient()
+      .from('user_profiles')
+      .update({
+        application_status: newStatusValue,
+        attendance_confirmed: choice === 'ACCEPT',
+      })
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Failed to update RSVP:', error);
+      return;
+    }
+
+    // Reload to reflect new status
+    router.reload();
+  };
+
   const Dashboard = () => {
     if (user.role === HibiscusRole.HACKER) {
-      // Not applied - show apply button or apps closed
-      if (user.applicationStatus === ApplicationStatus.NOT_APPLIED) {
-        if (!appsOpen && !waitlistOpen) {
-          return <AppsClosedPlaceholder />;
-        }
-        return (
-          <HackerPortal isEventOpen={hackerPortalOpen} appsOpen={appsOpen} />
-        );
+      // Apps closed and user hasn't applied
+      if (
+        user.applicationStatus === ApplicationStatus.NOT_APPLIED &&
+        !appsOpen &&
+        !waitlistOpen
+      ) {
+        return <AppsClosedPlaceholder />;
       }
 
-      // Registered - show online round portal (team + submission)
-      if (user.applicationStatus === ApplicationStatus.REGISTERED) {
-        return <OnlineRoundPortal />;
-      }
-
-      // Finalist awaiting RSVP
-      if (user.applicationStatus === ApplicationStatus.FINALIST) {
-        return <FinalistRSVP />;
-      }
-
-      // Confirmed for nationals
-      if (user.applicationStatus === ApplicationStatus.CONFIRMED) {
-        return <ConfirmedPlaceholder />;
-      }
-
-      // Declined spot
-      if (user.applicationStatus === ApplicationStatus.DECLINED) {
-        return <DeclinedPlaceholder />;
-      }
-
-      // Not selected
-      if (user.applicationStatus === ApplicationStatus.NOT_SELECTED) {
-        return <NotSelectedPlaceholder />;
-      }
-
-      // Fallback to legacy hacker portal for any other status
+      // Use unified NeoHackerPortal for all hacker statuses
       return (
-        <HackerPortal isEventOpen={hackerPortalOpen} appsOpen={appsOpen} />
+        <NeoHackerPortal
+          user={{
+            firstName: user.firstName,
+            applicationStatus: user.applicationStatus,
+            attendanceConfirmed: user.attendanceConfirmed ?? null,
+            teamId: user.teamId,
+            submissionStatus: user.submissionStatus,
+          }}
+          onRSVP={handleRSVP}
+        />
       );
     } else if (user.role === HibiscusRole.SPONSOR) {
       router.push('/sponsor-booth');

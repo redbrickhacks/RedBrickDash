@@ -49,6 +49,7 @@ const getUserProfile = async (
       ),
       teamId: profile.team_id,
       attendanceConfirmed: profile.attendance_confirmed,
+      submissionStatus: profile.submission_status,
       email: profile.email,
     };
   } else {
