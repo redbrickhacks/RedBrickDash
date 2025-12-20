@@ -52,6 +52,10 @@ export const getEnv = () => {
         TallyAPIToken: process.env.TALLY_API_MASTER_TOKEN,
         TallySigningSecret: process.env.TALLY_SIGNING_SECRET,
       },
+      Submission: {
+        TallyFormUrl: process.env.NEXT_PUBLIC_TALLY_SUBMISSION_FORM_URL,
+        Deadline: process.env.NEXT_PUBLIC_SUBMISSION_DEADLINE,
+      },
       RSVPForm: {
         ResumeStorageBucketName: 'rsvp-resume-hacker-2023',
         WaiverURL: process.env.NEXT_PUBLIC_WAIVER_URL,
