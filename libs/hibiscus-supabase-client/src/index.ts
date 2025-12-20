@@ -224,14 +224,17 @@ export class HibiscusSupabaseClient {
     }
 
     const user = data.user;
-    await this.client.from('user_profiles').insert({
+    const { error } = await this.client.from('user_profiles').insert({
       user_id: user.id,
       email: user.email,
       first_name: firstname,
       last_name: lastname,
-      // Default role = HACKER
-      // role: Object.keys(HibiscusRole).indexOf(HibiscusRole.HACKER) + 1,
     });
+
+    if (error) {
+      console.error('Failed to create user profile:', error);
+      throw Error(`Failed to create user profile: ${error.message}`);
+    }
   }
 
   /**

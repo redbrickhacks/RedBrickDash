@@ -27,6 +27,7 @@ export function VerifyCard() {
   const { supabase } = useHibiscusSupabase();
   const [verifyState, setVerifyState] = useState('');
   const [hideErrorMessage, setHideErrorMessage] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [code, setCode] = useState('');
   const [pinReady, setPinReady] = useState(false);
   const MAX_CODE_LENGTH = 6;
@@ -43,10 +44,18 @@ export function VerifyCard() {
     if (data.user) {
       setVerifyState('verifying');
       // Create user profile in database
-      await supabase.createUserProfile(
-        router.query.firstname.toString(),
-        router.query.lastname.toString()
-      );
+      try {
+        await supabase.createUserProfile(
+          router.query.firstname.toString(),
+          router.query.lastname.toString()
+        );
+      } catch (e) {
+        console.error('Profile creation failed:', e);
+        setErrorMessage(e.message || 'Failed to create profile');
+        setHideErrorMessage(true);
+        setVerifyState('');
+        return;
+      }
 
       await updateRole(data.user.id);
 
@@ -87,7 +96,7 @@ export function VerifyCard() {
         with anyone else.
       </p>
       <StyledErrorText style={{ display: hideErrorMessage ? 'block' : 'none' }}>
-        Token is expired or incorrect.
+        {errorMessage || 'Token is expired or incorrect.'}
       </StyledErrorText>
       <button
         color="blue"
