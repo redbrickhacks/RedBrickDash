@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { H3, Text } from '@hibiscus/ui';
 import { Colors2023 } from '@hibiscus/styles';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
 import GrayLink from '../gray-link/gray-link';
 import { MutatingDots } from 'react-loader-spinner';
 import {
@@ -85,11 +84,9 @@ export function SignUpCard(props: SignUpProps) {
       <BackgroundShapes></BackgroundShapes>
       <StyledAuthCard>
         <HeadingContainer>
-          <Image
-            style={{ margin: '5px 0 0 20px' }}
-            width="200"
-            height="100"
-            src="/hacksc-logo2.svg"
+          <img
+            style={{ margin: '5px 0 0 20px', width: 200, height: 100 }}
+            src="/static/images/hacksc-logo2.svg"
             alt="RBH logo"
           />
           <h2 className="m-0 mb-[10px] text-lg">Create an Account</h2>

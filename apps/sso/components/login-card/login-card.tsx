@@ -1,8 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 import styled from 'styled-components';
 import { useState } from 'react';
 import { H3, Text } from '@hibiscus/ui';
 import { Colors2023 } from '@hibiscus/styles';
-import Image from 'next/image';
 import * as SSOClient from '@hibiscus/sso-client';
 import GrayLink from '../gray-link/gray-link';
 import { useHibiscusSupabase } from '@hibiscus/hibiscus-supabase-context';
@@ -59,11 +59,9 @@ export function LoginCard() {
       <BackgroundShapes></BackgroundShapes>
       <StyledAuthCard>
         <HeadingContainer>
-          <Image
-            style={{ margin: '5px 0 0 20px' }}
-            width="200"
-            height="100"
-            src="/hacksc-logo2.svg"
+          <img
+            style={{ margin: '5px 0 0 20px', width: 200, height: 100 }}
+            src="/static/images/hacksc-logo2.svg"
             alt="RBH logo"
           />
           <h2 className="m-0 mb-[10px] text-lg">Sign-In</h2>
