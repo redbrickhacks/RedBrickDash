@@ -7,7 +7,7 @@ import {
   FaCheck,
   FaRocket,
   FaXmark,
-  FaHeartBroken,
+  FaHeartCrack,
 } from 'react-icons/fa6';
 import { getEnv } from '@hibiscus/env';
 import { CountdownTimer } from '../countdown-timer/countdown-timer';
@@ -239,7 +239,7 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
       {user.applicationStatus === ApplicationStatus.NOT_SELECTED && (
         <ActionCard $accent="#9D0208">
           <ActionIconWrapper $bg="#FFEBEE">
-            <FaHeartBroken />
+            <FaHeartCrack />
           </ActionIconWrapper>
           <ActionContent>
             <ActionTitle>Thank you for participating</ActionTitle>
