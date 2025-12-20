@@ -4,6 +4,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { container } from 'tsyringe';
 import { UserRepository } from '../../../repository/user.repository';
 import { getAuthenticatedUser } from '../../../common/auth';
+import { EmailService } from '../../../services/email.service';
+import { getEnv } from '@hibiscus/env';
 
 export default async function invite(
   req: NextApiRequest,
@@ -92,21 +94,39 @@ export default async function invite(
     const invitationId = resCreateInvite.data[0].id;
     const invitationCreatedAt = resCreateInvite.data[0].created_at;
 
-    //add logic for emailing invite
-    //need invite id
-    //invite email will link to the online version and send invite_id
+    // Send team invite email
+    let emailFailed = false;
+    const portalUrl = getEnv().Hibiscus.AppURL.portal;
+    const acceptLink = `${portalUrl}/team/invite/accept?inviteId=${invitationId}`;
+    const declineLink = `${portalUrl}/team/invite/reject?inviteId=${invitationId}`;
+
     if (process.env.NODE_ENV === 'production') {
-      await repo.sendTeamInviteEmail(
-        email,
-        invitedUserFname,
-        organizerFname,
-        teamName,
-        invitationId
-      );
+      const resendApiKey = getEnv().Hibiscus.Resend?.apiKey;
+      if (resendApiKey) {
+        const emailService = new EmailService(resendApiKey);
+        const emailResult = await emailService.sendTeamInviteEmail({
+          toEmail: email,
+          recipientName: invitedUserFname,
+          organizerName: organizerFname,
+          teamName,
+          acceptLink,
+          declineLink,
+        });
+
+        if (!emailResult.success) {
+          console.error('Failed to send team invite email:', emailResult.error);
+          emailFailed = true;
+        }
+      } else {
+        console.warn('Resend API key not configured, skipping email');
+        emailFailed = true;
+      }
     }
 
     return res.status(200).json({
-      message: 'Invite sent successfully!',
+      message: emailFailed
+        ? 'Invite created but email notification failed. Please share the invite link manually.'
+        : 'Invite sent successfully!',
       data: {
         inviteId: invitationId,
         createdAt: invitationCreatedAt,
@@ -116,6 +136,8 @@ export default async function invite(
           lastName: invitedUserLname,
           email,
         },
+        acceptLink,
+        emailFailed,
       },
     });
   } catch (e) {
