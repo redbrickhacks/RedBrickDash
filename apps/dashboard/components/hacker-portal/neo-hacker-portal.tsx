@@ -141,6 +141,15 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
             </ActionDescription>
           </ActionContent>
           <ActionButtonGroup>
+            <ActionButton
+              as="a"
+              href={discordUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              $color="#5865F2"
+            >
+              Join Discord
+            </ActionButton>
             {!hasTeam && (
               <Link href="/team" passHref>
                 <ActionButton $color="#666">Manage Team</ActionButton>
