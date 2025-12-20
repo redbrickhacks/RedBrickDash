@@ -20,6 +20,7 @@ import { BattlepassAPIProvider } from '../../hooks/use-battlepass-api/use-battle
 import ConfirmedPlaceholder from './confirmed-placeholder';
 import { useRouter } from 'next/router';
 import HackSCGuy from '../svg/hacksc-guy';
+import NeoHackerPortal from './neo-hacker-portal';
 
 type RSVPChoice = 'DECLINE' | 'ACCEPT';
 
@@ -226,39 +227,28 @@ export function HackerPortal({ isEventOpen, appsOpen }: HackerPortalProps) {
   } else if (user.attendanceConfirmed === false) {
     return <DeclinedPlaceholder />;
   }
+  const handleRSVP = (rsvpChoice: 'ACCEPT' | 'DECLINE') => {
+    setChoice(rsvpChoice);
+    setModalOpen(true);
+  };
+
   return (
     <>
-      <WelcomeHeader />
-      {renderApplyMessage()}
-      <div
-        style={{
-          display: 'flex',
-          backgroundColor: '#3b3b3b',
-          padding: 20,
-          borderRadius: 10,
-          marginTop: 20,
-          boxShadow: `0px 0px 5px #8e8e8e`,
+      <NeoHackerPortal
+        user={{
+          firstName: user.firstName,
+          applicationStatus: user.applicationStatus,
+          attendanceConfirmed: user.attendanceConfirmed,
         }}
-      >
-        <GlowSpan color={Colors2023.GRAY.LIGHT} style={{ fontSize: 20 }}>
-          Your Application Status: {getApplicationStatus()}
-        </GlowSpan>
-      </div>
-      <MessageContainer>
-        {user.applicationStatus === ApplicationStatus.ADMITTED ? (
-          <>
-            <Modal isOpen={modalOpen} closeModal={closeModal}>
-              {choice === 'ACCEPT' && <RSVPForm closeModal={closeModal} />}
-              {choice === 'DECLINE' && <DeclineSpotContent />}
-            </Modal>
-            <RSVPPlaceholder />
-          </>
-        ) : user.applicationStatus === ApplicationStatus.NOT_ADMITTED ? (
-          <RejectionMessage />
-        ) : (
-          <ComingSoon />
-        )}
-      </MessageContainer>
+        onRSVP={handleRSVP}
+      />
+      {/* RSVP Modal - still needed for finalist flow */}
+      {user.applicationStatus === ApplicationStatus.FINALIST && (
+        <Modal isOpen={modalOpen} closeModal={closeModal}>
+          {choice === 'ACCEPT' && <RSVPForm closeModal={closeModal} />}
+          {choice === 'DECLINE' && <DeclineSpotContent />}
+        </Modal>
+      )}
     </>
   );
 
