@@ -59,10 +59,45 @@ function TeamMembersWidget() {
           if (error) {
             toast.error(error.message, { duration: 5000 });
           } else {
-            toast.success(
-              'An invite email has been sent to their email address!',
-              { duration: 5000 }
-            );
+            // Check if email failed to send
+            if (data.emailFailed) {
+              toast(
+                (t) => (
+                  <div>
+                    <p>
+                      <strong>Invite created!</strong> Email notification
+                      failed.
+                    </p>
+                    <p style={{ fontSize: '0.9em', marginTop: '8px' }}>
+                      Please share this link manually:
+                    </p>
+                    <input
+                      type="text"
+                      value={data.acceptLink}
+                      readOnly
+                      onClick={(e) => {
+                        (e.target as HTMLInputElement).select();
+                        navigator.clipboard.writeText(data.acceptLink);
+                        toast.success('Link copied!', { duration: 2000 });
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '4px 8px',
+                        marginTop: '4px',
+                        fontSize: '0.85em',
+                        cursor: 'pointer',
+                      }}
+                    />
+                  </div>
+                ),
+                { duration: 10000 }
+              );
+            } else {
+              toast.success(
+                'An invite email has been sent to their email address!',
+                { duration: 5000 }
+              );
+            }
             // add to state
             updateTeam({
               invites: [
