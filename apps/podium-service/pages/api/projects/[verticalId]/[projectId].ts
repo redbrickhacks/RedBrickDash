@@ -1,5 +1,6 @@
 import { supabase } from 'apps/podium-service/libs/supabase';
 import { NextApiRequest, NextApiResponse } from 'next';
+import { ProjectData, EditableProjectData } from '../../../../types/types';
 
 export default async function handler(
   req: NextApiRequest,
