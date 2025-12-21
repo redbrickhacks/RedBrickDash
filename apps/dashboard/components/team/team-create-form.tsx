@@ -1,14 +1,10 @@
-import { H2, Text } from '@hibiscus/ui';
-import { Button, OneLineText, ParagraphText } from '@hibiscus/ui-kit-2023';
+import { useState } from 'react';
 import styled from 'styled-components';
-import { GrayBox } from '../gray-box/gray-box';
 import { toast } from 'react-hot-toast';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import { SpanRed } from '../red-span';
-import { useTeam } from '../../hooks/use-team/use-team';
 import { TeamServiceAPI } from '../../common/api';
 import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
+import { useTeam } from '../../hooks/use-team/use-team';
+import { NeoButton, NeoInput } from '../neo-ui';
 
 interface Props {
   closeModal: () => void;
@@ -17,97 +13,96 @@ interface Props {
 export const TeamCreateForm = (props: Props) => {
   const { updateTeam } = useTeam();
   const { user, updateUser } = useHibiscusUser();
-  const formik = useFormik({
-    initialValues: {
-      name: '',
-      description: '',
-    },
-    validationSchema: Yup.object({
-      name: Yup.string().required('Please enter your team name!'),
-      description: Yup.string().notRequired(),
-    }),
-    onSubmit: async (values, formikHelpers) => {
-      formikHelpers.setSubmitting(true);
-      props.closeModal();
-      const { data, error } = await TeamServiceAPI.createTeam(
-        values.name,
-        values.description,
-        user.id
-      );
-      if (error) {
-        toast.error("Oops, couldn't create your team: " + error.message);
-        formikHelpers.setSubmitting(false);
-        return;
-      }
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-      toast.success('Successfully created team!');
-      // Update team context
-      updateTeam({
-        name: values.name,
-        description: values.description,
-        id: data.id,
-        organizerId: user.id,
-        members: [
-          {
-            user_id: user.id,
-            first_name: user.firstName,
-            last_name: user.lastName,
-          },
-        ],
-        invites: [],
-      });
-      // Update user context so teamId is available globally
-      updateUser({ teamId: data.id });
-      formikHelpers.setSubmitting(false);
-    },
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      setNameError('Please enter your team name!');
+      return;
+    }
+    setNameError('');
+
+    setIsSubmitting(true);
+    props.closeModal();
+
+    const { data, error } = await TeamServiceAPI.createTeam(
+      name.trim(),
+      description.trim(),
+      user.id
+    );
+
+    if (error) {
+      toast.error("Oops, couldn't create your team: " + error.message);
+      setIsSubmitting(false);
+      return;
+    }
+
+    toast.success('Successfully created team!');
+    updateTeam({
+      name: name.trim(),
+      description: description.trim(),
+      id: data.id,
+      organizerId: user.id,
+      members: [
+        {
+          user_id: user.id,
+          first_name: user.firstName,
+          last_name: user.lastName,
+        },
+      ],
+      invites: [],
+    });
+    updateUser({ teamId: data.id });
+    setIsSubmitting(false);
+  };
 
   return (
-    <form onSubmit={formik.handleSubmit}>
-      <Box>
-        <H2>Create your team</H2>
-        <FormDiv>
-          <label htmlFor="name">
-            Name:<SpanRed>*</SpanRed>
-          </label>
-          <OneLineText
-            id="name"
-            name="name"
-            value={formik.values.name}
-            placeholder="e.g. The Innovators"
-            onChange={formik.handleChange}
-          />
-          <Text>
-            <SpanRed>{formik.errors.name}</SpanRed>
-          </Text>
-          <label htmlFor="description">Description:</label>
-          <ParagraphText
-            id="description"
-            name="description"
-            style={{ width: '92%' }}
-            value={formik.values.description}
-            onChange={formik.handleChange}
-            placeholder="e.g Team full of hackers :0 your local hackathon destroyer :)"
-          />
-          <Text>{formik.errors.description}</Text>
-        </FormDiv>
-        <Button color="blue" type="submit">
-          SUBMIT
-        </Button>
-      </Box>
-    </form>
+    <Form onSubmit={handleSubmit}>
+      <NeoInput
+        label="Team Name"
+        placeholder="e.g. The Innovators"
+        value={name}
+        onChange={(e) => setName((e.target as HTMLInputElement).value)}
+        error={nameError}
+        required
+      />
+
+      <NeoInput
+        label="Description (optional)"
+        placeholder="e.g. Team full of hackers :0 your local hackathon destroyer :)"
+        value={description}
+        onChange={(e) =>
+          setDescription((e.target as HTMLTextAreaElement).value)
+        }
+        multiline
+        rows={3}
+      />
+
+      <ButtonGroup>
+        <NeoButton type="submit" loading={isSubmitting}>
+          Create Team
+        </NeoButton>
+      </ButtonGroup>
+    </Form>
   );
 };
 
 export default TeamCreateForm;
 
-const FormDiv = styled.div`
-  width: 100%;
+const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 1.25rem;
 `;
 
-const Box = styled(GrayBox)`
-  gap: 20px;
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
 `;
