@@ -66,9 +66,14 @@ export default async function handler(
     //Assuming invitation already exists in db, otherwise error prob thrown anyway
     result = await repo.deleteAcceptedInvite(stringifyInviteId);
 
-    return res
-      .status(200)
-      .json({ message: 'Invite request accepted successfully!' });
+    // Get team info to return to client
+    const teamInfo = await repo.getTeamInfo(teamId);
+
+    return res.status(200).json({
+      message: 'Invite request accepted successfully!',
+      teamId: teamId,
+      teamName: teamInfo.data?.name,
+    });
   } catch (e) {
     return res.status(500).json({ message: e.message });
   }

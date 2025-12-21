@@ -20,7 +20,7 @@ export const hackformLinks = {
   },
 };
 
-export const TSRV_RELEASE_FLAG = false;
+export const TSRV_RELEASE_FLAG = true;
 
 export const getOptionsGraduationYear = (): Option[] => {
   const opts: string[] = [];

@@ -121,7 +121,13 @@ export class TeamServiceAPI {
   }
 
   static async rejectInvite(inviteId: string): Promise<TeamServiceResponse> {
-    const res = await axios.put('/api/invite/reject', { inviteId });
+    const res = await axios.put(
+      '/api/invite/reject',
+      { inviteId },
+      {
+        validateStatus: (status) => status >= 200 && status <= 503,
+      }
+    );
     if (res.status >= 400) {
       return { error: { message: res.data.message }, status: res.status };
     }
@@ -132,11 +138,60 @@ export class TeamServiceAPI {
     name: string,
     description: string,
     organizerId: string
-  ) {
-    const res = await axios.post('/api/organizer/create', {
-      name,
-      description,
-      organizerId,
+  ): Promise<TeamServiceResponse> {
+    const res = await axios.post(
+      '/api/organizer/create',
+      {
+        name,
+        description,
+        organizerId,
+      },
+      {
+        validateStatus: (status) => status >= 200 && status <= 503,
+      }
+    );
+    if (res.status >= 400) {
+      return { error: { message: res.data.message }, status: res.status };
+    }
+    return { data: res.data, status: res.status };
+  }
+
+  static async disbandTeam(
+    teamId: string,
+    organizerId: string
+  ): Promise<TeamServiceResponse> {
+    const res = await axios.put(
+      '/api/organizer/disband',
+      { team_id: teamId, organizer_id: organizerId },
+      {
+        validateStatus: (status) => status >= 200 && status <= 503,
+      }
+    );
+    if (res.status >= 400) {
+      return { error: { message: res.data.message }, status: res.status };
+    }
+    return { data: res.data, status: res.status };
+  }
+
+  static async leaveTeam(userId: string): Promise<TeamServiceResponse> {
+    const res = await axios.put(
+      '/api/team/leave',
+      { userId },
+      {
+        validateStatus: (status) => status >= 200 && status <= 503,
+      }
+    );
+    if (res.status >= 400) {
+      return { error: { message: res.data.message }, status: res.status };
+    }
+    return { data: res.data, status: res.status };
+  }
+
+  static async getPendingInvitesForUser(
+    userId: string
+  ): Promise<TeamServiceResponse> {
+    const res = await axios.get(`/api/invite/pending?userId=${userId}`, {
+      validateStatus: (status) => status >= 200 && status <= 503,
     });
     if (res.status >= 400) {
       return { error: { message: res.data.message }, status: res.status };

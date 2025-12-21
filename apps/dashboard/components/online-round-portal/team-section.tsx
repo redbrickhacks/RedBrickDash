@@ -67,7 +67,7 @@ export function TeamSection({ team, userId }: TeamSectionProps) {
             {pendingInvites.map((invite) => (
               <InviteCard key={invite.id}>
                 <span>{invite.teams?.name}</span>
-                <Link href={`/team/invite/accept?id=${invite.id}`}>
+                <Link href={`/team/invite/accept?inviteId=${invite.id}`}>
                   <Button color="yellow">Accept</Button>
                 </Link>
               </InviteCard>

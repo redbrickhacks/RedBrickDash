@@ -93,7 +93,18 @@ export class DashboardRepository {
     const { data, error } = await this.client
       .from('user_profiles')
       .update({ team_id: team_id })
-      .eq('user_id', organizerId);
+      .eq('user_id', organizerId)
+      .select();
+
+    return { data, error };
+  }
+
+  async updateUserTeamId(userId: string, teamId: string | null) {
+    const { data, error } = await this.client
+      .from('user_profiles')
+      .update({ team_id: teamId })
+      .eq('user_id', userId)
+      .select();
 
     return { data, error };
   }

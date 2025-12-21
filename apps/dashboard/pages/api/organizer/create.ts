@@ -61,6 +61,14 @@ export default async function createTeam(
     //insert team_id into user_profiles table
     result = await repo.updateOrganizerTeam(teamId, organizerId);
 
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+
+    if (!result.data || result.data.length === 0) {
+      throw new Error('Failed to link team to user profile');
+    }
+
     return res.status(201).json({ id: teamId });
   } catch (e) {
     return res.status(500).json({ message: e.message });

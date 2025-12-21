@@ -15,5 +15,6 @@ export async function getAuthenticatedUser(req: NextApiRequest) {
   }
 
   const hbc = container.resolve(HibiscusSupabaseClient);
+  hbc.setOptions({ useServiceKey: true });
   return hbc.getUserProfile(accessToken);
 }

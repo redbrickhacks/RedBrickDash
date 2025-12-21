@@ -38,9 +38,9 @@ export class InviteRepository {
       .from(this.tableName)
       .select(
         `
-			id, 
-			created_at, 
-      teams(id,name,description),
+			id,
+			created_at,
+      teams(team_id,name,description),
 			user_profiles!invitations_organizer_id_fkey(
 				email,
 				first_name,

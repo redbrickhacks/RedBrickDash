@@ -45,21 +45,14 @@ export default async function invite(
     }
     if (invitedUser.data === null) {
       throw new Error(
-        "There's no user under this email! Please make sure whoever you invited have registered an account on HackSC"
+        "There's no user under this email. Make sure they have registered an account on RedBrick Hacks first."
       );
     }
     const invitedId = invitedUser.data.user_id;
 
-    // people who made the team invites can't invite themselves (obviously)
+    // people who made the team invites can't invite themselves
     if (invitedId === organizerId) {
-      throw new Error(
-        `You're so lonely you invited yourself to your own team! 
-        Please invite someone else but yourself or get some friends :) 
-        -- 
-        Sincerely, 
-        HackSC Engineering
-      `
-      );
+      throw new Error("You can't invite yourself to your own team.");
     }
 
     //very first check, make sure invite doesn't already exist

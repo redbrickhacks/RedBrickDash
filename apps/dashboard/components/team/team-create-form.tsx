@@ -16,7 +16,7 @@ interface Props {
 
 export const TeamCreateForm = (props: Props) => {
   const { updateTeam } = useTeam();
-  const { user } = useHibiscusUser();
+  const { user, updateUser } = useHibiscusUser();
   const formik = useFormik({
     initialValues: {
       name: '',
@@ -34,20 +34,30 @@ export const TeamCreateForm = (props: Props) => {
         values.description,
         user.id
       );
-      let createTeamSuccess = true;
       if (error) {
-        createTeamSuccess = false;
+        toast.error("Oops, couldn't create your team: " + error.message);
+        formikHelpers.setSubmitting(false);
+        return;
       }
-      if (createTeamSuccess) {
-        toast.success('Successfully created team');
-        updateTeam({
-          name: values.name,
-          description: values.description,
-          id: data.id,
-        });
-      } else {
-        toast.error("Oops, couldn't create your team; " + error.message);
-      }
+
+      toast.success('Successfully created team!');
+      // Update team context
+      updateTeam({
+        name: values.name,
+        description: values.description,
+        id: data.id,
+        organizerId: user.id,
+        members: [
+          {
+            user_id: user.id,
+            first_name: user.firstName,
+            last_name: user.lastName,
+          },
+        ],
+        invites: [],
+      });
+      // Update user context so teamId is available globally
+      updateUser({ teamId: data.id });
       formikHelpers.setSubmitting(false);
     },
   });
@@ -64,7 +74,7 @@ export const TeamCreateForm = (props: Props) => {
             id="name"
             name="name"
             value={formik.values.name}
-            placeholder="e.g Trojan Hackers"
+            placeholder="e.g. The Innovators"
             onChange={formik.handleChange}
           />
           <Text>

@@ -150,11 +150,11 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
             >
               Join Discord
             </ActionButton>
-            {!hasTeam && (
-              <Link href="/team" passHref>
-                <ActionButton $color="#666">Manage Team</ActionButton>
-              </Link>
-            )}
+            <Link href="/team" passHref>
+              <ActionButton $color="#666">
+                {hasTeam ? 'Manage Team' : 'Create Team'}
+              </ActionButton>
+            </Link>
             <Link href="/submit" passHref>
               <ActionButton $color="#00D4C8">
                 {hasSubmitted ? 'Update Submission' : 'Submit Project'}
