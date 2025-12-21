@@ -142,7 +142,8 @@ export default async function invite(
       },
     });
   } catch (e) {
-    console.error(e);
+    // Log message only - stack trace is noise for validation errors
+    console.warn('[invite]', e.message);
     return res.status(400).json({ message: e.message });
   }
 }
