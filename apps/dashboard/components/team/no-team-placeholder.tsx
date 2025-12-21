@@ -1,6 +1,4 @@
-import { H2, H3, Modal, Text } from '@hibiscus/ui';
 import { useState, useEffect } from 'react';
-import { Button } from '@hibiscus/ui-kit-2023';
 import { RiTeamFill } from 'react-icons/ri';
 import { FaEnvelope, FaCheck, FaXmark } from 'react-icons/fa6';
 import styled from 'styled-components';
@@ -9,7 +7,7 @@ import { TeamServiceAPI } from '../../common/api';
 import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/router';
-import { Colors2023 } from '@hibiscus/styles';
+import { NeoButton, NeoCard, NeoModal, neoColors } from '../neo-ui';
 
 interface PendingInvite {
   id: string;
@@ -85,28 +83,28 @@ function NoTeamPlaceholder() {
   return (
     <Container>
       <MainSection>
-        <H2>You&apos;re not part of any team yet!</H2>
-        <Text style={{ color: Colors2023.GRAY.MEDIUM, marginBottom: '1rem' }}>
+        <Title>You&apos;re not part of any team yet!</Title>
+        <Subtitle>
           Create a team to collaborate with others, or join an existing team via
           invite.
-        </Text>
-        <Button color="black" onClick={openModal}>
+        </Subtitle>
+        <NeoButton onClick={openModal}>
           <RiTeamFill /> Create a team
-        </Button>
-        <Modal isOpen={isOpen} closeModal={closeModal}>
+        </NeoButton>
+        <NeoModal isOpen={isOpen} onClose={closeModal} title="Create your team">
           <TeamCreateForm closeModal={closeModal} />
-        </Modal>
+        </NeoModal>
       </MainSection>
 
       {!isLoading && pendingInvites.length > 0 && (
-        <InvitesSection>
+        <InvitesCard accent={neoColors.accent.blue}>
           <InvitesHeader>
             <FaEnvelope />
-            <H3>Pending Invites</H3>
+            <InvitesTitle>Pending Invites</InvitesTitle>
           </InvitesHeader>
           <InvitesList>
             {pendingInvites.map((invite) => (
-              <InviteCard key={invite.id}>
+              <InviteItem key={invite.id}>
                 <InviteInfo>
                   <TeamName>{invite.teams?.name || 'Unknown Team'}</TeamName>
                   <InviterInfo>
@@ -115,25 +113,27 @@ function NoTeamPlaceholder() {
                   </InviterInfo>
                 </InviteInfo>
                 <InviteActions>
-                  <Button
-                    color="blue"
+                  <NeoButton
+                    variant="primary"
+                    size="sm"
                     onClick={() => handleAcceptInvite(invite.id)}
                     disabled={processingInviteId === invite.id}
                   >
                     <FaCheck /> Accept
-                  </Button>
-                  <Button
-                    color="red"
+                  </NeoButton>
+                  <NeoButton
+                    variant="danger"
+                    size="sm"
                     onClick={() => handleRejectInvite(invite.id)}
                     disabled={processingInviteId === invite.id}
                   >
                     <FaXmark /> Decline
-                  </Button>
+                  </NeoButton>
                 </InviteActions>
-              </InviteCard>
+              </InviteItem>
             ))}
           </InvitesList>
-        </InvitesSection>
+        </InvitesCard>
       )}
     </Container>
   );
@@ -150,15 +150,23 @@ const Container = styled.div`
 const MainSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 1rem;
 `;
 
-const InvitesSection = styled.div`
-  background: #f8f9fa;
-  border: 1px solid ${Colors2023.GRAY.LIGHT};
-  border-radius: 8px;
-  padding: 1.5rem;
+const Title = styled.h2`
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: ${neoColors.text};
 `;
+
+const Subtitle = styled.p`
+  margin: 0;
+  color: ${neoColors.textMuted};
+  line-height: 1.5;
+`;
+
+const InvitesCard = styled(NeoCard)``;
 
 const InvitesHeader = styled.div`
   display: flex;
@@ -167,8 +175,15 @@ const InvitesHeader = styled.div`
   margin-bottom: 1rem;
 
   svg {
-    color: ${Colors2023.BLUE.STANDARD};
+    color: ${neoColors.accent.blue};
+    font-size: 1.25rem;
   }
+`;
+
+const InvitesTitle = styled.h3`
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
 `;
 
 const InvitesList = styled.div`
@@ -177,14 +192,13 @@ const InvitesList = styled.div`
   gap: 0.75rem;
 `;
 
-const InviteCard = styled.div`
+const InviteItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
-  border: 1px solid ${Colors2023.GRAY.LIGHT};
-  border-radius: 6px;
   padding: 1rem;
+  border: 2px solid #000;
+  background: ${neoColors.background};
 
   @media (max-width: 600px) {
     flex-direction: column;
@@ -205,7 +219,7 @@ const TeamName = styled.span`
 `;
 
 const InviterInfo = styled.span`
-  color: ${Colors2023.GRAY.MEDIUM};
+  color: ${neoColors.textMuted};
   font-size: 0.875rem;
 `;
 
