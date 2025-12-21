@@ -25,7 +25,7 @@ const Index = () => {
         return;
       }
       updateTeam({
-        id: data.id,
+        id: data.team_id, // API returns team_id, not id
         name: data.name,
         description: data.description,
         invites: data.invites,

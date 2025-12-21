@@ -208,7 +208,7 @@ function TeamMembersWidget() {
           invites: [
             ...team.invites,
             {
-              id: data.invitee.id,
+              id: data.inviteId, // Use inviteId, not invitee.id (user ID)
               created_at: data.createdAt,
               user_profiles: {
                 first_name: data.invitee.firstName,
