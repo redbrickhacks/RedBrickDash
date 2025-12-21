@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { AiFillCrown, AiFillPlusCircle } from 'react-icons/ai';
-import { FaRightFromBracket, FaTrash } from 'react-icons/fa6';
+import { FaRightFromBracket, FaTrash, FaStamp } from 'react-icons/fa6';
 import { Invite, TeamMember } from '../../common/types';
 import { toast } from 'react-hot-toast';
 import { useTeam } from '../../hooks/use-team/use-team';
@@ -17,6 +17,7 @@ import {
   NeoBadge,
   neoColors,
 } from '../neo-ui';
+import { StampTable, StampPicker, Stamp } from '../stamps';
 
 type ConfirmAction = {
   type: 'kick' | 'remove-invite' | 'leave' | 'disband';
@@ -37,9 +38,65 @@ function TeamMembersWidget() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
+  // Stamps state
+  const [memberStamps, setMemberStamps] = useState<Record<string, Stamp[]>>({});
+  const [stampPickerOpen, setStampPickerOpen] = useState(false);
+  const [stampRecipient, setStampRecipient] = useState<TeamMember | null>(null);
+
   const isUserOrganizer = team.organizerId === user?.id;
   const memberCount = team.members?.length || 0;
   const maxMembers = 4;
+
+  // Fetch stamps for all team members
+  const fetchMemberStamps = useCallback(async () => {
+    if (!team.members?.length) return;
+
+    const stampsMap: Record<string, Stamp[]> = {};
+    await Promise.all(
+      team.members.map(async (member) => {
+        try {
+          const res = await fetch(`/api/stamps/user/${member.user_id}`);
+          if (res.ok) {
+            stampsMap[member.user_id] = await res.json();
+          }
+        } catch (e) {
+          console.error(`Failed to fetch stamps for ${member.user_id}:`, e);
+        }
+      })
+    );
+    setMemberStamps(stampsMap);
+  }, [team.members]);
+
+  useEffect(() => {
+    fetchMemberStamps();
+  }, [fetchMemberStamps]);
+
+  const handleGiveStampClick = (member: TeamMember) => {
+    setStampRecipient(member);
+    setStampPickerOpen(true);
+  };
+
+  const handleGiveStamp = async (stampTypeId: number) => {
+    if (!stampRecipient) return;
+
+    const res = await fetch('/api/stamps/give', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        recipientId: stampRecipient.user_id,
+        stampTypeId,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.message || 'Failed to give stamp');
+    }
+
+    toast.success(`Stamp given to ${stampRecipient.first_name}!`);
+    // Refresh stamps
+    fetchMemberStamps();
+  };
 
   const showConfirmDialog = (action: ConfirmAction) => {
     setConfirmAction(action);
@@ -262,35 +319,65 @@ function TeamMembersWidget() {
   const Members = () => (
     <>
       {team.members?.map((item, i) => (
-        <ListItemContainer key={i}>
-          <LeftItemContainer>
-            <MemberName>
-              {item.first_name} {item.last_name}
-            </MemberName>
-            {team.organizerId === item.user_id && (
-              <CrownIcon title="Team Organizer">
-                <AiFillCrown />
-              </CrownIcon>
-            )}
-          </LeftItemContainer>
-          <ItemButtonsContainer>
-            {isUserOrganizer && item.user_id !== user.id && (
-              <NeoButton
-                variant="danger"
-                size="sm"
-                onClick={() => handleKickClick(item)}
-              >
-                Remove
-              </NeoButton>
-            )}
-          </ItemButtonsContainer>
-        </ListItemContainer>
+        <MemberCard key={i}>
+          <MemberHeader>
+            <LeftItemContainer>
+              <MemberName>
+                {item.first_name} {item.last_name}
+              </MemberName>
+              {team.organizerId === item.user_id && (
+                <CrownIcon title="Team Organizer">
+                  <AiFillCrown />
+                </CrownIcon>
+              )}
+            </LeftItemContainer>
+            <ItemButtonsContainer>
+              {item.user_id !== user?.id && (
+                <NeoButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleGiveStampClick(item)}
+                  title="Give a stamp"
+                >
+                  <FaStamp />
+                </NeoButton>
+              )}
+              {isUserOrganizer && item.user_id !== user.id && (
+                <NeoButton
+                  variant="danger"
+                  size="sm"
+                  onClick={() => handleKickClick(item)}
+                >
+                  Remove
+                </NeoButton>
+              )}
+            </ItemButtonsContainer>
+          </MemberHeader>
+          <StampTableContainer>
+            <StampTable stamps={memberStamps[item.user_id] || []} />
+          </StampTableContainer>
+        </MemberCard>
       ))}
     </>
   );
 
   return (
     <Container>
+      {/* Stamp Picker Modal */}
+      <StampPicker
+        isOpen={stampPickerOpen}
+        onClose={() => {
+          setStampPickerOpen(false);
+          setStampRecipient(null);
+        }}
+        onGiveStamp={handleGiveStamp}
+        recipientName={
+          stampRecipient
+            ? `${stampRecipient.first_name} ${stampRecipient.last_name}`
+            : ''
+        }
+      />
+
       {/* Invite Modal */}
       <NeoModal
         isOpen={isInviteModalOpen}
@@ -474,4 +561,30 @@ const InviteForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+`;
+
+const MemberCard = styled.div`
+  border-bottom: 2px solid ${neoColors.background};
+  padding: 0.75rem 0;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+`;
+
+const MemberHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.5rem;
+  margin-bottom: 0.5rem;
+`;
+
+const StampTableContainer = styled.div`
+  margin-top: 0.25rem;
 `;
