@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { getEnv } from '@hibiscus/env';
 import { ParsedUrlQuery } from 'querystring';
 import { ApplicationStatus } from '@hibiscus/types';
+import { SubmissionGuide } from '../../components/submit/SubmissionGuide';
 
 function isQueryComplete(query: ParsedUrlQuery): boolean {
   return (
@@ -110,24 +111,7 @@ export function SubmitPage({ submissionsOpen, tallyFormUrl }: ServerSideProps) {
 
   // Submissions not open yet (no Tally form URL configured)
   if (!submissionsOpen || !tallyFormUrl) {
-    return (
-      <Container>
-        <CenterContainer>
-          <Heading>Submissions Opening Soon</Heading>
-          <SubText>
-            The submission form is being prepared. Check back soon or join our
-            Discord for announcements.
-          </SubText>
-          <Link
-            href={'/'}
-            passHref
-            anchortagpropsoverride={{ target: '_self' }}
-          >
-            <ActionButton>Go to Dashboard</ActionButton>
-          </Link>
-        </CenterContainer>
-      </Container>
-    );
+    return <SubmissionGuide />;
   }
 
   // Build Tally URL with hibiscusUserId for webhook identification
