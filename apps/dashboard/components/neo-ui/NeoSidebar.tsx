@@ -2,8 +2,20 @@ import React from 'react';
 import styled from 'styled-components';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { FaHouse, FaUsers, FaCloudArrowUp, FaUser } from 'react-icons/fa6';
+import {
+  FaHouse,
+  FaUsers,
+  FaCloudArrowUp,
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+} from 'react-icons/fa6';
 import { neoColors, neoBorders, neoTransition } from './theme';
+
+const CONTACT = {
+  email: 'redbrickhacks@ashoka.edu.in',
+  phone: '+91 90500 14105',
+};
 
 const NAV_ITEMS = [
   { path: '/', label: 'Home', icon: FaHouse },
@@ -41,6 +53,17 @@ export function NeoSidebar() {
           );
         })}
       </Nav>
+      <ContactSection>
+        <ContactLabel>Need help?</ContactLabel>
+        <ContactLink href={`mailto:${CONTACT.email}`}>
+          <FaEnvelope />
+          <span>{CONTACT.email}</span>
+        </ContactLink>
+        <ContactLink href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>
+          <FaPhone />
+          <span>{CONTACT.phone}</span>
+        </ContactLink>
+      </ContactSection>
     </SidebarWrapper>
   );
 }
@@ -89,5 +112,46 @@ const NavItem = styled.a<{ $active: boolean }>`
   svg {
     font-size: 1.1rem;
     flex-shrink: 0;
+  }
+`;
+
+const ContactSection = styled.div`
+  margin-top: auto;
+  padding: 1.25rem 1.5rem;
+  border-top: ${neoBorders.standard};
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const ContactLabel = styled.span`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: ${neoColors.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+`;
+
+const ContactLink = styled.a`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: ${neoColors.text};
+  text-decoration: none;
+  transition: ${neoTransition};
+
+  &:hover {
+    color: ${neoColors.accent.blue};
+  }
+
+  svg {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  span {
+    word-break: break-all;
   }
 `;
