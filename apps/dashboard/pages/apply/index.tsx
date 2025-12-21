@@ -1,14 +1,15 @@
 import React, { useEffect } from 'react';
 import 'nprogress/nprogress.css';
 import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
-import { H3, Link } from '@hibiscus/ui';
 import styled from 'styled-components';
-import { isHackerPostAppStatus } from '../../common/utils';
 import { GetServerSideProps } from 'next';
 import { HackformTally } from '../../components/hackform-tally/hackform-tally';
 import { useRouter } from 'next/router';
 import { getEnv } from '@hibiscus/env';
 import { ParsedUrlQuery } from 'querystring';
+import { ApplicationStatus } from '@hibiscus/types';
+import Link from 'next/link';
+import { FaCheck } from 'react-icons/fa6';
 
 function isQueryComplete(query: ParsedUrlQuery): boolean {
   return (
@@ -62,19 +63,24 @@ export function Index({ appsOpen }: ServerSideProps) {
     );
   }
 
-  if (isHackerPostAppStatus(user.applicationStatus)) {
+  if (user.applicationStatus !== ApplicationStatus.NOT_APPLIED) {
     return (
       <Container>
-        <CenterContainer>
-          <Heading>You have already registered!</Heading>
-          <Link
-            href={'/'}
-            passHref
-            anchortagpropsoverride={{ target: '_self' }}
-          >
-            <RedButton>Go back to home</RedButton>
+        <CompletedCard>
+          <IconWrapper>
+            <FaCheck />
+          </IconWrapper>
+          <CardContent>
+            <CardTitle>You have filled your details</CardTitle>
+            <CardDescription>
+              Your profile is complete. You can view your dashboard to check
+              your status and next steps.
+            </CardDescription>
+          </CardContent>
+          <Link href="/" passHref legacyBehavior>
+            <HomeButton>Go to Dashboard</HomeButton>
           </Link>
-        </CenterContainer>
+        </CompletedCard>
       </Container>
     );
   }
@@ -84,11 +90,7 @@ export function Index({ appsOpen }: ServerSideProps) {
       <Container>
         <CenterContainer>
           <Heading>Registration has closed!</Heading>
-          <Link
-            href={'/'}
-            passHref
-            anchortagpropsoverride={{ target: '_self' }}
-          >
+          <Link href="/" passHref legacyBehavior>
             <RedButton>Go back to home</RedButton>
           </Link>
         </CenterContainer>
@@ -108,50 +110,115 @@ export function Index({ appsOpen }: ServerSideProps) {
 export default Index;
 
 const Container = styled.div`
-  height: 100%;
+  min-height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 2rem;
+  background: #fffdf7;
+`;
+
+const CompletedCard = styled.div`
+  background: #fff;
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0 #22c55e;
+  padding: 2rem;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+`;
+
+const IconWrapper = styled.div`
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #22c55e;
+  border: 2px solid #000;
+  color: #fff;
+  font-size: 1.75rem;
+`;
+
+const CardContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const CardTitle = styled.h2`
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #000;
+`;
+
+const CardDescription = styled.p`
+  margin: 0;
+  color: #555;
+  line-height: 1.5;
+`;
+
+const HomeButton = styled.a`
+  background: #22c55e;
+  color: #fff;
+  border: 2px solid #000;
+  box-shadow: 3px 3px 0 #000;
+  padding: 0.75rem 1.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.1s ease;
+
+  &:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 #000;
+  }
+
+  &:active {
+    transform: translate(3px, 3px);
+    box-shadow: none;
+  }
 `;
 
 const CenterContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 1rem;
 `;
 
-const Heading = styled(H3)`
+const Heading = styled.h3`
   color: #ff6347;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
 `;
 
-const RedButton = styled.button`
-  padding: 12px 40px 12px 40px;
-  border-radius: 8px;
-  border: 1px solid black;
+const RedButton = styled.a`
+  background: #ff5c5c;
+  color: #fff;
+  border: 2px solid #000;
+  box-shadow: 3px 3px 0 #000;
+  padding: 0.75rem 1.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.1s ease;
 
-  width: fit-content;
-  height: 45px;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  background: #ffb1a3;
-  font-family: Inter;
-  font-style: normal;
-  font-weight: 500;
-  font-size: 13px;
-  line-height: 36px;
-  text-align: center;
-  color: black;
-  :hover {
-    background: #ffded9;
-    box-shadow: 0px 0px 5px rgba(239, 118, 118, 0.5);
-    cursor: pointer;
-    transition: 0.1s;
+  &:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 #000;
   }
-  :active {
-    background: #ff6347;
+
+  &:active {
+    transform: translate(3px, 3px);
+    box-shadow: none;
   }
 `;
 
