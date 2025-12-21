@@ -55,6 +55,14 @@ export default async function invite(
       throw new Error("You can't invite yourself to your own team.");
     }
 
+    // check if invited user already has a team
+    const invitedUserTeam = await repo.getUserTeam(invitedId);
+    if (invitedUserTeam.data?.team_id) {
+      throw new Error(
+        'This user is already part of a team. They must leave their current team before they can be invited.'
+      );
+    }
+
     //very first check, make sure invite doesn't already exist
     const teamId = data.team_id;
     const team = await repo.getTeamInfo(teamId);

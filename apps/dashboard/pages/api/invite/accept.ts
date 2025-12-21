@@ -57,7 +57,7 @@ export default async function handler(
     result = await repo.checkHasNoTeam(invitedId);
     if (result.data.length === 0) {
       throw new Error(
-        'Requesting member already has a team. They must leave before the invite can be accepted'
+        'You are already part of a team. Leave your current team before accepting this invite.'
       );
     }
 
