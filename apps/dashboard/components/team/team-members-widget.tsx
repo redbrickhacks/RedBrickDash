@@ -1,24 +1,22 @@
-import { Colors2023 } from '@hibiscus/styles';
-import { H3, Modal, Text } from '@hibiscus/ui';
-import { Button, OneLineText } from '@hibiscus/ui-kit-2023';
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import {
-  AiFillCrown,
-  AiFillPlusCircle,
-  AiOutlineWarning,
-} from 'react-icons/ai';
+import { AiFillCrown, AiFillPlusCircle } from 'react-icons/ai';
 import { FaRightFromBracket, FaTrash } from 'react-icons/fa6';
-import { GrayBox } from '../gray-box/gray-box';
 import { Invite, TeamMember } from '../../common/types';
 import { toast } from 'react-hot-toast';
 import { useTeam } from '../../hooks/use-team/use-team';
 import { TeamServiceAPI } from '../../common/api';
 import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import { SpanRed } from '../red-span';
 import { useRouter } from 'next/router';
+import {
+  NeoButton,
+  NeoCard,
+  NeoModal,
+  NeoConfirmDialog,
+  NeoInput,
+  NeoBadge,
+  neoColors,
+} from '../neo-ui';
 
 type ConfirmAction = {
   type: 'kick' | 'remove-invite' | 'leave' | 'disband';
@@ -34,6 +32,9 @@ function TeamMembersWidget() {
     null
   );
   const [isProcessing, setIsProcessing] = useState(false);
+  const [emailInvitee, setEmailInvitee] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   const isUserOrganizer = team.organizerId === user?.id;
@@ -146,105 +147,86 @@ function TeamMembersWidget() {
     });
   };
 
-  const InviteForm = () => {
-    const formik = useFormik({
-      initialValues: { emailInvitee: '' },
-      validationSchema: Yup.object({
-        emailInvitee: Yup.string()
-          .email('Please enter a valid email')
-          .required('This field is required'),
-      }),
-      onSubmit: async (values, formikHelpers) => {
-        try {
-          const { data, error } = await TeamServiceAPI.teamInviteUser(
-            user.id,
-            values.emailInvitee
-          );
-          if (error) {
-            toast.error(error.message, { duration: 5000 });
-          } else {
-            if (data.emailFailed) {
-              toast(
-                (t) => (
-                  <div>
-                    <p>
-                      <strong>Invite created!</strong> Email notification
-                      failed.
-                    </p>
-                    <p style={{ fontSize: '0.9em', marginTop: '8px' }}>
-                      Share this link manually:
-                    </p>
-                    <input
-                      type="text"
-                      value={data.acceptLink}
-                      readOnly
-                      onClick={(e) => {
-                        (e.target as HTMLInputElement).select();
-                        navigator.clipboard.writeText(data.acceptLink);
-                        toast.success('Link copied!', { duration: 2000 });
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '4px 8px',
-                        marginTop: '4px',
-                        fontSize: '0.85em',
-                        cursor: 'pointer',
-                      }}
-                    />
-                  </div>
-                ),
-                { duration: 10000 }
-              );
-            } else {
-              toast.success('Invite email sent!', { duration: 5000 });
-            }
-            updateTeam({
-              invites: [
-                ...team.invites,
-                {
-                  id: data.invitee.id,
-                  created_at: data.createdAt,
-                  user_profiles: {
-                    first_name: data.invitee.firstName,
-                    last_name: data.invitee.lastName,
-                    email: data.invitee.email,
-                  },
-                },
-              ],
-            });
-          }
-        } catch (e) {
-          toast.error('Failed to send invite. Please try again.');
-          console.error(e);
-        } finally {
-          setInviteModalOpen(false);
-        }
-      },
-    });
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    return (
-      <form
-        onSubmit={formik.handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
-      >
-        <div>
-          <OneLineText
-            placeholder="User email"
-            type="email"
-            name="emailInvitee"
-            id="emailInvitee"
-            value={formik.values.emailInvitee}
-            onChange={formik.handleChange}
-            disabled={formik.isSubmitting}
-          />{' '}
-          <SpanRed>{'*'}</SpanRed>
-        </div>
-        <SpanRed>{formik.errors.emailInvitee}</SpanRed>
-        <Button color="black" type="submit" disabled={formik.isSubmitting}>
-          {formik.isSubmitting ? 'Sending...' : 'Send Invite'}
-        </Button>
-      </form>
-    );
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailInvitee.trim()) {
+      setEmailError('This field is required');
+      return;
+    }
+    if (!emailRegex.test(emailInvitee)) {
+      setEmailError('Please enter a valid email');
+      return;
+    }
+    setEmailError('');
+
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await TeamServiceAPI.teamInviteUser(
+        user.id,
+        emailInvitee
+      );
+      if (error) {
+        toast.error(error.message, { duration: 5000 });
+      } else {
+        if (data.emailFailed) {
+          toast(
+            (t) => (
+              <div>
+                <p>
+                  <strong>Invite created!</strong> Email notification failed.
+                </p>
+                <p style={{ fontSize: '0.9em', marginTop: '8px' }}>
+                  Share this link manually:
+                </p>
+                <input
+                  type="text"
+                  value={data.acceptLink}
+                  readOnly
+                  onClick={(e) => {
+                    (e.target as HTMLInputElement).select();
+                    navigator.clipboard.writeText(data.acceptLink);
+                    toast.success('Link copied!', { duration: 2000 });
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '4px 8px',
+                    marginTop: '4px',
+                    fontSize: '0.85em',
+                    cursor: 'pointer',
+                  }}
+                />
+              </div>
+            ),
+            { duration: 10000 }
+          );
+        } else {
+          toast.success('Invite email sent!', { duration: 5000 });
+        }
+        updateTeam({
+          invites: [
+            ...team.invites,
+            {
+              id: data.invitee.id,
+              created_at: data.createdAt,
+              user_profiles: {
+                first_name: data.invitee.firstName,
+                last_name: data.invitee.lastName,
+                email: data.invitee.email,
+              },
+            },
+          ],
+        });
+      }
+    } catch (e) {
+      toast.error('Failed to send invite. Please try again.');
+      console.error(e);
+    } finally {
+      setIsSubmitting(false);
+      setInviteModalOpen(false);
+      setEmailInvitee('');
+    }
   };
 
   const SentInvites = () => {
@@ -255,19 +237,20 @@ function TeamMembersWidget() {
         {team.invites.map((item, i) => (
           <ListItemContainer key={i}>
             <LeftItemContainer>
-              <Text style={{ color: 'gray' }}>
+              <MemberName $muted>
                 {item.user_profiles.first_name} {item.user_profiles.last_name}
-              </Text>
+              </MemberName>
             </LeftItemContainer>
             <ItemButtonsContainer>
-              <InviteBadge>Pending</InviteBadge>
+              <NeoBadge variant="warning">Pending</NeoBadge>
               {isUserOrganizer && (
-                <Button
-                  color="red"
+                <NeoButton
+                  variant="danger"
+                  size="sm"
                   onClick={() => handleRemoveInviteClick(item)}
                 >
                   Cancel
-                </Button>
+                </NeoButton>
               )}
             </ItemButtonsContainer>
           </ListItemContainer>
@@ -281,9 +264,9 @@ function TeamMembersWidget() {
       {team.members?.map((item, i) => (
         <ListItemContainer key={i}>
           <LeftItemContainer>
-            <Text>
+            <MemberName>
               {item.first_name} {item.last_name}
-            </Text>
+            </MemberName>
             {team.organizerId === item.user_id && (
               <CrownIcon title="Team Organizer">
                 <AiFillCrown />
@@ -292,9 +275,13 @@ function TeamMembersWidget() {
           </LeftItemContainer>
           <ItemButtonsContainer>
             {isUserOrganizer && item.user_id !== user.id && (
-              <Button color="red" onClick={() => handleKickClick(item)}>
+              <NeoButton
+                variant="danger"
+                size="sm"
+                onClick={() => handleKickClick(item)}
+              >
                 Remove
-              </Button>
+              </NeoButton>
             )}
           </ItemButtonsContainer>
         </ListItemContainer>
@@ -305,58 +292,59 @@ function TeamMembersWidget() {
   return (
     <Container>
       {/* Invite Modal */}
-      <Modal
+      <NeoModal
         isOpen={isInviteModalOpen}
-        closeModal={() => setInviteModalOpen(false)}
+        onClose={() => setInviteModalOpen(false)}
+        title="Invite Team Member"
       >
-        <GrayBox>
-          <H3>Invite Team Member</H3>
-          <InviteForm />
-        </GrayBox>
-      </Modal>
+        <InviteForm onSubmit={handleInviteSubmit}>
+          <NeoInput
+            label="Email"
+            type="email"
+            placeholder="teammate@example.com"
+            value={emailInvitee}
+            onChange={(e) =>
+              setEmailInvitee((e.target as HTMLInputElement).value)
+            }
+            error={emailError}
+            disabled={isSubmitting}
+            required
+          />
+          <NeoButton type="submit" loading={isSubmitting}>
+            Send Invite
+          </NeoButton>
+        </InviteForm>
+      </NeoModal>
 
-      {/* Confirmation Modal */}
-      <Modal isOpen={!!confirmAction} closeModal={closeConfirmDialog}>
-        <ConfirmBox>
-          <WarningIcon>
-            <AiOutlineWarning />
-          </WarningIcon>
-          <H3>Confirm Action</H3>
-          <Text style={{ textAlign: 'center', marginBottom: '1rem' }}>
-            {confirmAction?.message}
-          </Text>
-          <ConfirmButtons>
-            <Button
-              color="red"
-              onClick={executeConfirmedAction}
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Processing...' : 'Confirm'}
-            </Button>
-            <Button color="black" onClick={closeConfirmDialog}>
-              Cancel
-            </Button>
-          </ConfirmButtons>
-        </ConfirmBox>
-      </Modal>
+      {/* Confirmation Dialog */}
+      <NeoConfirmDialog
+        isOpen={!!confirmAction}
+        onConfirm={executeConfirmedAction}
+        onCancel={closeConfirmDialog}
+        title="Confirm Action"
+        message={confirmAction?.message || ''}
+        confirmText={isProcessing ? 'Processing...' : 'Confirm'}
+        isLoading={isProcessing}
+        variant="danger"
+      />
 
       {/* Header with member count */}
       <TopContainer>
         <HeaderLeft>
-          <H3 style={{ fontWeight: 600 }}>Members</H3>
+          <SectionTitle>Members</SectionTitle>
           <MemberCount>
             {memberCount}/{maxMembers}
           </MemberCount>
         </HeaderLeft>
         {isUserOrganizer && memberCount < maxMembers && (
-          <Button color="black" onClick={() => setInviteModalOpen(true)}>
+          <NeoButton size="sm" onClick={() => setInviteModalOpen(true)}>
             <AiFillPlusCircle /> Add Member
-          </Button>
+          </NeoButton>
         )}
       </TopContainer>
 
       {/* Members List */}
-      <GrayBox>
+      <MembersCard>
         <List>
           {user && (
             <>
@@ -365,18 +353,18 @@ function TeamMembersWidget() {
             </>
           )}
         </List>
-      </GrayBox>
+      </MembersCard>
 
       {/* Team Actions */}
       <TeamActionsContainer>
         {isUserOrganizer ? (
-          <DangerButton onClick={handleDisbandClick}>
+          <NeoButton variant="danger" size="sm" onClick={handleDisbandClick}>
             <FaTrash /> Disband Team
-          </DangerButton>
+          </NeoButton>
         ) : (
-          <DangerButton onClick={handleLeaveClick}>
+          <NeoButton variant="danger" size="sm" onClick={handleLeaveClick}>
             <FaRightFromBracket /> Leave Team
-          </DangerButton>
+          </NeoButton>
         )}
       </TeamActionsContainer>
     </Container>
@@ -390,7 +378,7 @@ const Container = styled.div`
   flex-direction: column;
   width: fit-content;
   min-width: 400px;
-  gap: 10px;
+  gap: 1rem;
 
   @media (max-width: 500px) {
     min-width: 100%;
@@ -406,20 +394,29 @@ const TopContainer = styled.div`
 const HeaderLeft = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+`;
+
+const SectionTitle = styled.h3`
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
 `;
 
 const MemberCount = styled.span`
-  background: ${Colors2023.GRAY.LIGHT};
-  color: ${Colors2023.GRAY.DARK};
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  background: ${neoColors.background};
+  color: ${neoColors.textMuted};
+  padding: 0.25rem 0.75rem;
+  border: 2px solid #000;
   font-size: 0.875rem;
+  font-weight: 600;
 `;
+
+const MembersCard = styled(NeoCard)``;
 
 const List = styled.div`
   display: flex;
-  gap: 10px;
+  gap: 0.5rem;
   flex-direction: column;
   width: 100%;
 `;
@@ -430,75 +427,51 @@ const ListItemContainer = styled.div`
   align-items: center;
   justify-content: space-between;
   max-width: 100%;
-  border-bottom: 1px solid ${Colors2023.GRAY.MEDIUM};
-  padding: 0.5rem 0;
+  border-bottom: 2px solid ${neoColors.background};
+  padding: 0.75rem 0;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
 `;
 
 const ItemButtonsContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.75rem;
 `;
 
 const LeftItemContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.5rem;
+`;
+
+const MemberName = styled.span<{ $muted?: boolean }>`
+  font-weight: 500;
+  color: ${({ $muted }) => ($muted ? neoColors.textMuted : neoColors.text)};
 `;
 
 const CrownIcon = styled.span`
   color: #ffd700;
   display: flex;
   align-items: center;
-`;
-
-const InviteBadge = styled.span`
-  background: ${Colors2023.BLUE.LIGHT};
-  color: ${Colors2023.BLUE.DARK};
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 1.25rem;
 `;
 
 const TeamActionsContainer = styled.div`
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   padding-top: 1rem;
-  border-top: 1px solid ${Colors2023.GRAY.LIGHT};
+  border-top: 2px solid ${neoColors.background};
 `;
 
-const DangerButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: transparent;
-  border: 1px solid #dc3545;
-  color: #dc3545;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #dc3545;
-    color: white;
-  }
-`;
-
-const ConfirmBox = styled(GrayBox)`
+const InviteForm = styled.form`
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  max-width: 400px;
-`;
-
-const WarningIcon = styled.div`
-  font-size: 2.5rem;
-  color: #ffc107;
-`;
-
-const ConfirmButtons = styled.div`
-  display: flex;
   gap: 1rem;
 `;
