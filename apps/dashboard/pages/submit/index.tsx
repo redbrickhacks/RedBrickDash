@@ -135,11 +135,7 @@ export function SubmitPage({ submissionsOpen, tallyFormUrl }: ServerSideProps) {
     tallyFormUrl.includes('?') ? '&' : '?'
   }hibiscusUserId=${user.id}`;
 
-  return (
-    <MarginContainer>
-      <HackformTally tallyUrl={tallyUrlWithUserId} />
-    </MarginContainer>
-  );
+  return <HackformTally tallyUrl={tallyUrlWithUserId} />;
 }
 
 export default SubmitPage;
@@ -156,10 +152,6 @@ const CenterContainer = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-`;
-
-const MarginContainer = styled.div`
-  margin: 0 5rem;
 `;
 
 const Heading = styled(H3)`

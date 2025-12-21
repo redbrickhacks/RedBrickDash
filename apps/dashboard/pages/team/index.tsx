@@ -35,37 +35,23 @@ const Index = () => {
     });
   }, [user]);
 
+  if (isLoading) {
+    return <LoadingText>Loading...</LoadingText>;
+  }
+
+  if (noTeam) {
+    return <NoTeamPlaceholder />;
+  }
+
   return (
-    <PageContainer>
-      {isLoading ? (
-        <LoadingText>Loading...</LoadingText>
-      ) : !noTeam ? (
-        <TeamContent>
-          <TeamHeader />
-          <TeamMembersWidget />
-        </TeamContent>
-      ) : (
-        <NoTeamPlaceholder />
-      )}
-    </PageContainer>
+    <TeamContent>
+      <TeamHeader />
+      <TeamMembersWidget />
+    </TeamContent>
   );
 };
 
 export default Index;
-
-const PageContainer = styled.div`
-  min-height: 100vh;
-  background: ${neoColors.background};
-  padding: 2rem;
-
-  @media (min-width: 768px) {
-    padding: 4rem 6rem;
-  }
-
-  @media (min-width: 1200px) {
-    padding: 4rem 12rem;
-  }
-`;
 
 const TeamContent = styled.div`
   max-width: 600px;

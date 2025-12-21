@@ -1,4 +1,3 @@
-import styled from 'styled-components';
 import useHibiscusUser from '../hooks/use-hibiscus-user/use-hibiscus-user';
 import { ApplicationStatus, HibiscusRole } from '@hibiscus/types';
 import HackerPortal from '../components/hacker-portal/hacker-portal';
@@ -138,30 +137,10 @@ export function Index({ appsOpen, waitlistOpen }: ServerSideProps) {
     }
   };
 
-  return (
-    <Wrapper>
-      <LayoutContainer>
-        <Dashboard />
-      </LayoutContainer>
-    </Wrapper>
-  );
+  return <Dashboard />;
 }
 
 export default Index;
-
-const Wrapper = styled.div`
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-`;
-
-const LayoutContainer = styled.div`
-  width: 80%;
-  display: flex;
-  flex-direction: column;
-`;
 
 export const getServerSideProps: GetServerSideProps = async () => {
   // Feature flags - set these to control app behavior

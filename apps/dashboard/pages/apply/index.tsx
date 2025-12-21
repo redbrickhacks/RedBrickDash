@@ -102,11 +102,7 @@ export function Index({ appsOpen }: ServerSideProps) {
     baseTallyUrl.includes('?') ? '&' : '?'
   }hibiscusUserId=${user.id}`;
 
-  return (
-    <MarginContainer>
-      <HackformTally tallyUrl={tallyUrlWithUserId} />
-    </MarginContainer>
-  );
+  return <HackformTally tallyUrl={tallyUrlWithUserId} />;
 }
 
 export default Index;
@@ -122,10 +118,6 @@ const CenterContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-`;
-
-const MarginContainer = styled.div`
-  margin: 0 5rem;
 `;
 
 const Heading = styled(H3)`
