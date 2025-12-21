@@ -104,7 +104,11 @@ export function Index({ appsOpen }: ServerSideProps) {
     baseTallyUrl.includes('?') ? '&' : '?'
   }hibiscusUserId=${user.id}`;
 
-  return <HackformTally tallyUrl={tallyUrlWithUserId} />;
+  return (
+    <Container>
+      <HackformTally tallyUrl={tallyUrlWithUserId} />
+    </Container>
+  );
 }
 
 export default Index;
