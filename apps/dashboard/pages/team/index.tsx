@@ -6,8 +6,7 @@ import NoTeamPlaceholder from '../../components/team/no-team-placeholder';
 import { useTeam } from '../../hooks/use-team/use-team';
 import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
 import { TeamServiceAPI } from '../../common/api';
-import { Text } from '@hibiscus/ui';
-import Image from 'next/image';
+import { neoColors } from '../../components/neo-ui';
 
 const Index = () => {
   const { updateTeam, isLoading, noTeam, setNoTeam } = useTeam();
@@ -39,38 +38,14 @@ const Index = () => {
   return (
     <PageContainer>
       {isLoading ? (
-        <Text>Loading...</Text>
+        <LoadingText>Loading...</LoadingText>
       ) : !noTeam ? (
-        <div
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <TeamHeader />
-            <TeamMembersWidget />
-          </div>
-          <StyledImage
-            style={{ marginLeft: '100px', marginTop: '100px' }}
-            width="350"
-            height="250"
-            src={'/hackform-illustrations/postcard-world.svg'}
-            alt="Illustration"
-          />
-        </div>
+        <TeamContent>
+          <TeamHeader />
+          <TeamMembersWidget />
+        </TeamContent>
       ) : (
-        <div>
-          <NoTeamPlaceholder />
-          <StyledImage
-            style={{ marginTop: '5rem' }}
-            width="450"
-            height="350"
-            src={'/hackform-illustrations/postcard.svg'}
-            alt="Illustration"
-          />
-        </div>
+        <NoTeamPlaceholder />
       )}
     </PageContainer>
   );
@@ -79,17 +54,25 @@ const Index = () => {
 export default Index;
 
 const PageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 3rem;
-  margin: 6rem 16rem;
-  @media (max-width: 400px) {
-    margin: 8rem 0rem;
+  min-height: 100vh;
+  background: ${neoColors.background};
+  padding: 2rem;
+
+  @media (min-width: 768px) {
+    padding: 4rem 6rem;
+  }
+
+  @media (min-width: 1200px) {
+    padding: 4rem 12rem;
   }
 `;
 
-const StyledImage = styled(Image)`
-  @media (max-width: 400px) {
-    display: none;
-  }
+const TeamContent = styled.div`
+  max-width: 600px;
+`;
+
+const LoadingText = styled.p`
+  font-size: 1rem;
+  color: ${neoColors.textMuted};
+  font-weight: 500;
 `;
