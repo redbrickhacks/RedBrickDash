@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { container } from 'tsyringe';
 import { StampRepository } from '../../../repository/stamp.repository';
+import { getAuthenticatedUser } from '../../../common/auth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,6 +12,11 @@ export default async function handler(
   }
 
   try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const repo = container.resolve(StampRepository);
     const { data, error } = await repo.getStampTypes();
 

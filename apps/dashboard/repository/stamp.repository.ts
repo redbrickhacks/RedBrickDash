@@ -8,6 +8,8 @@ export class StampRepository {
 
   constructor() {
     this.supabase = container.resolve(HibiscusSupabaseClient);
+    // Use service key to bypass RLS - auth is handled at API layer
+    this.supabase.setOptions({ useServiceKey: true });
   }
 
   async getStampTypes() {
@@ -45,8 +47,6 @@ export class StampRepository {
     isSystemGift: boolean = false,
     message: string | null = null
   ) {
-    this.supabase.setOptions({ useServiceKey: isSystemGift });
-
     return this.supabase.getClient().from('user_stamps').insert({
       recipient_id: recipientId,
       stamp_type_id: stampTypeId,

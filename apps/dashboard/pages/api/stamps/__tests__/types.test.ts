@@ -1,7 +1,13 @@
 import 'reflect-metadata';
 import { createMocks } from 'node-mocks-http';
 
+const mockGetAuthenticatedUser = jest.fn();
 const mockGetStampTypes = jest.fn();
+
+jest.mock('../../../../common/auth', () => ({
+  getAuthenticatedUser: (...args: unknown[]) =>
+    mockGetAuthenticatedUser(...args),
+}));
 
 jest.mock('tsyringe', () => ({
   container: {
@@ -17,6 +23,18 @@ import handler from '../types';
 describe('GET /api/stamps/types', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: 'user-123' });
+  });
+
+  it('returns 401 when user is not authenticated', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(null);
+
+    const { req, res } = createMocks({ method: 'GET' });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(401);
+    expect(mockGetStampTypes).not.toHaveBeenCalled();
   });
 
   it('returns all stamp types on success', async () => {
