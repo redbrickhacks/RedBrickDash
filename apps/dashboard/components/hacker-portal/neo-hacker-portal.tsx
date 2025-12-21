@@ -51,6 +51,7 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
   const submissionDeadline = deadlineStr
     ? new Date(deadlineStr)
     : new Date('2025-01-10T23:59:59Z');
+  const isDeadlinePassed = new Date() > submissionDeadline;
 
   const hasTeam = !!user.teamId;
   const hasSubmitted = (user.submissionStatus ?? 1) >= 2;
@@ -137,13 +138,18 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
               <span className="name">{user.firstName}!</span>
             </WelcomeText>
             <WelcomeSubtext>
-              Welcome to the <strong>Online Round</strong>. Build something
-              amazing and submit before the deadline.
+              {isDeadlinePassed
+                ? hasSubmitted
+                  ? 'The online round has ended. Results will be announced soon!'
+                  : 'The submission deadline has passed. Stay tuned for announcements.'
+                : 'Welcome to the Online Round. Build something amazing and submit before the deadline.'}
             </WelcomeSubtext>
           </WelcomeContent>
-          <CountdownWrapper>
-            <CountdownTimer deadline={submissionDeadline} />
-          </CountdownWrapper>
+          {!isDeadlinePassed && (
+            <CountdownWrapper>
+              <CountdownTimer deadline={submissionDeadline} />
+            </CountdownWrapper>
+          )}
         </WelcomeBanner>
 
         {/* Dynamic Next Step Card */}

@@ -60,7 +60,7 @@ const LayoutWrapper = styled.div`
 const MainContent = styled.div`
   display: flex;
   flex: 1;
-  overflow: hidden;
+  min-height: 0; /* Allow flex child to shrink below content size */
 `;
 
 const ContentArea = styled.div<{ $hasMobileNav: boolean }>`
