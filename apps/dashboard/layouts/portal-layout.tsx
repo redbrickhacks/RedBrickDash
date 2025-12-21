@@ -1,52 +1,76 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import PortalMenu from '../components/portal-menu/portal-menu';
-import TopBar from '../components/top-bar/top-bar';
+import { useMediaQuery } from 'react-responsive';
 import useHibiscusUser from '../hooks/use-hibiscus-user/use-hibiscus-user';
-import BottomBar from '../components/bottom-bar/bottom-bar';
+import {
+  NeoTopBar,
+  NeoSidebar,
+  NeoBottomNav,
+  neoColors,
+} from '../components/neo-ui';
 
 export type PortalLayoutProps = React.PropsWithChildren;
 
 function PortalLayout({ children }: PortalLayoutProps) {
   const { user } = useHibiscusUser();
+  const [mounted, setMounted] = useState(false);
+  const isMobile = useMediaQuery({ query: '(max-width: 600px)' });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (user == null) {
-    return <></>;
+    return null;
+  }
+
+  // Prevent hydration mismatch by not rendering responsive components until mounted
+  if (!mounted) {
+    return (
+      <LayoutWrapper>
+        <NeoTopBar userTag={user.tag} role={user.role} />
+        <MainContent>
+          <ContentArea $hasMobileNav={false}>{children}</ContentArea>
+        </MainContent>
+      </LayoutWrapper>
+    );
   }
 
   return (
-    <MainPageWrapper>
-      {/* <StyledSideNav /> */}
-      <TopBar userTag={user.tag} role={user.role} />
-      <MenuLayoutWrapper>
-        <ChildrenWrapper>{children}</ChildrenWrapper>
-      </MenuLayoutWrapper>
-      <BottomBar />
-    </MainPageWrapper>
+    <LayoutWrapper>
+      <NeoTopBar userTag={user.tag} role={user.role} />
+      <MainContent>
+        {!isMobile && <NeoSidebar />}
+        <ContentArea $hasMobileNav={isMobile}>{children}</ContentArea>
+      </MainContent>
+      {isMobile && <NeoBottomNav />}
+    </LayoutWrapper>
   );
 }
 
 export default PortalLayout;
 
-const MainPageWrapper = styled.div`
+const LayoutWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: 100vh;
+  min-height: 100vh;
+  background: ${neoColors.background};
 `;
 
-const MenuLayoutWrapper = styled.div`
-  position: relative;
-  padding: 20px;
-  height: 100%;
-  flex: 1 1 auto;
+const MainContent = styled.div`
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 `;
 
-const MenuWrapper = styled.div`
-  position: absolute;
-  z-index: 999; // always on top
-`;
+const ContentArea = styled.div<{ $hasMobileNav: boolean }>`
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  padding-bottom: ${({ $hasMobileNav }) => ($hasMobileNav ? '80px' : '2rem')};
 
-const ChildrenWrapper = styled.div`
-  height: 100%;
+  @media (max-width: 600px) {
+    padding: 1rem;
+    padding-bottom: 80px;
+  }
 `;
