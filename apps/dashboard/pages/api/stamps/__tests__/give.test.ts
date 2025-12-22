@@ -5,6 +5,7 @@ const mockGetAuthenticatedUser = jest.fn();
 const mockGiveStamp = jest.fn();
 const mockFindFirstAvailableSlot = jest.fn();
 const mockGetStampTypes = jest.fn();
+const mockHasStampType = jest.fn();
 
 jest.mock('../../../../common/auth', () => ({
   getAuthenticatedUser: (...args: unknown[]) =>
@@ -18,6 +19,7 @@ jest.mock('tsyringe', () => ({
       findFirstAvailableSlot: (...args: unknown[]) =>
         mockFindFirstAvailableSlot(...args),
       getStampTypes: (...args: unknown[]) => mockGetStampTypes(...args),
+      hasStampType: (...args: unknown[]) => mockHasStampType(...args),
     }),
   },
   injectable: () => () => {},
@@ -35,6 +37,7 @@ describe('POST /api/stamps/give', () => {
       ],
       error: null,
     });
+    mockHasStampType.mockResolvedValue(false);
   });
 
   it('returns 401 when user is not authenticated', async () => {
@@ -89,6 +92,22 @@ describe('POST /api/stamps/give', () => {
 
     expect(res._getStatusCode()).toBe(400);
     expect(JSON.parse(res._getData()).message).toContain('system');
+  });
+
+  it('returns 400 when recipient already has this stamp type', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: 'giver-123' });
+    mockHasStampType.mockResolvedValue(true);
+
+    const { req, res } = createMocks({
+      method: 'POST',
+      body: { recipientId: 'user-123', stampTypeId: 1 },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData()).message).toContain('already has');
+    expect(mockGiveStamp).not.toHaveBeenCalled();
   });
 
   it('returns 400 when recipient table is full', async () => {

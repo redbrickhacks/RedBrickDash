@@ -44,6 +44,14 @@ export default async function handler(
       return res.status(400).json({ message: 'Cannot use system-only stamps' });
     }
 
+    // Check if recipient already has this stamp type
+    const alreadyHas = await repo.hasStampType(recipientId, stampTypeId);
+    if (alreadyHas) {
+      return res
+        .status(400)
+        .json({ message: 'Recipient already has this stamp type' });
+    }
+
     // Find available slot
     const slotPosition = await repo.findFirstAvailableSlot(recipientId);
     if (slotPosition === null) {

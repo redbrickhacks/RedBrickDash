@@ -86,4 +86,20 @@ export class StampRepository {
     }
     return null; // All slots full
   }
+
+  async hasStampType(
+    recipientId: string,
+    stampTypeId: number
+  ): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user_stamps')
+      .select('id')
+      .eq('recipient_id', recipientId)
+      .eq('stamp_type_id', stampTypeId)
+      .limit(1);
+
+    if (error) return false;
+    return data.length > 0;
+  }
 }
