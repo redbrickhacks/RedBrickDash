@@ -337,7 +337,7 @@ function TeamMembersWidget() {
                   variant="secondary"
                   size="sm"
                   onClick={() => handleGiveStampClick(item)}
-                  title="Give a stamp"
+                  title={`Send ${item.first_name} a stamp`}
                 >
                   <FaStamp />
                 </NeoButton>
@@ -354,7 +354,11 @@ function TeamMembersWidget() {
             </ItemButtonsContainer>
           </MemberHeader>
           <StampTableContainer>
-            <StampTable stamps={memberStamps[item.user_id] || []} />
+            <StampTable
+              stamps={memberStamps[item.user_id] || []}
+              ownerName={item.first_name}
+              showEmptyHint={item.user_id !== user?.id}
+            />
           </StampTableContainer>
         </MemberCard>
       ))}

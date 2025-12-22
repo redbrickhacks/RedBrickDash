@@ -28,6 +28,7 @@ export interface Stamp {
 interface StampTableProps {
   stamps: Stamp[];
   ownerName?: string;
+  showEmptyHint?: boolean;
 }
 
 const Grid = styled.div`
@@ -161,7 +162,11 @@ function StampSlot({ stamp }: { stamp: Stamp | null }) {
   );
 }
 
-export function StampTable({ stamps, ownerName }: StampTableProps) {
+export function StampTable({
+  stamps,
+  ownerName,
+  showEmptyHint = false,
+}: StampTableProps) {
   // Create a 9-slot array, mapping stamps to their positions
   const slots: (Stamp | null)[] = Array(9).fill(null);
   stamps.forEach((stamp) => {
@@ -170,25 +175,51 @@ export function StampTable({ stamps, ownerName }: StampTableProps) {
     }
   });
 
+  const isEmpty = stamps.length === 0;
+
   return (
-    <div>
-      {ownerName && <TableLabel>{ownerName}&apos;s stamps</TableLabel>}
+    <Container>
+      <Header>
+        <TableLabel>
+          {ownerName ? `${ownerName}'s collection` : 'Stamps'}
+        </TableLabel>
+      </Header>
       <Grid>
         {slots.map((stamp, index) => (
           <StampSlot key={index} stamp={stamp} />
         ))}
       </Grid>
-    </div>
+      {isEmpty && showEmptyHint && (
+        <EmptyHint>No stamps yet. Be the first to send one!</EmptyHint>
+      )}
+    </Container>
   );
 }
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
 
 const TableLabel = styled.div`
   font-size: 0.75rem;
   font-weight: 600;
   color: ${neoColors.textMuted};
-  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+`;
+
+const EmptyHint = styled.div`
+  font-size: 0.75rem;
+  color: ${neoColors.textLight};
+  margin-top: 4px;
 `;
 
 export default StampTable;

@@ -2,19 +2,36 @@ import { createMocks } from 'node-mocks-http';
 import { createHmac } from 'crypto';
 
 // Mock dependencies before importing handler
-const mockUpdate = jest.fn().mockReturnThis();
-const mockEq = jest.fn().mockReturnThis();
-const mockSelect = jest
-  .fn()
-  .mockResolvedValue({ data: [{ user_id: 'test-user' }], error: null });
+const mockInsert = jest.fn().mockResolvedValue({ data: null, error: null });
+const mockUpdateData = jest.fn();
+
+const mockFrom = jest.fn((table: string) => {
+  if (table === 'user_stamps') {
+    return {
+      select: jest.fn(() => ({
+        eq: jest.fn(() => Promise.resolve({ data: [], error: null })),
+      })),
+      insert: mockInsert,
+    };
+  }
+  // user_profiles table - chain: from().update().eq().select()
+  return {
+    update: jest.fn((data) => {
+      mockUpdateData(data);
+      return {
+        eq: jest.fn(() => ({
+          select: jest.fn(() =>
+            Promise.resolve({ data: [{ user_id: 'test-user' }], error: null })
+          ),
+        })),
+      };
+    }),
+  };
+});
 
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({
-    from: jest.fn(() => ({
-      update: mockUpdate,
-      eq: mockEq,
-      select: mockSelect,
-    })),
+    from: mockFrom,
   })),
 }));
 
@@ -68,7 +85,7 @@ describe('Tally Webhook Supabase', () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(200);
-    expect(mockUpdate).toHaveBeenCalledWith({
+    expect(mockUpdateData).toHaveBeenCalledWith({
       app_id: 'test-response-id',
       application_status: 2, // REGISTERED
     });
@@ -94,5 +111,32 @@ describe('Tally Webhook Supabase', () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(401);
+  });
+
+  it('should give welcome stamp after successful registration', async () => {
+    const { body, signature } = createValidRequest();
+
+    const { req, res } = createMocks({
+      method: 'POST',
+      body,
+      headers: { 'tally-signature': signature },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+
+    // Wait for fire-and-forget stamp to complete
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Verify welcome stamp was inserted
+    expect(mockInsert).toHaveBeenCalledWith({
+      recipient_id: 'test-user-id',
+      stamp_type_id: 15, // RBH welcome stamp
+      slot_position: 0,
+      giver_id: null,
+      is_system_gift: true,
+      message: 'Welcome to RedBrick Hacks!',
+    });
   });
 });

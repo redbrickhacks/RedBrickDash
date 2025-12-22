@@ -58,6 +58,11 @@ const handler: NextApiHandler = async (req, res) => {
     );
   }
 
+  // Give welcome stamp (fire and forget - don't fail registration if stamp fails)
+  giveWelcomeStamp(field.value).catch((e) =>
+    console.warn('[welcome-stamp]', e.message)
+  );
+
   return createResponse(res, 200, 'Success');
 };
 
@@ -104,6 +109,44 @@ async function updateDb(
 
 function createResponse(res: NextApiResponse, status: number, message: string) {
   return res.status(status).json({ meta: { statusCode: status, message } });
+}
+
+const RBH_WELCOME_STAMP_ID = 15; // rbh-special stamp
+const RBH_WELCOME_MESSAGE = 'Welcome to RedBrick Hacks!';
+
+async function giveWelcomeStamp(userId: string): Promise<void> {
+  const supabase = createClient(
+    getEnv().Hibiscus.Supabase.apiUrl,
+    getEnv().Hibiscus.Supabase.serviceKey
+  );
+
+  // Check for first available slot (0-8)
+  const { data: existing } = await supabase
+    .from('user_stamps')
+    .select('slot_position')
+    .eq('recipient_id', userId);
+
+  const occupied = new Set((existing || []).map((s) => s.slot_position));
+  let slotPosition: number | null = null;
+  for (let i = 0; i < 9; i++) {
+    if (!occupied.has(i)) {
+      slotPosition = i;
+      break;
+    }
+  }
+
+  if (slotPosition === null) {
+    return; // All slots full, skip silently
+  }
+
+  await supabase.from('user_stamps').insert({
+    recipient_id: userId,
+    stamp_type_id: RBH_WELCOME_STAMP_ID,
+    slot_position: slotPosition,
+    giver_id: null,
+    is_system_gift: true,
+    message: RBH_WELCOME_MESSAGE,
+  });
 }
 
 export default handler;
