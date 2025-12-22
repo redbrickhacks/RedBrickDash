@@ -102,4 +102,35 @@ export class StampRepository {
     if (error) return false;
     return data.length > 0;
   }
+
+  async swapStamp(
+    recipientId: string,
+    stampTypeId: number,
+    slotPosition: number,
+    giverId: string | null,
+    isSystemGift: boolean = false,
+    message: string | null = null
+  ) {
+    // Delete the existing stamp at this slot
+    const { error: deleteError } = await this.supabase
+      .getClient()
+      .from('user_stamps')
+      .delete()
+      .eq('recipient_id', recipientId)
+      .eq('slot_position', slotPosition);
+
+    if (deleteError) {
+      return { error: deleteError };
+    }
+
+    // Insert the new stamp
+    return this.supabase.getClient().from('user_stamps').insert({
+      recipient_id: recipientId,
+      stamp_type_id: stampTypeId,
+      slot_position: slotPosition,
+      giver_id: giverId,
+      is_system_gift: isSystemGift,
+      message: message,
+    });
+  }
 }
