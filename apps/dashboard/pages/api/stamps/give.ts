@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { container } from 'tsyringe';
 import { StampRepository } from '../../../repository/stamp.repository';
 import { getAuthenticatedUser } from '../../../common/auth';
+import { isValidUUID, isValidInteger } from '../../../common/utils';
 
 export default async function handler(
   req: NextApiRequest,
@@ -23,8 +24,16 @@ export default async function handler(
       return res.status(400).json({ message: 'recipientId is required' });
     }
 
-    if (!stampTypeId) {
+    if (!isValidUUID(recipientId)) {
+      return res.status(400).json({ message: 'Invalid recipientId format' });
+    }
+
+    if (!stampTypeId && stampTypeId !== 0) {
       return res.status(400).json({ message: 'stampTypeId is required' });
+    }
+
+    if (!isValidInteger(stampTypeId)) {
+      return res.status(400).json({ message: 'Invalid stampTypeId format' });
     }
 
     const repo = container.resolve(StampRepository);

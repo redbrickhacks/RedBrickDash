@@ -109,6 +109,23 @@ function TeamMembersWidget() {
     fetchMemberStamps();
   };
 
+  const handleDeleteStamp = async (stampId: string) => {
+    const res = await fetch('/api/stamps/delete', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stampId }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      toast.error(data.message || 'Failed to remove stamp');
+      return;
+    }
+
+    toast.success('Stamp removed');
+    fetchMemberStamps();
+  };
+
   const showConfirmDialog = (action: ConfirmAction) => {
     setConfirmAction(action);
   };
@@ -369,6 +386,10 @@ function TeamMembersWidget() {
               stamps={memberStamps[item.user_id] || []}
               ownerName={item.first_name}
               showEmptyHint={item.user_id !== user?.id}
+              isOwnCollection={item.user_id === user?.id}
+              onDeleteStamp={
+                item.user_id === user?.id ? handleDeleteStamp : undefined
+              }
             />
           </StampTableContainer>
         </MemberCard>
@@ -394,6 +415,7 @@ function TeamMembersWidget() {
         recipientStamps={
           stampRecipient ? memberStamps[stampRecipient.user_id] || [] : []
         }
+        currentUserId={user?.id}
       />
 
       {/* Invite Modal */}

@@ -1,11 +1,17 @@
 import 'reflect-metadata';
 import { createMocks } from 'node-mocks-http';
 
+// Test UUIDs (valid UUID v4 format)
+const TEST_USER_ID = '12345678-1234-4123-8123-123456789abc';
+const TEST_GIVER_ID = '87654321-4321-4321-8321-cba987654321';
+const TEST_OTHER_GIVER_ID = 'abcdef12-3456-4789-8abc-def123456789';
+const TEST_STAMP_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+
 const mockGetAuthenticatedUser = jest.fn();
 const mockSwapStamp = jest.fn();
 const mockGetStampTypes = jest.fn();
 const mockHasStampType = jest.fn();
-const mockGetOccupiedSlots = jest.fn();
+const mockGetStampAtSlot = jest.fn();
 
 jest.mock('../../../../common/auth', () => ({
   getAuthenticatedUser: (...args: unknown[]) =>
@@ -18,7 +24,7 @@ jest.mock('tsyringe', () => ({
       swapStamp: (...args: unknown[]) => mockSwapStamp(...args),
       getStampTypes: (...args: unknown[]) => mockGetStampTypes(...args),
       hasStampType: (...args: unknown[]) => mockHasStampType(...args),
-      getOccupiedSlots: (...args: unknown[]) => mockGetOccupiedSlots(...args),
+      getStampAtSlot: (...args: unknown[]) => mockGetStampAtSlot(...args),
     }),
   },
   injectable: () => () => {},
@@ -37,7 +43,15 @@ describe('POST /api/stamps/swap', () => {
       error: null,
     });
     mockHasStampType.mockResolvedValue(false);
-    mockGetOccupiedSlots.mockResolvedValue({ slots: [0, 1, 2], error: null });
+    // Default: slot has a stamp given by TEST_GIVER_ID
+    mockGetStampAtSlot.mockResolvedValue({
+      data: {
+        id: TEST_STAMP_ID,
+        giver_id: TEST_GIVER_ID,
+        is_system_gift: false,
+      },
+      error: null,
+    });
   });
 
   it('returns 401 when user is not authenticated', async () => {
@@ -45,7 +59,11 @@ describe('POST /api/stamps/swap', () => {
 
     const { req, res } = createMocks({
       method: 'POST',
-      body: { recipientId: 'user-123', stampTypeId: 1, replaceSlotPosition: 0 },
+      body: {
+        recipientId: TEST_USER_ID,
+        stampTypeId: 1,
+        replaceSlotPosition: 0,
+      },
     });
 
     await handler(req, res);
@@ -55,7 +73,7 @@ describe('POST /api/stamps/swap', () => {
   });
 
   it('returns 400 when recipientId is missing', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue({ user_id: 'giver-123' });
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
 
     const { req, res } = createMocks({
       method: 'POST',
@@ -67,12 +85,30 @@ describe('POST /api/stamps/swap', () => {
     expect(res._getStatusCode()).toBe(400);
   });
 
-  it('returns 400 when stampTypeId is missing', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue({ user_id: 'giver-123' });
+  it('returns 400 when recipientId is invalid UUID', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
 
     const { req, res } = createMocks({
       method: 'POST',
-      body: { recipientId: 'user-123', replaceSlotPosition: 0 },
+      body: {
+        recipientId: 'not-a-uuid',
+        stampTypeId: 1,
+        replaceSlotPosition: 0,
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData()).message).toContain('Invalid recipientId');
+  });
+
+  it('returns 400 when stampTypeId is missing', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
+
+    const { req, res } = createMocks({
+      method: 'POST',
+      body: { recipientId: TEST_USER_ID, replaceSlotPosition: 0 },
     });
 
     await handler(req, res);
@@ -80,12 +116,30 @@ describe('POST /api/stamps/swap', () => {
     expect(res._getStatusCode()).toBe(400);
   });
 
-  it('returns 400 when replaceSlotPosition is missing', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue({ user_id: 'giver-123' });
+  it('returns 400 when stampTypeId is not an integer', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
 
     const { req, res } = createMocks({
       method: 'POST',
-      body: { recipientId: 'user-123', stampTypeId: 1 },
+      body: {
+        recipientId: TEST_USER_ID,
+        stampTypeId: 'not-a-number',
+        replaceSlotPosition: 0,
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData()).message).toContain('Invalid stampTypeId');
+  });
+
+  it('returns 400 when replaceSlotPosition is missing', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
+
+    const { req, res } = createMocks({
+      method: 'POST',
+      body: { recipientId: TEST_USER_ID, stampTypeId: 1 },
     });
 
     await handler(req, res);
@@ -94,11 +148,15 @@ describe('POST /api/stamps/swap', () => {
   });
 
   it('returns 400 when slot position is out of range', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue({ user_id: 'giver-123' });
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
 
     const { req, res } = createMocks({
       method: 'POST',
-      body: { recipientId: 'user-123', stampTypeId: 1, replaceSlotPosition: 9 },
+      body: {
+        recipientId: TEST_USER_ID,
+        stampTypeId: 1,
+        replaceSlotPosition: 9,
+      },
     });
 
     await handler(req, res);
@@ -108,12 +166,12 @@ describe('POST /api/stamps/swap', () => {
   });
 
   it('returns 400 when trying to use system-only stamp', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue({ user_id: 'giver-123' });
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
 
     const { req, res } = createMocks({
       method: 'POST',
       body: {
-        recipientId: 'user-123',
+        recipientId: TEST_USER_ID,
         stampTypeId: 15,
         replaceSlotPosition: 0,
       },
@@ -126,13 +184,16 @@ describe('POST /api/stamps/swap', () => {
   });
 
   it('returns 400 when slot is empty', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue({ user_id: 'giver-123' });
-    mockGetOccupiedSlots.mockResolvedValue({ slots: [0, 1, 2], error: null });
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
+    mockGetStampAtSlot.mockResolvedValue({
+      data: null,
+      error: { message: 'Not found' },
+    });
 
     const { req, res } = createMocks({
       method: 'POST',
       body: {
-        recipientId: 'user-123',
+        recipientId: TEST_USER_ID,
         stampTypeId: 1,
         replaceSlotPosition: 5,
       },
@@ -144,14 +205,43 @@ describe('POST /api/stamps/swap', () => {
     expect(JSON.parse(res._getData()).message).toContain('empty');
   });
 
+  it('returns 400 when trying to swap stamp from another giver', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
+    mockGetStampAtSlot.mockResolvedValue({
+      data: {
+        id: TEST_STAMP_ID,
+        giver_id: TEST_OTHER_GIVER_ID,
+        is_system_gift: false,
+      },
+      error: null,
+    });
+
+    const { req, res } = createMocks({
+      method: 'POST',
+      body: {
+        recipientId: TEST_USER_ID,
+        stampTypeId: 1,
+        replaceSlotPosition: 0,
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData()).message).toContain(
+      'only replace stamps you gave'
+    );
+    expect(mockSwapStamp).not.toHaveBeenCalled();
+  });
+
   it('returns 400 when recipient already has this stamp type', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue({ user_id: 'giver-123' });
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
     mockHasStampType.mockResolvedValue(true);
 
     const { req, res } = createMocks({
       method: 'POST',
       body: {
-        recipientId: 'user-123',
+        recipientId: TEST_USER_ID,
         stampTypeId: 1,
         replaceSlotPosition: 0,
       },
@@ -163,15 +253,22 @@ describe('POST /api/stamps/swap', () => {
     expect(JSON.parse(res._getData()).message).toContain('already has');
   });
 
-  it('swaps stamp successfully', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue({ user_id: 'giver-123' });
-    mockGetOccupiedSlots.mockResolvedValue({ slots: [0, 1, 2], error: null });
+  it('swaps stamp successfully when replacing own stamp', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue({ user_id: TEST_GIVER_ID });
+    mockGetStampAtSlot.mockResolvedValue({
+      data: {
+        id: TEST_STAMP_ID,
+        giver_id: TEST_GIVER_ID,
+        is_system_gift: false,
+      },
+      error: null,
+    });
     mockSwapStamp.mockResolvedValue({ error: null });
 
     const { req, res } = createMocks({
       method: 'POST',
       body: {
-        recipientId: 'user-123',
+        recipientId: TEST_USER_ID,
         stampTypeId: 1,
         replaceSlotPosition: 2,
       },
@@ -181,10 +278,10 @@ describe('POST /api/stamps/swap', () => {
 
     expect(res._getStatusCode()).toBe(200);
     expect(mockSwapStamp).toHaveBeenCalledWith(
-      'user-123',
+      TEST_USER_ID,
       1,
       2,
-      'giver-123',
+      TEST_GIVER_ID,
       false,
       null
     );

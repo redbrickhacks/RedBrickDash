@@ -103,6 +103,16 @@ export class StampRepository {
     return data.length > 0;
   }
 
+  async getStampAtSlot(recipientId: string, slotPosition: number) {
+    return this.supabase
+      .getClient()
+      .from('user_stamps')
+      .select('id, giver_id, is_system_gift')
+      .eq('recipient_id', recipientId)
+      .eq('slot_position', slotPosition)
+      .single();
+  }
+
   async swapStamp(
     recipientId: string,
     stampTypeId: number,
@@ -110,27 +120,29 @@ export class StampRepository {
     giverId: string | null,
     isSystemGift: boolean = false,
     message: string | null = null
-  ) {
-    // Delete the existing stamp at this slot
-    const { error: deleteError } = await this.supabase
-      .getClient()
-      .from('user_stamps')
-      .delete()
-      .eq('recipient_id', recipientId)
-      .eq('slot_position', slotPosition);
+  ): Promise<{
+    data?: { success: boolean; stamp_id?: string };
+    error?: { message: string };
+  }> {
+    // Use atomic RPC function for swap
+    const { data, error } = await this.supabase.getClient().rpc('swap_stamp', {
+      p_recipient_id: recipientId,
+      p_stamp_type_id: stampTypeId,
+      p_slot_position: slotPosition,
+      p_giver_id: giverId,
+      p_is_system_gift: isSystemGift,
+      p_message: message,
+    });
 
-    if (deleteError) {
-      return { error: deleteError };
+    if (error) {
+      return { error: { message: error.message } };
     }
 
-    // Insert the new stamp
-    return this.supabase.getClient().from('user_stamps').insert({
-      recipient_id: recipientId,
-      stamp_type_id: stampTypeId,
-      slot_position: slotPosition,
-      giver_id: giverId,
-      is_system_gift: isSystemGift,
-      message: message,
-    });
+    // RPC returns JSONB with either success or error
+    if (data?.error) {
+      return { error: { message: data.error } };
+    }
+
+    return { data: { success: true, stamp_id: data?.stamp_id } };
   }
 }

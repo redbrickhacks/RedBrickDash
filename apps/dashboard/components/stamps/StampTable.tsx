@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
+import { FaTrash } from 'react-icons/fa6';
 import { neoColors, neoBorders, neoShadows } from '../neo-ui/theme';
 
 export interface StampType {
@@ -29,6 +30,8 @@ interface StampTableProps {
   stamps: Stamp[];
   ownerName?: string;
   showEmptyHint?: boolean;
+  isOwnCollection?: boolean;
+  onDeleteStamp?: (stampId: string) => void;
 }
 
 const Strip = styled.div`
@@ -62,20 +65,24 @@ const Slot = styled.div<{ $filled: boolean }>`
   }
 `;
 
-const Tooltip = styled.div`
+const TooltipWrapper = styled.div`
   position: absolute;
-  bottom: calc(100% + 6px);
+  bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
+  padding-bottom: 6px;
+  z-index: 100;
+`;
+
+const Tooltip = styled.div`
   background: ${neoColors.surface};
   border: ${neoBorders.standard};
   box-shadow: ${neoShadows.small};
   padding: 0.375rem 0.5rem;
   min-width: 120px;
   max-width: 160px;
-  z-index: 100;
-  pointer-events: none;
   white-space: nowrap;
+  position: relative;
 
   &::after {
     content: '';
@@ -85,6 +92,27 @@ const Tooltip = styled.div`
     transform: translateX(-50%);
     border: 5px solid transparent;
     border-top-color: #000;
+  }
+`;
+
+const DeleteButton = styled.button`
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: ${neoColors.textMuted};
+  font-size: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+
+  &:hover {
+    color: ${neoColors.status.error};
+    background: #fff0f0;
   }
 `;
 
@@ -120,8 +148,15 @@ function formatDate(dateString: string): string {
   });
 }
 
-function StampSlot({ stamp }: { stamp: Stamp | null }) {
+interface StampSlotProps {
+  stamp: Stamp | null;
+  canDelete?: boolean;
+  onDelete?: () => void;
+}
+
+function StampSlot({ stamp, canDelete, onDelete }: StampSlotProps) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   if (!stamp) {
     return <Slot $filled={false} />;
@@ -133,22 +168,55 @@ function StampSlot({ stamp }: { stamp: Stamp | null }) {
     ? `${stamp.giver.first_name} ${stamp.giver.last_name}`
     : 'Someone';
 
+  const handleMouseEnter = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    setShowTooltip(true);
+  };
+
+  const handleMouseLeave = () => {
+    hideTimeoutRef.current = setTimeout(() => {
+      setShowTooltip(false);
+    }, 100);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete();
+    }
+  };
+
   return (
     <Slot
       $filled={true}
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {stamp.stamp_type.emoji}
       {showTooltip && (
-        <Tooltip>
-          <TooltipTitle>
-            {stamp.stamp_type.emoji} {stamp.stamp_type.name}
-          </TooltipTitle>
-          <TooltipFrom>From: {giverName}</TooltipFrom>
-          {stamp.message && <TooltipMessage>"{stamp.message}"</TooltipMessage>}
-          <TooltipDate>{formatDate(stamp.created_at)}</TooltipDate>
-        </Tooltip>
+        <TooltipWrapper
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <Tooltip>
+            {canDelete && (
+              <DeleteButton onClick={handleDelete} title="Remove stamp">
+                <FaTrash />
+              </DeleteButton>
+            )}
+            <TooltipTitle>
+              {stamp.stamp_type.emoji} {stamp.stamp_type.name}
+            </TooltipTitle>
+            <TooltipFrom>From: {giverName}</TooltipFrom>
+            {stamp.message && (
+              <TooltipMessage>"{stamp.message}"</TooltipMessage>
+            )}
+            <TooltipDate>{formatDate(stamp.created_at)}</TooltipDate>
+          </Tooltip>
+        </TooltipWrapper>
       )}
     </Slot>
   );
@@ -158,6 +226,8 @@ export function StampTable({
   stamps,
   ownerName,
   showEmptyHint = false,
+  isOwnCollection = false,
+  onDeleteStamp,
 }: StampTableProps) {
   // Create a 9-slot array, mapping stamps to their positions
   const slots: (Stamp | null)[] = Array(9).fill(null);
@@ -178,7 +248,14 @@ export function StampTable({
       </Header>
       <Strip>
         {slots.map((stamp, index) => (
-          <StampSlot key={index} stamp={stamp} />
+          <StampSlot
+            key={index}
+            stamp={stamp}
+            canDelete={isOwnCollection && !!onDeleteStamp}
+            onDelete={
+              stamp && onDeleteStamp ? () => onDeleteStamp(stamp.id) : undefined
+            }
+          />
         ))}
       </Strip>
       {isEmpty && showEmptyHint && (

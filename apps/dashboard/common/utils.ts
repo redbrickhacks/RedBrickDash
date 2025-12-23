@@ -9,6 +9,18 @@ import { HACKER_POSTAPP_STATUSES, MLH_MAJORS_OPTIONS_LIST } from './constants';
 import { HibiscusSupabaseClient } from '@hibiscus/hibiscus-supabase-client';
 import { container } from 'tsyringe';
 
+// UUID v4 regex pattern
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const isValidUUID = (value: unknown): value is string => {
+  return typeof value === 'string' && UUID_REGEX.test(value);
+};
+
+export const isValidInteger = (value: unknown): value is number => {
+  return typeof value === 'number' && Number.isInteger(value);
+};
+
 export const getWordCount = (text: string) =>
   text.trim().length !== 0 ? text.trim().split(/\s+/).length : 0;
 export const getAge = (dob: Date | number) => {

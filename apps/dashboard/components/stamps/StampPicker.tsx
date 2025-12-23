@@ -18,6 +18,7 @@ interface StampPickerProps {
   ) => Promise<void>;
   recipientName: string;
   recipientStamps?: Stamp[];
+  currentUserId?: string;
 }
 
 const StampGrid = styled.div`
@@ -195,12 +196,33 @@ const SwapSlotContainer = styled.div`
   align-items: center;
 `;
 
+const CollectionFullMessage = styled.div`
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: ${neoColors.background};
+  border: ${neoBorders.standard};
+  margin: 1rem 0;
+`;
+
+const CollectionFullTitle = styled.div`
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+`;
+
+const CollectionFullDesc = styled.p`
+  font-size: 0.875rem;
+  color: ${neoColors.textMuted};
+  margin: 0;
+`;
+
 export function StampPicker({
   isOpen,
   onClose,
   onGiveStamp,
   recipientName,
   recipientStamps = [],
+  currentUserId,
 }: StampPickerProps) {
   const [stampTypes, setStampTypes] = useState<StampType[]>([]);
   const [selectedStamp, setSelectedStamp] = useState<StampType | null>(null);
@@ -213,6 +235,12 @@ export function StampPicker({
   const recipientStampTypeIds = new Set(
     recipientStamps.map((s) => s.stamp_type.id)
   );
+
+  // Stamps the current user gave (can be swapped)
+  const userGivenStamps = recipientStamps.filter(
+    (s) => s.giver?.user_id === currentUserId
+  );
+  const canSwap = userGivenStamps.length > 0;
 
   useEffect(() => {
     if (isOpen) {
@@ -283,7 +311,8 @@ export function StampPicker({
     onClose();
   }
 
-  const needsSwap = isCollectionFull && selectedStamp !== null;
+  const needsSwap = isCollectionFull && selectedStamp !== null && canSwap;
+  const collectionFullNoSwap = isCollectionFull && !canSwap;
 
   return (
     <NeoModal
@@ -299,6 +328,20 @@ export function StampPicker({
 
       {loading ? (
         <LoadingMessage>Loading stamps...</LoadingMessage>
+      ) : collectionFullNoSwap ? (
+        <>
+          <CollectionFullMessage>
+            <CollectionFullTitle>
+              {recipientName}'s collection is full
+            </CollectionFullTitle>
+            <CollectionFullDesc>
+              Let them know you'd like to send a stamp so they can make room.
+            </CollectionFullDesc>
+          </CollectionFullMessage>
+          <Actions>
+            <NeoButton onClick={handleClose}>Got it</NeoButton>
+          </Actions>
+        </>
       ) : needsSwap ? (
         <>
           <SelectedInfo>
@@ -310,12 +353,12 @@ export function StampPicker({
           </SelectedInfo>
 
           <SwapSection>
-            <SwapTitle>{recipientName}'s collection is full</SwapTitle>
+            <SwapTitle>Replace one of your stamps</SwapTitle>
             <SwapDescription>
-              Choose which stamp to replace. This can't be undone.
+              Choose which of your stamps to replace. This can't be undone.
             </SwapDescription>
             <SwapGrid>
-              {recipientStamps.map((stamp) => (
+              {userGivenStamps.map((stamp) => (
                 <SwapSlotContainer key={stamp.id}>
                   <SwapSlot
                     $selected={selectedSwapSlot === stamp.slot_position}
