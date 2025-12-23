@@ -7,13 +7,17 @@ import {
   neoBorders,
   neoShadows,
 } from '../neo-ui';
-import type { StampType } from './StampTable';
+import type { StampType, Stamp } from './StampTable';
 
 interface StampPickerProps {
   isOpen: boolean;
   onClose: () => void;
-  onGiveStamp: (stampTypeId: number) => Promise<void>;
+  onGiveStamp: (
+    stampTypeId: number,
+    replaceSlotPosition?: number
+  ) => Promise<void>;
   recipientName: string;
+  recipientStamps?: Stamp[];
 }
 
 const StampGrid = styled.div`
@@ -27,31 +31,44 @@ const StampGrid = styled.div`
   }
 `;
 
-const StampOption = styled.button<{ $selected: boolean }>`
+const StampOption = styled.button<{ $selected: boolean; $disabled?: boolean }>`
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  background: ${({ $selected }) =>
-    $selected ? neoColors.accent.yellow : neoColors.surface};
+  background: ${({ $selected, $disabled }) =>
+    $disabled
+      ? neoColors.background
+      : $selected
+      ? neoColors.accent.yellow
+      : neoColors.surface};
   border: ${({ $selected }) =>
     $selected ? neoBorders.thick : neoBorders.standard};
-  box-shadow: ${({ $selected }) =>
-    $selected ? neoShadows.medium : neoShadows.small};
-  cursor: pointer;
+  box-shadow: ${({ $selected, $disabled }) =>
+    $disabled ? 'none' : $selected ? neoShadows.medium : neoShadows.small};
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   transition: all 0.1s ease;
   padding: 8px;
+  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
 
   &:hover {
-    transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0 #000;
+    ${({ $disabled }) =>
+      !$disabled &&
+      `
+      transform: translate(1px, 1px);
+      box-shadow: 2px 2px 0 #000;
+    `}
   }
 
   &:active {
-    transform: translate(2px, 2px);
-    box-shadow: none;
+    ${({ $disabled }) =>
+      !$disabled &&
+      `
+      transform: translate(2px, 2px);
+      box-shadow: none;
+    `}
   }
 `;
 
@@ -122,21 +139,86 @@ const ErrorMessage = styled.div`
   margin-bottom: 1rem;
 `;
 
+const SwapSection = styled.div`
+  margin: 1rem 0;
+`;
+
+const SwapTitle = styled.div`
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+`;
+
+const SwapDescription = styled.p`
+  font-size: 0.875rem;
+  color: ${neoColors.textMuted};
+  margin: 0 0 0.75rem 0;
+`;
+
+const SwapGrid = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+`;
+
+const SwapSlot = styled.button<{ $selected: boolean }>`
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $selected }) =>
+    $selected ? neoColors.accent.red : neoColors.surface};
+  border: ${({ $selected }) =>
+    $selected ? neoBorders.thick : neoBorders.standard};
+  box-shadow: ${({ $selected }) =>
+    $selected ? neoShadows.medium : neoShadows.small};
+  cursor: pointer;
+  font-size: 1.25rem;
+  transition: all 0.1s ease;
+
+  &:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 #000;
+  }
+`;
+
+const SwapSlotLabel = styled.div`
+  font-size: 0.625rem;
+  color: ${neoColors.textMuted};
+  text-align: center;
+  margin-top: 2px;
+`;
+
+const SwapSlotContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
 export function StampPicker({
   isOpen,
   onClose,
   onGiveStamp,
   recipientName,
+  recipientStamps = [],
 }: StampPickerProps) {
   const [stampTypes, setStampTypes] = useState<StampType[]>([]);
   const [selectedStamp, setSelectedStamp] = useState<StampType | null>(null);
+  const [selectedSwapSlot, setSelectedSwapSlot] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isCollectionFull = recipientStamps.length >= 9;
+  const recipientStampTypeIds = new Set(
+    recipientStamps.map((s) => s.stamp_type.id)
+  );
+
   useEffect(() => {
     if (isOpen) {
       fetchStampTypes();
+      setSelectedStamp(null);
+      setSelectedSwapSlot(null);
     }
   }, [isOpen]);
 
@@ -159,14 +241,33 @@ export function StampPicker({
     }
   }
 
+  function handleStampSelect(stamp: StampType) {
+    // Don't allow selecting stamps the recipient already has
+    if (recipientStampTypeIds.has(stamp.id)) {
+      return;
+    }
+    setSelectedStamp(stamp);
+    setSelectedSwapSlot(null);
+  }
+
   async function handleGive() {
     if (!selectedStamp) return;
+
+    // If collection is full, must have selected a swap slot
+    if (isCollectionFull && selectedSwapSlot === null) {
+      setError('Please select a stamp to replace');
+      return;
+    }
 
     setSending(true);
     setError(null);
     try {
-      await onGiveStamp(selectedStamp.id);
+      await onGiveStamp(
+        selectedStamp.id,
+        isCollectionFull ? selectedSwapSlot : undefined
+      );
       setSelectedStamp(null);
+      setSelectedSwapSlot(null);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to give stamp');
@@ -177,32 +278,101 @@ export function StampPicker({
 
   function handleClose() {
     setSelectedStamp(null);
+    setSelectedSwapSlot(null);
     setError(null);
     onClose();
   }
 
+  const needsSwap = isCollectionFull && selectedStamp !== null;
+
   return (
-    <NeoModal isOpen={isOpen} onClose={handleClose} title="Give a Stamp">
-      <Description>Pick a stamp to give to {recipientName}</Description>
+    <NeoModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={needsSwap ? 'Choose Stamp to Replace' : 'Give a Stamp'}
+    >
+      {!needsSwap && (
+        <Description>Pick a stamp to give to {recipientName}</Description>
+      )}
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
       {loading ? (
         <LoadingMessage>Loading stamps...</LoadingMessage>
+      ) : needsSwap ? (
+        <>
+          <SelectedInfo>
+            <SelectedEmoji>{selectedStamp.emoji}</SelectedEmoji>
+            <SelectedDetails>
+              <SelectedName>{selectedStamp.name}</SelectedName>
+              <SelectedDesc>{selectedStamp.description}</SelectedDesc>
+            </SelectedDetails>
+          </SelectedInfo>
+
+          <SwapSection>
+            <SwapTitle>{recipientName}'s collection is full</SwapTitle>
+            <SwapDescription>
+              Choose which stamp to replace. This can't be undone.
+            </SwapDescription>
+            <SwapGrid>
+              {recipientStamps.map((stamp) => (
+                <SwapSlotContainer key={stamp.id}>
+                  <SwapSlot
+                    $selected={selectedSwapSlot === stamp.slot_position}
+                    onClick={() => setSelectedSwapSlot(stamp.slot_position)}
+                    type="button"
+                    title={`${stamp.stamp_type.name}: ${stamp.stamp_type.description}`}
+                  >
+                    {stamp.stamp_type.emoji}
+                  </SwapSlot>
+                  <SwapSlotLabel>{stamp.stamp_type.name}</SwapSlotLabel>
+                </SwapSlotContainer>
+              ))}
+            </SwapGrid>
+          </SwapSection>
+
+          <Actions>
+            <NeoButton
+              variant="secondary"
+              onClick={() => {
+                setSelectedStamp(null);
+                setSelectedSwapSlot(null);
+              }}
+            >
+              Back
+            </NeoButton>
+            <NeoButton
+              variant="danger"
+              onClick={handleGive}
+              disabled={selectedSwapSlot === null || sending}
+            >
+              {sending ? 'Replacing...' : 'Replace Stamp'}
+            </NeoButton>
+          </Actions>
+        </>
       ) : (
         <>
           <StampGrid>
-            {stampTypes.map((stamp) => (
-              <StampOption
-                key={stamp.id}
-                $selected={selectedStamp?.id === stamp.id}
-                onClick={() => setSelectedStamp(stamp)}
-                type="button"
-              >
-                <StampEmoji>{stamp.emoji}</StampEmoji>
-                <StampName>{stamp.name}</StampName>
-              </StampOption>
-            ))}
+            {stampTypes.map((stamp) => {
+              const alreadyHas = recipientStampTypeIds.has(stamp.id);
+              return (
+                <StampOption
+                  key={stamp.id}
+                  $selected={selectedStamp?.id === stamp.id}
+                  $disabled={alreadyHas}
+                  onClick={() => handleStampSelect(stamp)}
+                  type="button"
+                  title={
+                    alreadyHas
+                      ? `${recipientName} already has this stamp`
+                      : stamp.description
+                  }
+                >
+                  <StampEmoji>{stamp.emoji}</StampEmoji>
+                  <StampName>{stamp.name}</StampName>
+                </StampOption>
+              );
+            })}
           </StampGrid>
 
           {selectedStamp && (

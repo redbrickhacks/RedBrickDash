@@ -76,15 +76,22 @@ function TeamMembersWidget() {
     setStampPickerOpen(true);
   };
 
-  const handleGiveStamp = async (stampTypeId: number) => {
+  const handleGiveStamp = async (
+    stampTypeId: number,
+    replaceSlotPosition?: number
+  ) => {
     if (!stampRecipient) return;
 
-    const res = await fetch('/api/stamps/give', {
+    const isSwap = replaceSlotPosition !== undefined;
+    const endpoint = isSwap ? '/api/stamps/swap' : '/api/stamps/give';
+
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         recipientId: stampRecipient.user_id,
         stampTypeId,
+        ...(isSwap && { replaceSlotPosition }),
       }),
     });
 
@@ -93,7 +100,11 @@ function TeamMembersWidget() {
       throw new Error(data.message || 'Failed to give stamp');
     }
 
-    toast.success(`Stamp given to ${stampRecipient.first_name}!`);
+    toast.success(
+      isSwap
+        ? `Stamp replaced for ${stampRecipient.first_name}!`
+        : `Stamp given to ${stampRecipient.first_name}!`
+    );
     // Refresh stamps
     fetchMemberStamps();
   };
@@ -379,6 +390,9 @@ function TeamMembersWidget() {
           stampRecipient
             ? `${stampRecipient.first_name} ${stampRecipient.last_name}`
             : ''
+        }
+        recipientStamps={
+          stampRecipient ? memberStamps[stampRecipient.user_id] || [] : []
         }
       />
 
