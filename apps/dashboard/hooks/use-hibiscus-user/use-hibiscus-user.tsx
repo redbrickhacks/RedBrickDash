@@ -56,6 +56,9 @@ const getUserProfile = async (
     // Set user's name and tag to be their email as temporary placeholder
     // Assume we only show dashboard when user is logged in
     const user = await supabase.getClient().auth.getUser(accessToken);
+    if (!user.data.user) {
+      return null;
+    }
     return {
       id: user.data.user.id,
       tag: user.data.user.email,
