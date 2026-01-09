@@ -50,7 +50,7 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
   const deadlineStr = getEnv().Hibiscus.Submission?.Deadline;
   const submissionDeadline = deadlineStr
     ? new Date(deadlineStr)
-    : new Date('2025-01-10T23:59:59Z');
+    : new Date('2026-01-16T23:59:59+05:30');
   const isDeadlinePassed = new Date() > submissionDeadline;
 
   const hasTeam = !!user.teamId;

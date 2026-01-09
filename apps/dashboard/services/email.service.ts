@@ -246,7 +246,7 @@ export class EmailService {
                     </p>
                     <p
                       style="margin: 4px 0 0 0; font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; font-weight: 400; color: #6B6B6B;">
-                      Online Round Submissions Deadline: Jan 10, 2026 &nbsp;·&nbsp; Digital Makerspace, Ashoka
+                      Online Round Submissions Deadline: Jan 16, 2026 &nbsp;·&nbsp; Digital Makerspace, Ashoka
                       University
                     </p>
                   </td>

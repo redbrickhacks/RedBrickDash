@@ -14,8 +14,8 @@ interface SubmissionSectionProps {
   onUpdate: (team: any) => void;
 }
 
-// Submission deadline: January 14, 2026 11:59 PM PST (UTC-8)
-const SUBMISSION_DEADLINE = new Date('2026-01-15T07:59:00Z');
+// Submission deadline: January 16, 2026 11:59 PM IST (UTC+5:30)
+const SUBMISSION_DEADLINE = new Date('2026-01-16T23:59:59+05:30');
 
 export function SubmissionSection({ team, onUpdate }: SubmissionSectionProps) {
   const { supabase } = useHibiscusSupabase();
@@ -198,7 +198,7 @@ export function SubmissionSection({ team, onUpdate }: SubmissionSectionProps) {
         </SubmitButton>
       </Form>
 
-      <Deadline>Deadline: January 14, 2026 at 11:59 PM</Deadline>
+      <Deadline>Deadline: January 16, 2026 at 11:59 PM IST</Deadline>
     </Container>
   );
 }
