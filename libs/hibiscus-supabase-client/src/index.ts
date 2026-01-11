@@ -212,6 +212,7 @@ export class HibiscusSupabaseClient {
 
   /**
    * Creates row in the user_profiles table.
+   * Note: For new signups with referral support, use the /api/profile/create endpoint instead.
    *
    * @param firstname
    * @param lastname
@@ -219,22 +220,46 @@ export class HibiscusSupabaseClient {
   async createUserProfile(firstname: string, lastname: string) {
     const { data } = await this.client.auth.getUser();
     if (data.user == null) {
-      // Access token was invalid
       throw Error('Invalid session');
     }
 
     const user = data.user;
-    const { error } = await this.client.from('user_profiles').insert({
-      user_id: user.id,
-      email: user.email,
-      first_name: firstname,
-      last_name: lastname,
-    });
 
-    if (error) {
+    // Retry logic for referral code collisions
+    const MAX_RETRIES = 5;
+    let lastError = null;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const referralCode = generateReferralCode();
+
+      const { error } = await this.client.from('user_profiles').insert({
+        user_id: user.id,
+        email: user.email,
+        first_name: firstname,
+        last_name: lastname,
+        referral_code: referralCode,
+      });
+
+      if (!error) {
+        return; // Success
+      }
+
+      // Check if it's a unique violation on referral_code (code 23505)
+      if (error.code === '23505' && error.message?.includes('referral_code')) {
+        console.warn(
+          `Referral code collision on attempt ${attempt + 1}, retrying...`
+        );
+        lastError = error;
+        continue;
+      }
+
+      // Different error, don't retry
       console.error('Failed to create user profile:', error);
       throw Error(`Failed to create user profile: ${error.message}`);
     }
+
+    console.error('Failed to create user profile after retries:', lastError);
+    throw Error(`Failed to create user profile: ${lastError?.message}`);
   }
 
   /**
@@ -383,6 +408,18 @@ export class HibiscusSupabaseClient {
     // Unable to set session
     return null;
   }
+}
+
+/**
+ * Generates a 6-character uppercase alphanumeric referral code
+ */
+function generateReferralCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
 }
 
 export type UserProfileRow =

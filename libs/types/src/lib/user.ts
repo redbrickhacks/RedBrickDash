@@ -15,4 +15,6 @@ export interface HibiscusUser {
   attendanceConfirmed?: boolean;
   submissionStatus?: number;
   points?: number;
+  referralCode?: string;
+  referralCount?: number;
 }
