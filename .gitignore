@@ -1,5 +1,10 @@
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
+dev-docs/
+
+# include db migrations
+!supabase/migrations/*.sql
+
 # compiled output
 /dist
 /tmp
