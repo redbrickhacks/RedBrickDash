@@ -43,15 +43,24 @@ export function VerifyCard() {
     }
     if (data.user) {
       setVerifyState('verifying');
-      // Create user profile in database
+      // Create user profile via server-side API (handles referral lookup securely)
       try {
-        await supabase.createUserProfile(
-          router.query.firstname.toString(),
-          router.query.lastname.toString()
-        );
+        const referralCode = router.query.referralCode?.toString() || '';
+        const profileRes = await axios.post('/api/profile/create', {
+          firstname: router.query.firstname.toString(),
+          lastname: router.query.lastname.toString(),
+          referralCode,
+          accessToken: data.session.access_token,
+        });
+
+        if (!profileRes.data.success) {
+          throw new Error(profileRes.data.error || 'Failed to create profile');
+        }
       } catch (e) {
         console.error('Profile creation failed:', e);
-        setErrorMessage(e.message || 'Failed to create profile');
+        setErrorMessage(
+          e.response?.data?.error || e.message || 'Failed to create profile'
+        );
         setHideErrorMessage(true);
         setVerifyState('');
         return;
@@ -69,8 +78,6 @@ export function VerifyCard() {
   };
 
   const handleKeyDown = (e) => {
-    //it triggers by pressing the enter key
-    console.log(e.target.value);
     if (e.keyCode === 13) {
       handleOTP();
     }

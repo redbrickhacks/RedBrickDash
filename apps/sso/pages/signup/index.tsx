@@ -15,6 +15,11 @@ export function Index() {
     if (router.query.callback != null) {
       sessionStorage.setItem('callback', router.query.callback.toString());
     }
+
+    // Capture referral code from URL param (e.g., ?ref=ABC123)
+    if (router.query.ref != null) {
+      sessionStorage.setItem('referralCode', router.query.ref.toString());
+    }
   }, [router.isReady, router.query]);
 
   return (

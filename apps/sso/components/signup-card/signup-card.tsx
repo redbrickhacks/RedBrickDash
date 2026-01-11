@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 /* eslint-disable @next/next/no-img-element */
 import styled from 'styled-components';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { H3, Text } from '@hibiscus/ui';
 import { Colors2023 } from '@hibiscus/styles';
 import { useRouter } from 'next/router';
@@ -30,6 +30,15 @@ export function SignUpCard(props: SignUpProps) {
   const [hideErrorMessage, setHideErrorMessage] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [signUpState, setSignUpState] = useState('');
+  const [referralCodeInput, setReferralCodeInput] = useState('');
+
+  // Pre-populate referral code from sessionStorage if available
+  useEffect(() => {
+    const storedCode = sessionStorage.getItem('referralCode');
+    if (storedCode) {
+      setReferralCodeInput(storedCode.toUpperCase());
+    }
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -73,7 +82,7 @@ export function SignUpCard(props: SignUpProps) {
       setSignUpState('signing up');
       router.push({
         pathname: '/verify',
-        query: { email, firstname, lastname },
+        query: { email, firstname, lastname, referralCode: referralCodeInput },
       });
     }
   };
@@ -116,6 +125,16 @@ export function SignUpCard(props: SignUpProps) {
             type="password"
             name="confirmPassword"
             required
+          />
+          <Input
+            placeholder="referral code (optional)"
+            type="text"
+            name="referralCode"
+            maxLength={6}
+            value={referralCodeInput}
+            onChange={(e) => {
+              setReferralCodeInput(e.target.value.toUpperCase());
+            }}
           />
           <StyledErrorText
             style={{ display: !hideErrorMessage ? 'block' : 'none' }}

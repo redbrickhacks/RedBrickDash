@@ -20,6 +20,11 @@ export function Index() {
     } else {
       setCallback(sessionStorage.getItem('callback') ?? '');
     }
+
+    // Capture referral code if present (e.g., user landed on login but has ref param)
+    if (router.query.ref != null) {
+      sessionStorage.setItem('referralCode', router.query.ref.toString());
+    }
   }, [router.isReady, router.query]);
 
   return (
