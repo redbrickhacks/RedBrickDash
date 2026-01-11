@@ -35,6 +35,24 @@ const getUserProfile = async (
   const profile = await supabase.getUserProfile(accessToken, refreshToken);
 
   if (profile != null) {
+    // Fetch referral count via server-side API (bypasses RLS)
+    let referralCount = 0;
+    if (profile.referral_code) {
+      try {
+        const res = await fetch('/api/referral/count', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          referralCount = data.count ?? 0;
+        }
+      } catch (err) {
+        console.error('Failed to fetch referral count:', err);
+      }
+    }
+
     return {
       id: profile.user_id,
       tag: `${profile.first_name} ${profile.last_name}`,
@@ -51,6 +69,8 @@ const getUserProfile = async (
       attendanceConfirmed: profile.attendance_confirmed,
       submissionStatus: profile.submission_status,
       email: profile.email,
+      referralCode: profile.referral_code,
+      referralCount,
     };
   } else {
     // Set user's name and tag to be their email as temporary placeholder

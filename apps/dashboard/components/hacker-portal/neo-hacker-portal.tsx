@@ -17,6 +17,7 @@ import { getEnv } from '@hibiscus/env';
 import { CountdownTimer } from '../countdown-timer/countdown-timer';
 import { TracksSection } from '../tracks-section/tracks-section';
 import { DiscordSection } from '../discord-section/discord-section';
+import { ReferralSection } from '../referral-section/referral-section';
 import { useDiscordVerification } from '../../hooks/use-discord-verification/use-discord-verification';
 
 interface NeoHackerPortalProps {
@@ -26,6 +27,8 @@ interface NeoHackerPortalProps {
     attendanceConfirmed: boolean | null;
     teamId?: string | null;
     submissionStatus?: number;
+    referralCode?: string;
+    referralCount?: number;
   };
   onRSVP?: (choice: 'ACCEPT' | 'DECLINE') => void;
 }
@@ -293,6 +296,13 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
             )}
           </TeamStatusContent>
         </TeamStatusCard>
+
+        {user.referralCode && (
+          <ReferralSection
+            referralCode={user.referralCode}
+            referralCount={user.referralCount ?? 0}
+          />
+        )}
 
         <TracksSection />
 

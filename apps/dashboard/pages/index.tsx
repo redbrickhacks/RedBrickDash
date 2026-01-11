@@ -121,6 +121,8 @@ export function Index({ appsOpen, waitlistOpen }: ServerSideProps) {
             attendanceConfirmed: user.attendanceConfirmed ?? null,
             teamId: user.teamId,
             submissionStatus: user.submissionStatus,
+            referralCode: user.referralCode,
+            referralCount: user.referralCount,
           }}
           onRSVP={handleRSVP}
         />
