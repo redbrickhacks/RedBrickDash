@@ -11,15 +11,26 @@ export function ReferralSection({
   referralCode,
   referralCount,
 }: ReferralSectionProps) {
-  const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const referralLink = `https://sso.redbrickhacks.co/signup?ref=${referralCode}`;
 
-  const handleCopy = async () => {
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(referralCode);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(referralLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
     }
@@ -33,16 +44,29 @@ export function ReferralSection({
       <Content>
         <Title>REFER & WIN</Title>
         <Description>
-          Share your link and win Amazon gift cards! Top 25 referrers get INR
+          Share your code and win Amazon gift cards! Top 25 referrers get INR
           1500 each. Referrals count once they complete their profile.
         </Description>
-        <ReferralLinkBox>
-          <ReferralLink>{referralLink}</ReferralLink>
-          <CopyButton onClick={handleCopy} $copied={copied}>
-            {copied ? <FaCheck size={14} /> : <FaCopy size={14} />}
-            {copied ? 'COPIED!' : 'COPY'}
-          </CopyButton>
-        </ReferralLinkBox>
+        <CopyRow>
+          <CopyItem>
+            <CopyLabel>YOUR CODE</CopyLabel>
+            <CodeBox onClick={handleCopyCode} $copied={copiedCode}>
+              <CodeText>{referralCode}</CodeText>
+              <CopyIcon>
+                {copiedCode ? <FaCheck size={12} /> : <FaCopy size={12} />}
+              </CopyIcon>
+            </CodeBox>
+          </CopyItem>
+          <CopyItem $grow>
+            <CopyLabel>OR SHARE LINK</CopyLabel>
+            <LinkBox onClick={handleCopyLink} $copied={copiedLink}>
+              <LinkText>{referralLink}</LinkText>
+              <CopyIcon>
+                {copiedLink ? <FaCheck size={12} /> : <FaCopy size={12} />}
+              </CopyIcon>
+            </LinkBox>
+          </CopyItem>
+        </CopyRow>
       </Content>
       <StatsBox>
         <StatsNumber>{referralCount}</StatsNumber>
@@ -98,48 +122,87 @@ const Description = styled.p`
   margin: 0 0 0.75rem 0;
 `;
 
-const ReferralLinkBox = styled.div`
+const CopyRow = styled.div`
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 0.5rem;
-  border: 2px solid #000;
+  gap: 0.75rem;
+  align-items: flex-end;
 
-  @media (max-width: 480px) {
+  @media (max-width: 600px) {
     flex-direction: column;
     align-items: stretch;
   }
 `;
 
-const ReferralLink = styled.code`
-  flex: 1;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7rem;
-  color: #000;
-  word-break: break-all;
-  padding: 0.25rem;
+const CopyItem = styled.div<{ $grow?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  ${(props) => props.$grow && 'flex: 1; min-width: 0;'}
 `;
 
-const CopyButton = styled.button<{ $copied: boolean }>`
+const CopyLabel = styled.span`
+  font-family: 'Space Mono', monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.1em;
+`;
+
+const CodeBox = styled.button<{ $copied: boolean }>`
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   background: ${(props) => (props.$copied ? '#22c55e' : '#000')};
-  color: #fff;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7rem;
-  font-weight: 700;
-  border: none;
+  border: 2px solid #000;
   cursor: pointer;
-  letter-spacing: 0.05em;
   transition: all 0.15s ease;
-  white-space: nowrap;
 
   &:hover {
     background: ${(props) => (props.$copied ? '#16a34a' : '#333')};
   }
+`;
+
+const CodeText = styled.span`
+  font-family: 'Space Mono', monospace;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.1em;
+`;
+
+const LinkBox = styled.button<{ $copied: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: ${(props) =>
+    props.$copied ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.9)'};
+  border: 2px solid ${(props) => (props.$copied ? '#22c55e' : '#000')};
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+
+  &:hover {
+    background: ${(props) =>
+      props.$copied ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255, 255, 255, 1)'};
+  }
+`;
+
+const LinkText = styled.code`
+  flex: 1;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: #000;
+  word-break: break-all;
+`;
+
+const CopyIcon = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  flex-shrink: 0;
 `;
 
 const StatsBox = styled.div`
