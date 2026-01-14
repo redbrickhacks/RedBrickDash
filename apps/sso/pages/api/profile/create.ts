@@ -1,6 +1,8 @@
 import { HibiscusSupabaseClient } from '@hibiscus/hibiscus-supabase-client';
+import { getEnv } from '@hibiscus/env';
 import { NextApiHandler } from 'next';
 import { container } from 'tsyringe';
+import { EmailService } from '../../../services/email.service';
 
 /**
  * Creates a user profile server-side.
@@ -79,6 +81,7 @@ const handler: NextApiHandler = async (req, res) => {
     // Insert the profile with retry logic for referral code collisions
     const MAX_RETRIES = 5;
     let insertError = null;
+    let finalReferralCode = newReferralCode;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const codeToUse =
@@ -98,6 +101,7 @@ const handler: NextApiHandler = async (req, res) => {
 
       if (!error) {
         insertError = null;
+        finalReferralCode = codeToUse;
         break; // Success
       }
 
@@ -121,6 +125,29 @@ const handler: NextApiHandler = async (req, res) => {
         .status(500)
         .json({ success: false, error: 'Failed to create profile' });
       return;
+    }
+
+    // Send welcome email (fire-and-forget, don't block signup)
+    if (process.env.NODE_ENV === 'production') {
+      const resendApiKey = getEnv().Hibiscus.Resend?.apiKey;
+      if (resendApiKey && user.email) {
+        const emailService = new EmailService(resendApiKey);
+        emailService
+          .sendWelcomeEmail({
+            toEmail: user.email,
+            firstName: firstname,
+            referralCode: finalReferralCode,
+            discordInviteUrl: getEnv().Hibiscus.Discord?.InviteUrl,
+          })
+          .then((result) => {
+            if (!result.success) {
+              console.error('Failed to send welcome email:', result.error);
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to send welcome email:', err);
+          });
+      }
     }
 
     res.status(200).json({ success: true });
