@@ -43,6 +43,21 @@ const Quote = styled.blockquote`
   border-left: 3px solid ${neoColors.accent.yellow};
 `;
 
+const ClosingNote = styled.div`
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: ${neoColors.accent.green}15;
+  border: ${neoBorders.standard};
+  text-align: center;
+
+  p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: ${neoColors.text};
+    margin: 0;
+  }
+`;
+
 const SubTitle = styled.h4`
   font-size: 1rem;
   font-weight: 700;
@@ -141,6 +156,16 @@ const BadExample = styled.div`
   margin-bottom: 0.5rem;
 `;
 
+const Commentary = styled.p`
+  font-size: 0.85rem;
+  font-style: italic;
+  color: ${neoColors.textMuted};
+  margin: 0.5rem 0 1rem 0;
+  padding: 0.5rem 0.75rem;
+  background: ${neoColors.accent.blue}15;
+  border-left: 2px solid ${neoColors.accent.blue};
+`;
+
 const CheckList = styled.ul`
   margin: 0.5rem 0 1rem 0;
   padding-left: 0;
@@ -200,197 +225,219 @@ export function SubmissionGuide() {
         title="What Judges Look For"
         defaultOpen
       >
-        <Paragraph>Every judge is ultimately asking one question:</Paragraph>
+        <Paragraph>
+          You're in the final stretch. If you're reading this at 2am wondering
+          if your project is good enough, you're not alone. Every team feels
+          this. The doubt is part of the process.
+        </Paragraph>
+
+        <Paragraph>
+          The goal isn't perfection. It's showing us how you think.
+        </Paragraph>
+
+        <Paragraph>Every judge is asking one question:</Paragraph>
 
         <Quote>
           "Does this team understand a real problem well enough to build
-          something meaningful about it?"
+          something useful about it?"
         </Quote>
 
         <Paragraph>
-          We look at your submission through four lenses. You don't need to be
-          perfect in all of them—but be honest about where you are.
+          We look at four things. You don't need to ace all of them. But be
+          honest about where you are.
         </Paragraph>
 
         <Divider />
 
         <SubTitle>Problem Understanding</SubTitle>
         <Paragraph>
-          We want to see that you've spent time with the problem, not just the
-          solution.
+          Have you spent time with the problem itself? Not just the solution you
+          want to build, but the reality of people who face this problem today.
         </Paragraph>
-        <List>
-          <li>Name specific people who have this problem</li>
-          <li>Explain how those people currently deal with it</li>
-          <li>Show why the problem is genuinely hard</li>
-          <li>Connect to the SDG theme naturally, not as an afterthought</li>
-        </List>
-        <Emphasis>
-          Ask yourself: "If I removed all the technology, would my problem
-          statement still be compelling?"
-        </Emphasis>
+        <Paragraph>
+          The test: name specific people who have this problem. Explain how they
+          currently cope. Show why it's hard to solve. If you removed all the
+          technology from your pitch, would anyone still care about the problem?
+        </Paragraph>
+        <Paragraph>
+          Your SDG connection should feel natural. If it feels bolted on, it
+          probably is. And if you have a personal connection to this problem
+          (lived experience, family, community), that matters. Tell us.
+        </Paragraph>
 
         <Divider />
 
         <SubTitle>Solution Clarity</SubTitle>
         <Paragraph>
-          We want to understand what you built in under three minutes.
+          Could someone outside tech understand what you built and why it
+          matters? If not, simplify. Judges have seen hundreds of submissions.
+          Yours has three minutes to land.
         </Paragraph>
         <List>
-          <li>Can be explained to someone outside your field</li>
-          <li>Make technical choices that fit the problem</li>
-          <li>Consider who would actually use this and how</li>
-          <li>Know what else exists and why this approach is different</li>
+          <li>One sentence: what does it do?</li>
+          <li>Who would use it, and when?</li>
+          <li>Why this approach over alternatives?</li>
         </List>
-        <Emphasis>
-          Ask yourself: "Could someone outside tech understand what this does
-          and why it matters?"
-        </Emphasis>
 
         <Divider />
 
         <SubTitle>Honest Implementation</SubTitle>
         <Paragraph>
-          We want evidence you built something real, and self-awareness about
-          its current state.
+          Here's where many teams stumble. They oversell. "Our platform
+          revolutionizes..." No. Tell us what actually works, what doesn't yet,
+          and what you'd measure to know if you're succeeding.
         </Paragraph>
-        <List>
-          <li>Have a working prototype (rough edges are fine)</li>
-          <li>Are clear about what works and what doesn't yet</li>
-          <li>Define their own success metrics</li>
-          <li>Show authentic development through commit history</li>
-        </List>
-        <Emphasis>
-          Ask yourself: "If I showed this to someone with the problem, would
-          they find it useful today?"
-        </Emphasis>
+        <Paragraph>
+          A working prototype with rough edges is worth more than a polished
+          deck with hand-waving. Show your commit history. Messy, incremental
+          commits are fine. One giant commit at the deadline raises questions.
+        </Paragraph>
+        <Paragraph>
+          There's a tension here: ship fast vs. think carefully. The resolution
+          is honesty. "This works. This doesn't. Here's what we'd do next."
+          That's the right answer.
+        </Paragraph>
 
         <Divider />
 
-        <SubTitle>Realistic Roadmap</SubTitle>
-        <Paragraph>We want to see you know what's next.</Paragraph>
-        <List>
-          <li>Have clear, specific next steps</li>
-          <li>Know the hard parts still ahead</li>
-          <li>
-            Leave meaningful work for the finals (we're selecting for potential)
-          </li>
-          <li>Are realistic about time and resources</li>
-        </List>
-        <Emphasis>
-          Ask yourself: "If we make finals, do we know exactly what we're
-          building in those 48 hours?"
-        </Emphasis>
+        <SubTitle>Roadmap</SubTitle>
+        <Paragraph>
+          If you make finals, what are you building in those 48 hours? Be
+          specific. "Add more features" is not a plan. "Build the teacher
+          dashboard and test with 3 classrooms" is a plan.
+        </Paragraph>
+        <Paragraph>
+          Leave room for finals work. If your project is already "done," we
+          wonder what you'd do with the time. We're selecting teams with
+          momentum and direction, not finished products.
+        </Paragraph>
 
         <Divider />
 
-        <SubTitle>A note on AI</SubTitle>
+        <SubTitle>On AI use</SubTitle>
         <Paragraph>We're not anti-AI. We're anti-dishonesty.</Paragraph>
         <Paragraph>
-          Using ChatGPT to debug code? Fine—professionals do this. Using it to
-          generate your entire proposal? That's a problem, because we can't
-          evaluate <em>your</em> thinking.
+          Using ChatGPT to debug code? Fine. Professionals do this. Using it to
+          generate your entire proposal? That's a problem. We can't evaluate
+          thinking you didn't do.
         </Paragraph>
         <Paragraph>
-          The standard: If a judge asked you to explain any part of your
-          submission, could you do it confidently?
+          The test: if a judge asked you to explain any part of your submission
+          in depth, could you? Declare what you used. Honesty builds trust.
         </Paragraph>
-        <Paragraph>Declare what you used. Honesty builds trust.</Paragraph>
 
         <Divider />
 
-        <SubTitle>What we're NOT looking for</SubTitle>
-        <List>
-          <li>
-            <strong>Polished presentations</strong> — Substance beats style
-          </li>
-          <li>
-            <strong>Complexity for its own sake</strong> — Simple solutions to
-            real problems win
-          </li>
-          <li>
-            <strong>Completed projects</strong> — We're selecting for finals,
-            not finished products
-          </li>
-          <li>
-            <strong>Perfect code</strong> — Working code with rough edges beats
-            beautiful code that doesn't work
-          </li>
-        </List>
+        <SubTitle>Permission to stop worrying</SubTitle>
+        <Paragraph>
+          Your submission doesn't need to be polished. A rough demo of something
+          real beats a slick video of nothing. It doesn't need to be complex.
+          Simple solutions to real problems win. It doesn't need to be complete.
+          We're picking teams, not shipping software. And the code doesn't need
+          to be pretty. We care that it works and that you built it.
+        </Paragraph>
+
+        <SubTitle>Building alone?</SubTitle>
+        <Paragraph>
+          Same standards apply. You have one advantage teams don't: no
+          coordination overhead. Use it. Go deep on one thing rather than wide
+          on many. The best solo submissions we've seen picked a narrow problem
+          and understood it better than anyone.
+        </Paragraph>
       </NeoAccordion>
 
       {/* Section 2: Writing Your Report */}
       <NeoAccordion id="report-guide" title="Writing Your Report">
         <Paragraph>
-          Your report tells the story of your thinking. Here's a structure that
-          works:
+          Your report has one job: convince a skeptical, smart person that you
+          understand a real problem and have a real plan to address it. Two
+          pages of substance beat five pages of padding.
         </Paragraph>
 
         <Divider />
 
-        <SubTitle>Section 1: The Problem</SubTitle>
-        <List>
-          <li>
-            Who specifically has this problem? (Not "users" or "society"—name
-            the people)
-          </li>
-          <li>What's their current situation? How do they cope today?</li>
-          <li>
-            Why is this problem significant? Back it up with data or research
-          </li>
-          <li>How does this connect to your chosen SDG theme?</li>
-        </List>
-        <Emphasis>
-          Common mistake: Jumping straight to the solution. Spend real time
-          here.
-        </Emphasis>
+        <SubTitle>The Problem (this is where most teams under-invest)</SubTitle>
+        <Paragraph>
+          Who specifically has this problem? Not "users." Not "society." Name
+          the people. A farmer in Vidarbha. A student in a hostel in Kota. A
+          nurse on night shift at a government hospital.
+        </Paragraph>
+        <Paragraph>
+          How do they cope today? What's broken about their current situation?
+          Why hasn't this been solved already? If you have data or research,
+          cite it.
+        </Paragraph>
+        <Paragraph>
+          Common mistake: one paragraph on the problem, then straight to the
+          solution. Resist this. The problem section is where you show you've
+          done the thinking.
+        </Paragraph>
 
         <Divider />
 
-        <SubTitle>Section 2: Your Solution</SubTitle>
-        <List>
-          <li>What did you build? Explain it simply</li>
-          <li>How does it work? Walk through the key features</li>
-          <li>Why this approach? What alternatives did you consider?</li>
-          <li>What does the user experience look like?</li>
-        </List>
-        <Emphasis>
-          Include screenshots or diagrams. Show, don't just tell.
-        </Emphasis>
+        <SubTitle>How Your Understanding Evolved</SubTitle>
+        <Paragraph>
+          What did you believe when you started? What changed when you talked to
+          people? What assumptions did you drop?
+        </Paragraph>
+        <Paragraph>
+          A team that says "we thought the problem was X, then we discovered it
+          was actually Y" is showing real learning. That's more interesting than
+          a team that got it right on day one.
+        </Paragraph>
 
         <Divider />
 
-        <SubTitle>Section 3: Implementation & Honesty</SubTitle>
-        <List>
-          <li>What's working right now?</li>
-          <li>What's not working yet? (Honesty is valued)</li>
-          <li>How would YOU measure success? Define your own rubric</li>
-          <li>What technical decisions did you make and why?</li>
-        </List>
-        <Emphasis>
-          Judges respect self-awareness. "This works, this doesn't yet" beats
-          overselling.
-        </Emphasis>
+        <SubTitle>Your Solution</SubTitle>
+        <Paragraph>
+          What did you build? Explain it in plain language. Walk through the key
+          features. Show screenshots or diagrams. What does someone actually
+          experience when they use it?
+        </Paragraph>
+        <Paragraph>
+          Why this approach? What alternatives did you consider? This isn't
+          about defending your choice. It's about showing you made a deliberate
+          choice.
+        </Paragraph>
 
         <Divider />
 
-        <SubTitle>Section 4: What's Next</SubTitle>
-        <List>
-          <li>What would you build in the finals? Be specific</li>
-          <li>What are the hard problems you still need to solve?</li>
-          <li>What resources would you need?</li>
-          <li>Where do you see this going beyond the hackathon?</li>
-        </List>
+        <SubTitle>What Works, What Doesn't</SubTitle>
+        <Paragraph>
+          This is the honesty section. What's actually working right now? What's
+          still broken or incomplete? What would you measure to know if this
+          solution is helping?
+        </Paragraph>
+        <Paragraph>
+          Don't just list features that aren't built yet. Tell us what you
+          <em> tried</em> that flopped. The approach that seemed clever until
+          you tested it. The assumption that turned out to be wrong.
+        </Paragraph>
+        <Paragraph>
+          Define your own success metrics. Don't wait for judges to decide what
+          "good" means for your project. A team that says "we'd measure X and Y,
+          and here's our baseline" is thinking like builders, not students.
+        </Paragraph>
 
         <Divider />
 
-        <SubTitle>Format notes</SubTitle>
-        <List>
-          <li>2-4 pages is ideal. Quality over quantity</li>
-          <li>PDF format</li>
-          <li>Include visuals—screenshots, diagrams, flowcharts</li>
-          <li>Cite sources if you reference research or data</li>
-        </List>
+        <SubTitle>What's Next</SubTitle>
+        <Paragraph>
+          If you make finals, what are you building? Be specific. What are the
+          hard problems still ahead? What would you need?
+        </Paragraph>
+        <Paragraph>
+          Leave room to grow. If everything is already done, we wonder what
+          you'd do with 48 more hours.
+        </Paragraph>
+
+        <Divider />
+
+        <SubTitle>Format</SubTitle>
+        <Paragraph>
+          2-4 pages. PDF. Include visuals. Cite your sources if you reference
+          research or data.
+        </Paragraph>
       </NeoAccordion>
 
       {/* Section 3: Recording Your Demo Video */}
@@ -416,7 +463,7 @@ export function SubmissionGuide() {
               <td>0:15 - 1:10</td>
               <td>
                 <strong>The demo.</strong> Show your solution working. Not
-                slides—the actual thing.
+                slides. The actual thing.
               </td>
             </tr>
             <tr>
@@ -433,10 +480,10 @@ export function SubmissionGuide() {
         <SubTitle>What works</SubTitle>
         <List>
           <li>Show the product working, even if it's rough</li>
-          <li>Speak naturally—you don't need a script</li>
+          <li>Speak naturally. You don't need a script.</li>
           <li>Phone recordings are completely fine</li>
           <li>Clear audio matters more than video quality</li>
-          <li>Demonstrate the core user flow</li>
+          <li>Show the core user flow</li>
         </List>
 
         <Divider />
@@ -451,27 +498,28 @@ export function SubmissionGuide() {
 
         <Divider />
 
-        <SubTitle>Technical tips</SubTitle>
-        <List>
-          <li>Upload to YouTube (unlisted is fine)</li>
-          <li>Landscape orientation preferred</li>
-          <li>Keep it under 90 seconds—judges have many to watch</li>
-          <li>Test your audio before recording</li>
-        </List>
+        <SubTitle>Recording logistics</SubTitle>
+        <Paragraph>
+          Upload to YouTube (unlisted is fine). Landscape orientation works
+          best. Keep it under 90 seconds. Test your audio before you start;
+          clear sound matters more than video quality.
+        </Paragraph>
 
         <Divider />
 
-        <SubTitle>The golden rule</SubTitle>
+        <SubTitle>One thing to remember</SubTitle>
         <Paragraph>
           If someone watched your video with the sound off, they should still
-          see your product doing something real.
+          see your product doing something real. And if your demo crashes
+          mid-recording? Show how you recover. That's often more impressive than
+          a perfect run.
         </Paragraph>
       </NeoAccordion>
 
       {/* Section 4: Your Code Repository */}
       <NeoAccordion id="repo-guide" title="Your Code Repository">
         <Paragraph>
-          Your repository is proof of work. Here's what judges look for:
+          Your repository shows how you work. Here's what judges look for:
         </Paragraph>
 
         <SubTitle>README essentials</SubTitle>
@@ -483,7 +531,8 @@ export function SubmissionGuide() {
           <li>Who built this?</li>
         </List>
         <Paragraph>
-          Bonus points: screenshots, GIFs, or a quick demo link.
+          A README that says "npm install && npm start" is fine. A README that
+          says nothing is not. Screenshots or GIFs are a bonus.
         </Paragraph>
 
         <Divider />
@@ -493,12 +542,12 @@ export function SubmissionGuide() {
           Judges may look at your commit history. It tells a story:
         </Paragraph>
         <List>
-          <li>Authentic, incremental commits show real development</li>
+          <li>Regular, incremental commits show real development</li>
           <li>One giant commit at the deadline raises questions</li>
-          <li>Messy commits are fine—they show you were building</li>
+          <li>Messy commits are fine. They show you were building.</li>
         </List>
         <Emphasis>
-          This isn't about Git hygiene. It's about authenticity.
+          This isn't about Git hygiene. It's about showing your work.
         </Emphasis>
 
         <Divider />
@@ -538,112 +587,127 @@ export function SubmissionGuide() {
       {/* Section 5: Track-Specific Tips */}
       <NeoAccordion id="track-tips" title="Track-Specific Tips">
         <Paragraph>
-          Each track has its own nuances. Here's what resonates:
+          Each track rewards different kinds of thinking. Here's what we've seen
+          work.
         </Paragraph>
 
         <Divider />
 
         <TrackSection>
           <TrackName>Climate Action (SDG 13)</TrackName>
-          <Paragraph>Strong submissions:</Paragraph>
+          <Paragraph>
+            Chennai hits 47°C in summer. Delhi breathes AQI 400+ for weeks every
+            winter. Mumbai floods every monsoon. Bangalore's lakes are dying.
+            These aren't abstractions. Pick a climate reality your neighbors
+            actually face.
+          </Paragraph>
+          <Paragraph>
+            Strong submissions ground themselves in specifics:
+          </Paragraph>
           <List>
             <li>
-              Focus on local, tangible impact—not abstract "saving the planet"
+              A farmer in Vidarbha deciding when to sow, not "Indian
+              agriculture"
             </li>
             <li>
-              Identify who feels climate effects <em>today</em> in their context
-            </li>
-            <li>Use real data about climate challenges in India</li>
-            <li>Consider both mitigation and adaptation approaches</li>
-          </List>
-          <Paragraph>Questions to explore:</Paragraph>
-          <List>
-            <li>
-              Who in your community is already affected by climate change?
+              A family in Chennai managing water during cuts, not "water
+              scarcity"
             </li>
             <li>
-              What climate information would help someone make better decisions?
-            </li>
-            <li>
-              Where do current solutions fail the people who need them most?
+              An auto driver in Delhi choosing routes on bad air days, not "air
+              pollution"
             </li>
           </List>
+          <Paragraph>
+            Real data helps. Check IMD for weather patterns, CPCB for air
+            quality, India Water Portal for groundwater. Cite your sources.
+          </Paragraph>
         </TrackSection>
 
         <Divider />
 
         <TrackSection>
           <TrackName>Quality Education (SDG 4)</TrackName>
-          <Paragraph>Strong submissions:</Paragraph>
+          <Paragraph>
+            "Students" is not a user segment. A coaching class student in Kota
+            has different problems than a government school student in rural MP.
+            An English-medium kid in Bangalore faces different barriers than a
+            first-gen college student in a tier-3 town.
+          </Paragraph>
+          <Paragraph>
+            Think about the teacher too. Their reality: attendance registers,
+            parent WhatsApp groups, syllabus pressure, lesson plans that don't
+            survive contact with the classroom.
+          </Paragraph>
+          <Paragraph>What does "accessibility" actually mean here?</Paragraph>
           <List>
-            <li>
-              Focus on specific learner segments (not "students" generally)
-            </li>
-            <li>
-              Understand the teacher's perspective, not just the learner's
-            </li>
-            <li>Consider accessibility and resource constraints</li>
-            <li>Address real barriers to learning, not assumed ones</li>
+            <li>A ₹5,000 phone shared between siblings</li>
+            <li>Intermittent 2G data that costs real money</li>
+            <li>Power cuts during exam prep</li>
+            <li>No quiet place to study at home</li>
           </List>
-          <Paragraph>Questions to explore:</Paragraph>
-          <List>
-            <li>
-              What does a struggling student in your context actually struggle
-              with?
-            </li>
-            <li>What do teachers spend hours doing that isn't teaching?</li>
-            <li>Where does the system assume resources people don't have?</li>
-          </List>
+          <Paragraph>
+            Build for these constraints, not for the student with a MacBook and
+            fast wifi.
+          </Paragraph>
         </TrackSection>
 
         <Divider />
 
         <TrackSection>
           <TrackName>Sustainable Cities (SDG 11)</TrackName>
-          <Paragraph>Strong submissions:</Paragraph>
-          <List>
-            <li>Show understanding of local urban context</li>
-            <li>Consider the invisible people in urban planning</li>
-            <li>Think about infrastructure constraints</li>
-            <li>Address problems that affect daily life</li>
-          </List>
-          <Paragraph>Questions to explore:</Paragraph>
-          <List>
-            <li>
-              What's broken about how people move, eat, or live in your city?
-            </li>
-            <li>Who gets overlooked in city planning decisions?</li>
-            <li>What works at 10am but fails at 10pm?</li>
-          </List>
+          <Paragraph>
+            You know your city's problems. The Silk Board junction. The water
+            tanker dependency. The last-mile from the metro. The garbage that
+            piles up in the corner nobody owns. Start there.
+          </Paragraph>
+          <Paragraph>
+            Who gets overlooked in urban planning? Migrant construction workers.
+            Domestic help commuting 2 hours each way. Street vendors pushed out
+            by "beautification." The night shift worker when buses stop running.
+          </Paragraph>
+          <Paragraph>A good question to ask:</Paragraph>
+          <Paragraph>
+            <em>
+              What works at 10am but fails at 10pm? What's fine in October but
+              breaks in July? Who can navigate the city easily, and who can't?
+            </em>
+          </Paragraph>
         </TrackSection>
 
         <Divider />
 
         <TrackSection>
           <TrackName>Hardware Track (All SDGs)</TrackName>
-          <Paragraph>Additional considerations:</Paragraph>
+          <Paragraph>
+            Hardware in India has constraints. Components take time to ship.
+            Good makerspaces aren't everywhere. Budget matters. Work with these
+            realities, not against them.
+          </Paragraph>
+          <Paragraph>
+            For finals, remember: you have 48 hours. One or two 3D print
+            iterations, max. Design for what you can actually build in that
+            window.
+          </Paragraph>
+          <Paragraph>Your proposal should include:</Paragraph>
           <List>
-            <li>Include CAD models, sketches, or simulation outputs</li>
-            <li>Document your bill of materials with realistic costs</li>
-            <li>Consider manufacturing feasibility</li>
-            <li>
-              Think about 3D printing time—finals are 48 hours with few
-              iterations
-            </li>
+            <li>CAD models, sketches, or even clear hand drawings</li>
+            <li>A bill of materials with realistic Indian prices</li>
+            <li>What you can prototype now vs. what needs more time</li>
           </List>
-          <Emphasis>
-            Your report should include enough detail that someone could
-            understand how to build what you're proposing.
-          </Emphasis>
+          <Paragraph>
+            We've seen great hardware projects built from simple components.
+            Clever beats expensive.
+          </Paragraph>
         </TrackSection>
       </NeoAccordion>
 
       {/* Section 6: Sample Submissions */}
       <NeoAccordion id="sample-submissions" title="Sample Submissions">
         <Paragraph>
-          Here are examples to calibrate your expectations. These aren't
-          templates to copy—they're illustrations of the depth and clarity we're
-          looking for.
+          Here are examples to calibrate your expectations. These are
+          illustrations, not templates to copy. They show the depth and clarity
+          we're looking for.
         </Paragraph>
 
         <Divider />
@@ -664,7 +728,7 @@ export function SubmissionGuide() {
             We spoke with residents in Ambattur who described a pattern:
             mysterious stomach ailments that come and go, never traced to water
             because "the water looks fine." Mrs. Lakshmi, who runs a small
-            provisions store, told us her family boils all drinking water—but
+            provisions store, told us her family boils all drinking water, but
             still uses untested borewell water for cooking rice, washing
             vegetables, and bathing.
           </Paragraph>
@@ -673,6 +737,10 @@ export function SubmissionGuide() {
             ₹500-2000 and takes a week. For a daily-wage household, that's
             impractical.
           </Paragraph>
+          <Commentary>
+            Notice: specific location, specific people, specific numbers. Not
+            "India has a water problem."
+          </Commentary>
 
           <SubTitle>Our Solution</SubTitle>
           <Paragraph>
@@ -695,7 +763,7 @@ export function SubmissionGuide() {
           </List>
           <Paragraph>
             The insight: Individual test results have limited value. But
-            aggregated data reveals patterns—which borewells are safe, which
+            aggregated data reveals patterns. Which borewells are safe, which
             areas have chronic contamination, where the municipal corporation
             should prioritize intervention.
           </Paragraph>
@@ -836,7 +904,45 @@ export function SubmissionGuide() {
           hostel. We've tested with 30 students at our college and 8 formed
           study groups."
         </GoodExample>
+
+        <Divider />
+
+        <SubTitle>Common Near-Misses</SubTitle>
+        <Paragraph>
+          These submissions were close but didn't make it. Knowing what was
+          missing might help you check your own.
+        </Paragraph>
+        <List>
+          <li>
+            <strong>Good tech, vague problem:</strong> The prototype works, but
+            it's unclear who it's for. "We built an app." Okay, but who needs
+            it? Why?
+          </li>
+          <li>
+            <strong>Good problem framing, no evidence:</strong> The problem
+            sounds real, but there's no sign the team talked to anyone who has
+            it. No quotes, no observations, no fieldwork.
+          </li>
+          <li>
+            <strong>Overpromised scope:</strong> The vision is big ("will
+            revolutionize...") but the submission can't explain what actually
+            works right now. Ambition without grounding.
+          </li>
+        </List>
+        <Paragraph>
+          If any of these sound like your submission, you still have time to fix
+          it. Add one user quote. Ground one claim. Be specific about what works
+          today.
+        </Paragraph>
       </NeoAccordion>
+
+      <ClosingNote>
+        <p>
+          Putting your work out there is hard. You learned things this week that
+          you couldn't learn any other way. Whatever the outcome, that's yours
+          now. Ship it.
+        </p>
+      </ClosingNote>
     </Container>
   );
 }
