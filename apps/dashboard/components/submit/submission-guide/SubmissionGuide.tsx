@@ -680,24 +680,62 @@ export function SubmissionGuide() {
         <TrackSection>
           <TrackName>Hardware Track (All SDGs)</TrackName>
           <Paragraph>
-            Hardware in India has constraints. Components take time to ship.
-            Good makerspaces aren't everywhere. Budget matters. Work with these
-            realities, not against them.
+            For finals, you'll have 48 hours and access to a 4,500 sq ft
+            makerspace. Design for what you can actually build in that window.
+            One or two 3D print iterations, max.
           </Paragraph>
+
           <Paragraph>
-            For finals, remember: you have 48 hours. One or two 3D print
-            iterations, max. Design for what you can actually build in that
-            window.
+            <strong>What's available:</strong> FDM/SLA/SLS 3D printers, laser
+            cutting, woodworking tools, soldering stations, oscilloscopes, bench
+            power supplies, Jetson Nano, and more. A part of our inventory and
+            the hardware kit available to finalists are listed on the{' '}
+            <Link
+              href="https://redbrickhacks.co/#equipment"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              equipment page
+            </Link>
+            .
           </Paragraph>
-          <Paragraph>Your proposal should include:</Paragraph>
+
+          <Paragraph>
+            <strong>Standard hardware kit:</strong> We stock common components
+            for finalists: Arduino Uno, ESP32, basic sensors (ultrasonic,
+            temperature, IR, PIR), jumper wires, breadboards, resistors, LEDs,
+            and common fasteners. Include everything you need in your BOM so we
+            know what to prepare for you.
+          </Paragraph>
+
+          <Paragraph>
+            <strong>Project budget:</strong> Each hardware finalist gets up to
+            ₹15,000 for components. If you need specific sensors, modules, or
+            materials, we'll source them before finals.
+          </Paragraph>
+
+          <Paragraph>
+            <strong>Your submission should include:</strong>
+          </Paragraph>
           <List>
-            <li>CAD models, sketches, or even clear hand drawings</li>
-            <li>A bill of materials with realistic Indian prices</li>
-            <li>What you can prototype now vs. what needs more time</li>
+            <li>CAD models, sketches, or clear hand drawings</li>
+            <li>
+              A Bill of Materials for anything not in our standard kit (use{' '}
+              <Link
+                href="https://rbh.fyi/bom-template"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                this template
+              </Link>
+              )
+            </li>
+            <li>What you can prototype now vs. what you'd build at finals</li>
           </List>
+
           <Paragraph>
-            We've seen great hardware projects built from simple components.
-            Clever beats expensive.
+            After selection, we'll reach out to confirm your BOM and sort out
+            procurement. The earlier you're specific, the more we can help.
           </Paragraph>
         </TrackSection>
       </NeoAccordion>

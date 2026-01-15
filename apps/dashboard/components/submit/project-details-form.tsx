@@ -130,6 +130,39 @@ const CheckboxHint = styled.span`
   color: ${neoColors.textMuted};
 `;
 
+const HardwareInfoBox = styled.div`
+  margin-top: 0.75rem;
+  padding: 1rem;
+  background: ${neoColors.accent.blue}10;
+  border: ${neoBorders.standard};
+  font-size: 0.85rem;
+  line-height: 1.5;
+
+  ul {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+  }
+
+  li {
+    margin-bottom: 0.25rem;
+  }
+
+  a {
+    color: ${neoColors.accent.blue};
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+`;
+
+const HardwareInfoTitle = styled.div`
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+`;
+
 const ButtonRow = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -245,6 +278,42 @@ export function ProjectDetailsForm({
               </CheckboxHint>
             </CheckboxText>
           </CheckboxContainer>
+          {isHardware && (
+            <HardwareInfoBox>
+              <HardwareInfoTitle>Hardware Track Info</HardwareInfoTitle>
+              <ul>
+                <li>
+                  Access to a 4,500 sq ft makerspace with 3D printers, laser
+                  cutting, soldering stations, and more
+                </li>
+                <li>₹15,000 budget per finalist for project components</li>
+                <li>
+                  Standard hardware kit available (Arduino, ESP32, basic
+                  sensors, etc.)
+                </li>
+              </ul>
+              <div>
+                Copy the{' '}
+                <a
+                  href="https://rbh.fyi/bom-template"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Bill of Materials template
+                </a>{' '}
+                and submit a public link on the form below. A part of our
+                inventory and the hardware kit are listed on the{' '}
+                <a
+                  href="https://redbrickhacks.co/#equipment"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  equipment page
+                </a>
+                .
+              </div>
+            </HardwareInfoBox>
+          )}
         </FormGroup>
 
         <ButtonRow>
