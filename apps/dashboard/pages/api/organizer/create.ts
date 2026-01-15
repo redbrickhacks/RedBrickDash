@@ -21,16 +21,32 @@ export default async function createTeam(
   }
 
   const repo = container.resolve(DashboardRepository);
-  const name: string = req.body.name;
+  let name: string = req.body.name;
   const description: string | null = req.body.description;
   const photoKey: string | null = req.body.photoKey;
   const organizerId: string = req.body.organizerId;
+  const isSolo: boolean = req.body.isSolo === true;
 
   if (user.user_id !== organizerId) {
     return res.status(403).json({ message: 'Forbidden' });
   }
 
   try {
+    // For solo teams, use the user's full name as the team name
+    if (isSolo) {
+      const { data: profile } = await repo
+        .getClient()
+        .from('user_profiles')
+        .select('first_name, last_name')
+        .eq('user_id', organizerId)
+        .single();
+
+      const fullName = `${profile?.first_name || ''} ${
+        profile?.last_name || ''
+      }`.trim();
+      name = fullName || 'Solo';
+    }
+
     if (!name) {
       throw new Error('Name cannot be empty.');
     }

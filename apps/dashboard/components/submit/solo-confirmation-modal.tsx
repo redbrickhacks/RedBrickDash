@@ -82,10 +82,12 @@ export function SoloConfirmationModal({
 
     try {
       // Create a solo team (team with just the user as organizer)
+      // isSolo=true tells the API to use the user's name from user_profiles
       const { data, error: createError } = await TeamServiceAPI.createTeam(
-        'Solo Submission',
+        '',
         'Solo participant',
-        userId
+        userId,
+        true
       );
 
       if (createError) {

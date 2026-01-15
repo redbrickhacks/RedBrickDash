@@ -137,7 +137,8 @@ export class TeamServiceAPI {
   static async createTeam(
     name: string,
     description: string,
-    organizerId: string
+    organizerId: string,
+    isSolo = false
   ): Promise<TeamServiceResponse> {
     const res = await axios.post(
       '/api/organizer/create',
@@ -145,6 +146,7 @@ export class TeamServiceAPI {
         name,
         description,
         organizerId,
+        isSolo,
       },
       {
         validateStatus: (status) => status >= 200 && status <= 503,
