@@ -59,6 +59,8 @@ export const getEnv = () => {
         TallyFormUrl: process.env.NEXT_PUBLIC_TALLY_SUBMISSION_FORM_URL,
         TallyProjectFormUrl:
           process.env.NEXT_PUBLIC_TALLY_PROJECT_SUBMISSION_FORM_URL,
+        TallyProjectFormWebhookSecret:
+          process.env.TALLY_PROJECT_SUBMISSION_WEBHOOK_SECRET,
         Deadline: process.env.NEXT_PUBLIC_SUBMISSION_DEADLINE,
       },
       RSVPForm: {

@@ -15,7 +15,8 @@ const handler: NextApiHandler = async (req, res) => {
 
   const body = req.body;
   const receivedSignature = req.headers['tally-signature'];
-  const signingSecret = getEnv().Hibiscus.Hackform.TallySigningSecret;
+  const signingSecret =
+    getEnv().Hibiscus.Submission.TallyProjectFormWebhookSecret;
 
   // Calculate the signature using the signing secret and the payload
   const calculatedSignature = createHmac('sha256', signingSecret)
@@ -51,13 +52,19 @@ const handler: NextApiHandler = async (req, res) => {
   const responseId = body.data.responseId;
 
   // Extract submission fields by label
-  const youtubeUrl = extractFieldValue(body.data.fields, 'YouTube Demo URL');
+  const youtubeUrl = extractFieldValue(
+    body.data.fields,
+    'YouTube Demo Video (Max. 90s)'
+  );
   const githubUrl = extractFieldValue(
     body.data.fields,
     'GitHub Repository URL'
   );
-  const liveUrl = extractFieldValue(body.data.fields, 'Live Demo URL');
-  const pdfUrl = extractFileUrl(body.data.fields, 'PDF Report');
+  const liveUrl = extractFieldValue(
+    body.data.fields,
+    'Live Demo URL (Optional)'
+  );
+  const pdfUrl = extractFileUrl(body.data.fields, 'Project Report');
 
   const supabase = createClient(
     getEnv().Hibiscus.Supabase.apiUrl,
