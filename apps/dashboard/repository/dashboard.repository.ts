@@ -185,9 +185,20 @@ export class DashboardRepository {
   }
 
   async updateUserWithAcceptedInvite(teamId: string, invitedId: string) {
+    // Get team's current submission_status to sync to new member
+    const { data: team } = await this.client
+      .from('teams')
+      .select('submission_status')
+      .eq('team_id', teamId)
+      .single();
+
+    // Update user's team_id and sync submission_status
     const { data, error } = await this.client
       .from('user_profiles')
-      .update({ team_id: teamId })
+      .update({
+        team_id: teamId,
+        submission_status: team?.submission_status ?? 1,
+      })
       .eq('user_id', invitedId);
 
     return { data, error };
