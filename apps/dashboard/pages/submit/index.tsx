@@ -235,6 +235,7 @@ export function SubmitPage() {
         teamId={team?.teamId ?? ''}
         userId={user.id}
         isUnlocked={isFormComplete && canSubmit}
+        isHardware={team?.isHardware ?? false}
       />
     </PageContainer>
   );

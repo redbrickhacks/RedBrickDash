@@ -9,6 +9,7 @@ interface SubmissionTallyEmbedProps {
   teamId: string;
   userId: string;
   isUnlocked: boolean;
+  isHardware: boolean;
 }
 
 const Container = styled.div`
@@ -94,6 +95,7 @@ export function SubmissionTallyEmbed({
   teamId,
   userId,
   isUnlocked,
+  isHardware,
 }: SubmissionTallyEmbedProps) {
   useEffect(() => {
     if (isUnlocked) {
@@ -106,12 +108,12 @@ export function SubmissionTallyEmbed({
     }
   }, [isUnlocked]);
 
-  // Build Tally URL with teamId and userId for webhook identification
+  // Build Tally URL with teamId, userId, and hardware track flag
   const baseTallyUrl = getEnv().Hibiscus.Submission?.TallyProjectFormUrl || '';
   const tallyUrl = baseTallyUrl
     ? `${baseTallyUrl}${
         baseTallyUrl.includes('?') ? '&' : '?'
-      }hibiscusTeamId=${teamId}&hibiscusUserId=${userId}`
+      }hibiscusTeamId=${teamId}&hibiscusUserId=${userId}&isHardwareTrack=${isHardware}`
     : '';
 
   return (
