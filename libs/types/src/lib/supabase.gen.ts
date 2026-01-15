@@ -9,6 +9,24 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      app_config: {
+        Row: {
+          description: string | null;
+          key: string;
+          value: string;
+        };
+        Insert: {
+          description?: string | null;
+          key: string;
+          value: string;
+        };
+        Update: {
+          description?: string | null;
+          key?: string;
+          value?: string;
+        };
+        Relationships: [];
+      };
       application_status: {
         Row: {
           id: number;
@@ -102,6 +120,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'bonus_point_status';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'bonus_points_log_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
           }
         ];
       };
@@ -205,21 +230,32 @@ export type Database = {
       };
       discord_profiles: {
         Row: {
-          discord_profile: string | null;
-          id: number;
-          user_profile_id: string | null;
+          discord_user_id: string;
+          discord_username: string | null;
+          user_profile_id: string;
+          verified_at: string;
         };
         Insert: {
-          discord_profile?: string | null;
-          id?: number;
-          user_profile_id?: string | null;
+          discord_user_id: string;
+          discord_username?: string | null;
+          user_profile_id: string;
+          verified_at?: string;
         };
         Update: {
-          discord_profile?: string | null;
-          id?: number;
-          user_profile_id?: string | null;
+          discord_user_id?: string;
+          discord_username?: string | null;
+          user_profile_id?: string;
+          verified_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'discord_profiles_user_profile_id_fkey';
+            columns: ['user_profile_id'];
+            isOneToOne: true;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          }
+        ];
       };
       discord_tokens: {
         Row: {
@@ -584,6 +620,33 @@ export type Database = {
           }
         ];
       };
+      stamp_types: {
+        Row: {
+          created_at: string | null;
+          description: string | null;
+          emoji: string;
+          id: number;
+          is_system_only: boolean | null;
+          name: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          description?: string | null;
+          emoji: string;
+          id?: number;
+          is_system_only?: boolean | null;
+          name: string;
+        };
+        Update: {
+          created_at?: string | null;
+          description?: string | null;
+          emoji?: string;
+          id?: number;
+          is_system_only?: boolean | null;
+          name?: string;
+        };
+        Relationships: [];
+      };
       submission_status: {
         Row: {
           id: number;
@@ -657,6 +720,60 @@ export type Database = {
           }
         ];
       };
+      team_submissions: {
+        Row: {
+          github_url: string | null;
+          id: string;
+          live_url: string | null;
+          pdf_url: string | null;
+          submitted_at: string | null;
+          submitted_by: string | null;
+          tally_data: Json | null;
+          tally_response_id: string;
+          team_id: string;
+          youtube_url: string | null;
+        };
+        Insert: {
+          github_url?: string | null;
+          id?: string;
+          live_url?: string | null;
+          pdf_url?: string | null;
+          submitted_at?: string | null;
+          submitted_by?: string | null;
+          tally_data?: Json | null;
+          tally_response_id: string;
+          team_id: string;
+          youtube_url?: string | null;
+        };
+        Update: {
+          github_url?: string | null;
+          id?: string;
+          live_url?: string | null;
+          pdf_url?: string | null;
+          submitted_at?: string | null;
+          submitted_by?: string | null;
+          tally_data?: Json | null;
+          tally_response_id?: string;
+          team_id?: string;
+          youtube_url?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'team_submissions_submitted_by_fkey';
+            columns: ['submitted_by'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'team_submissions_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['team_id'];
+          }
+        ];
+      };
       teams: {
         Row: {
           created_at: string | null;
@@ -668,6 +785,7 @@ export type Database = {
           organizer_id: string;
           photo_key: string | null;
           pitch_video_url: string | null;
+          project_title: string | null;
           submission_status: number | null;
           team_id: string;
           track_id: number | null;
@@ -682,6 +800,7 @@ export type Database = {
           organizer_id: string;
           photo_key?: string | null;
           pitch_video_url?: string | null;
+          project_title?: string | null;
           submission_status?: number | null;
           team_id?: string;
           track_id?: number | null;
@@ -696,6 +815,7 @@ export type Database = {
           organizer_id?: string;
           photo_key?: string | null;
           pitch_video_url?: string | null;
+          project_title?: string | null;
           submission_status?: number | null;
           team_id?: string;
           track_id?: number | null;
@@ -787,7 +907,12 @@ export type Database = {
           email: string | null;
           first_name: string;
           last_name: string;
+          referral_code: string | null;
+          referred_by: string | null;
           role: number | null;
+          submission_id: string | null;
+          submission_status: number | null;
+          submitted_at: string | null;
           team_id: string | null;
           user_id: string;
         };
@@ -800,7 +925,12 @@ export type Database = {
           email?: string | null;
           first_name: string;
           last_name: string;
+          referral_code?: string | null;
+          referred_by?: string | null;
           role?: number | null;
+          submission_id?: string | null;
+          submission_status?: number | null;
+          submitted_at?: string | null;
           team_id?: string | null;
           user_id: string;
         };
@@ -813,7 +943,12 @@ export type Database = {
           email?: string | null;
           first_name?: string;
           last_name?: string;
+          referral_code?: string | null;
+          referred_by?: string | null;
           role?: number | null;
+          submission_id?: string | null;
+          submission_status?: number | null;
+          submitted_at?: string | null;
           team_id?: string | null;
           user_id?: string;
         };
@@ -826,10 +961,24 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'user_profiles_referred_by_fkey';
+            columns: ['referred_by'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          },
+          {
             foreignKeyName: 'user_profiles_role_fkey';
             columns: ['role'];
             isOneToOne: false;
             referencedRelation: 'roles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_profiles_submission_status_fkey';
+            columns: ['submission_status'];
+            isOneToOne: false;
+            referencedRelation: 'submission_status';
             referencedColumns: ['id'];
           },
           {
@@ -841,6 +990,61 @@ export type Database = {
           }
         ];
       };
+      user_stamps: {
+        Row: {
+          created_at: string | null;
+          giver_id: string | null;
+          id: string;
+          is_system_gift: boolean | null;
+          message: string | null;
+          recipient_id: string;
+          slot_position: number;
+          stamp_type_id: number;
+        };
+        Insert: {
+          created_at?: string | null;
+          giver_id?: string | null;
+          id?: string;
+          is_system_gift?: boolean | null;
+          message?: string | null;
+          recipient_id: string;
+          slot_position: number;
+          stamp_type_id: number;
+        };
+        Update: {
+          created_at?: string | null;
+          giver_id?: string | null;
+          id?: string;
+          is_system_gift?: boolean | null;
+          message?: string | null;
+          recipient_id?: string;
+          slot_position?: number;
+          stamp_type_id?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_stamps_giver_id_fkey';
+            columns: ['giver_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'user_stamps_recipient_id_fkey';
+            columns: ['recipient_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'user_stamps_stamp_type_id_fkey';
+            columns: ['stamp_type_id'];
+            isOneToOne: false;
+            referencedRelation: 'stamp_types';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -848,6 +1052,18 @@ export type Database = {
     Functions: {
       get_sponsors: { Args: never; Returns: string[] };
       get_volunteers: { Args: never; Returns: string[] };
+      is_valid_url: { Args: { url: string }; Returns: boolean };
+      swap_stamp: {
+        Args: {
+          p_giver_id: string;
+          p_is_system_gift?: boolean;
+          p_message?: string;
+          p_recipient_id: string;
+          p_slot_position: number;
+          p_stamp_type_id: number;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       [_ in never]: never;
