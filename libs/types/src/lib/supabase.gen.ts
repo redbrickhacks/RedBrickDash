@@ -723,6 +723,7 @@ export type Database = {
       team_submissions: {
         Row: {
           github_url: string | null;
+          hw_bom_url: string | null;
           id: string;
           live_url: string | null;
           pdf_url: string | null;
@@ -735,6 +736,7 @@ export type Database = {
         };
         Insert: {
           github_url?: string | null;
+          hw_bom_url?: string | null;
           id?: string;
           live_url?: string | null;
           pdf_url?: string | null;
@@ -747,6 +749,7 @@ export type Database = {
         };
         Update: {
           github_url?: string | null;
+          hw_bom_url?: string | null;
           id?: string;
           live_url?: string | null;
           pdf_url?: string | null;
