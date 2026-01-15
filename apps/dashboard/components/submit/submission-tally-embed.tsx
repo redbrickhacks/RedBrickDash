@@ -19,14 +19,21 @@ const Container = styled.div`
 
 const Header = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.25rem;
 `;
 
 const Title = styled.h2`
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
+`;
+
+const Subtitle = styled.p`
+  margin: 0;
+  font-size: 0.9rem;
+  color: ${neoColors.textMuted};
+  line-height: 1.4;
 `;
 
 const LockedOverlay = styled.div`
@@ -112,6 +119,10 @@ export function SubmissionTallyEmbed({
       <Container>
         <Header>
           <Title>Final Submission</Title>
+          <Subtitle>
+            Almost there! Upload your materials below. Remember—done is better
+            than perfect. You can update these files until the deadline.
+          </Subtitle>
         </Header>
 
         {!isUnlocked ? (
@@ -145,8 +156,8 @@ export function SubmissionTallyEmbed({
             </TallyContainer>
 
             <HelpText>
-              Submit your PDF report, demo video (90 seconds max), and GitHub
-              repository link.
+              You can submit multiple times until the deadline. Each submission
+              replaces the previous one. Save early, update often.
             </HelpText>
 
             <Script

@@ -7,7 +7,8 @@ import { SoloConfirmationModal } from '../../components/submit/solo-confirmation
 import { ProjectDetailsForm } from '../../components/submit/project-details-form';
 import { SubmissionStatusBanner } from '../../components/submit/submission-status-banner';
 import { SubmissionTallyEmbed } from '../../components/submit/submission-tally-embed';
-import { neoColors } from '../../components/neo-ui/theme';
+import { SubmissionGuide } from '../../components/submit/submission-guide';
+import { neoColors, neoBorders } from '../../components/neo-ui/theme';
 import { ApplicationStatus } from '@hibiscus/types';
 import { NeoButton } from '../../components/neo-ui/NeoButton';
 
@@ -57,6 +58,26 @@ const ErrorMessage = styled.p`
   color: ${neoColors.textMuted};
   margin: 0;
   max-width: 400px;
+`;
+
+const DeadlineBanner = styled.div`
+  background: ${neoColors.accent.yellow}40;
+  border: ${neoBorders.standard};
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const DeadlineTitle = styled.div`
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${neoColors.text};
+`;
+
+const DeadlineSubtext = styled.div`
+  font-size: 0.9rem;
+  color: ${neoColors.textMuted};
 `;
 
 export function SubmitPage() {
@@ -186,6 +207,16 @@ export function SubmitPage() {
   return (
     <PageContainer>
       <PageTitle>Submit Project</PageTitle>
+
+      <DeadlineBanner>
+        <DeadlineTitle>Deadline: January 16, 2026, 11:59 PM IST</DeadlineTitle>
+        <DeadlineSubtext>
+          Submit now, perfect later. You can update everything until the
+          deadline.
+        </DeadlineSubtext>
+      </DeadlineBanner>
+
+      <SubmissionGuide />
 
       <SubmissionStatusBanner
         submissionStatus={team?.submissionStatus ?? 1}
