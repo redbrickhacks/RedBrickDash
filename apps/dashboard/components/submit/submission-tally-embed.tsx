@@ -120,8 +120,8 @@ export function SubmissionTallyEmbed({
         <Header>
           <Title>Final Submission</Title>
           <Subtitle>
-            Almost there! Upload your materials below. Remember—done is better
-            than perfect. You can update these files until the deadline.
+            Your project files go here. You can resubmit this form any number of
+            times until the deadline.
           </Subtitle>
         </Header>
 
@@ -156,8 +156,8 @@ export function SubmissionTallyEmbed({
             </TallyContainer>
 
             <HelpText>
-              You can submit multiple times until the deadline. Each submission
-              replaces the previous one. Save early, update often.
+              We'll only see your latest submission, so update whenever you're
+              ready.
             </HelpText>
 
             <Script
