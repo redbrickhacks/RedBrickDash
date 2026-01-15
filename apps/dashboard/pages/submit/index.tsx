@@ -1,89 +1,108 @@
-import React, { useEffect } from 'react';
-import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
-import { H3, Link } from '@hibiscus/ui';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { GetServerSideProps } from 'next';
-import { HackformTally } from '../../components/hackform-tally/hackform-tally';
 import { useRouter } from 'next/router';
-import { getEnv } from '@hibiscus/env';
-import { ParsedUrlQuery } from 'querystring';
+import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
+import { useSubmission } from '../../hooks/use-submission/use-submission';
+import { SoloConfirmationModal } from '../../components/submit/solo-confirmation-modal';
+import { ProjectDetailsForm } from '../../components/submit/project-details-form';
+import { SubmissionStatusBanner } from '../../components/submit/submission-status-banner';
+import { SubmissionTallyEmbed } from '../../components/submit/submission-tally-embed';
+import { neoColors } from '../../components/neo-ui/theme';
 import { ApplicationStatus } from '@hibiscus/types';
-import { SubmissionGuide } from '../../components/submit/SubmissionGuide';
+import { NeoButton } from '../../components/neo-ui/NeoButton';
 
-function isQueryComplete(query: ParsedUrlQuery): boolean {
-  return (
-    'hibiscusUserId' in query &&
-    'hibiscusUserNameFirst' in query &&
-    'hibiscusUserNameLast' in query &&
-    'hibiscusUserEmail' in query
-  );
-}
+const PageContainer = styled.div`
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
 
-interface ServerSideProps {
-  submissionsOpen: boolean;
-  tallyFormUrl: string | null;
-}
+const PageTitle = styled.h1`
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+  text-transform: uppercase;
+`;
 
-export function SubmitPage({ submissionsOpen, tallyFormUrl }: ServerSideProps) {
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  font-size: 1rem;
+  color: ${neoColors.textMuted};
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 1rem;
+  text-align: center;
+`;
+
+const ErrorTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: ${neoColors.status.error};
+`;
+
+const ErrorMessage = styled.p`
+  color: ${neoColors.textMuted};
+  margin: 0;
+  max-width: 400px;
+`;
+
+export function SubmitPage() {
   const { user } = useHibiscusUser();
   const router = useRouter();
+  const {
+    status,
+    isLoading,
+    isSaving,
+    error,
+    fetchStatus,
+    saveProjectDetails,
+    hasTeam,
+    canSubmit,
+    isFormComplete,
+  } = useSubmission();
 
-  useEffect(() => {
-    if (router.isReady && user !== null && !isQueryComplete(router.query)) {
-      router.replace({
-        query: {
-          ...router.query,
-          hibiscusUserId: user?.id,
-          hibiscusUserNameFirst: user?.firstName,
-          hibiscusUserNameLast: user?.lastName,
-          hibiscusUserEmail: user?.email,
-        },
-      });
-    }
-  }, [router, user]);
+  const [showSoloModal, setShowSoloModal] = useState(false);
 
-  if (user === null || !isQueryComplete(router.query)) {
+  // Loading state
+  if (user === null || isLoading) {
     return (
-      <Container>
-        <CenterContainer>
-          <Heading>Loading...</Heading>
-        </CenterContainer>
-      </Container>
+      <PageContainer>
+        <LoadingContainer>Loading...</LoadingContainer>
+      </PageContainer>
     );
   }
 
-  if (router.query.hibiscusUserId !== user.id) {
-    return (
-      <Container>
-        <CenterContainer>
-          <Heading>Invalid user ID provided!</Heading>
-        </CenterContainer>
-      </Container>
-    );
-  }
-
-  // Only REGISTERED users can submit
+  // User must complete profile first
   if (user.applicationStatus === ApplicationStatus.NOT_APPLIED) {
     return (
-      <Container>
-        <CenterContainer>
-          <Heading>Complete your profile first!</Heading>
-          <SubText>
+      <PageContainer>
+        <ErrorContainer>
+          <ErrorTitle>Complete your profile first</ErrorTitle>
+          <ErrorMessage>
             You need to register before you can submit a project.
-          </SubText>
-          <Link
-            href={'/apply'}
-            passHref
-            anchortagpropsoverride={{ target: '_self' }}
-          >
-            <ActionButton>Complete Profile</ActionButton>
-          </Link>
-        </CenterContainer>
-      </Container>
+          </ErrorMessage>
+          <NeoButton variant="primary" onClick={() => router.push('/apply')}>
+            Complete Profile
+          </NeoButton>
+        </ErrorContainer>
+      </PageContainer>
     );
   }
 
-  // Users past the online round can't submit
+  // Users past online round cannot submit
   if (
     user.applicationStatus === ApplicationStatus.FINALIST ||
     user.applicationStatus === ApplicationStatus.CONFIRMED ||
@@ -91,97 +110,102 @@ export function SubmitPage({ submissionsOpen, tallyFormUrl }: ServerSideProps) {
     user.applicationStatus === ApplicationStatus.NOT_SELECTED
   ) {
     return (
-      <Container>
-        <CenterContainer>
-          <Heading>Submissions are closed</Heading>
-          <SubText>
+      <PageContainer>
+        <ErrorContainer>
+          <ErrorTitle>Submissions Closed</ErrorTitle>
+          <ErrorMessage>
             The online round has ended. Check your dashboard for updates.
-          </SubText>
-          <Link
-            href={'/'}
-            passHref
-            anchortagpropsoverride={{ target: '_self' }}
-          >
-            <ActionButton>Go to Dashboard</ActionButton>
-          </Link>
-        </CenterContainer>
-      </Container>
+          </ErrorMessage>
+          <NeoButton variant="primary" onClick={() => router.push('/')}>
+            Go to Dashboard
+          </NeoButton>
+        </ErrorContainer>
+      </PageContainer>
     );
   }
 
-  // Submissions not open yet (no Tally form URL configured)
-  if (!submissionsOpen || !tallyFormUrl) {
-    return <SubmissionGuide />;
+  // Error loading submission status
+  if (error && !status) {
+    return (
+      <PageContainer>
+        <ErrorContainer>
+          <ErrorTitle>Error Loading Submission</ErrorTitle>
+          <ErrorMessage>{error}</ErrorMessage>
+          <NeoButton variant="primary" onClick={fetchStatus}>
+            Try Again
+          </NeoButton>
+        </ErrorContainer>
+      </PageContainer>
+    );
   }
 
-  // Build Tally URL with hibiscusUserId for webhook identification
-  const tallyUrlWithUserId = `${tallyFormUrl}${
-    tallyFormUrl.includes('?') ? '&' : '?'
-  }hibiscusUserId=${user.id}`;
+  // User has no team - prompt for solo submission
+  if (!hasTeam) {
+    return (
+      <PageContainer>
+        <PageTitle>Submit Project</PageTitle>
+        <ErrorContainer>
+          <ErrorTitle>No Team Found</ErrorTitle>
+          <ErrorMessage>
+            You are not part of a team. You can either join a team first, or
+            submit as a solo participant.
+          </ErrorMessage>
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+            }}
+          >
+            <NeoButton variant="secondary" onClick={() => router.push('/team')}>
+              Go to Team Page
+            </NeoButton>
+            <NeoButton variant="primary" onClick={() => setShowSoloModal(true)}>
+              Submit Solo
+            </NeoButton>
+          </div>
+        </ErrorContainer>
 
-  return <HackformTally tallyUrl={tallyUrlWithUserId} />;
+        <SoloConfirmationModal
+          isOpen={showSoloModal}
+          onClose={() => setShowSoloModal(false)}
+          onConfirm={() => {
+            setShowSoloModal(false);
+            fetchStatus();
+          }}
+          userId={user.id}
+        />
+      </PageContainer>
+    );
+  }
+
+  // User has team - show submission flow
+  const team = status?.team;
+
+  return (
+    <PageContainer>
+      <PageTitle>Submit Project</PageTitle>
+
+      <SubmissionStatusBanner
+        submissionStatus={team?.submissionStatus ?? 1}
+        finalSubmittedAt={team?.finalSubmittedAt ?? null}
+        canSubmit={canSubmit}
+      />
+
+      <ProjectDetailsForm
+        team={team!}
+        onSave={saveProjectDetails}
+        isSaving={isSaving}
+        disabled={!canSubmit}
+      />
+
+      <SubmissionTallyEmbed
+        teamId={team?.teamId ?? ''}
+        isUnlocked={isFormComplete && canSubmit}
+      />
+    </PageContainer>
+  );
 }
 
 export default SubmitPage;
-
-const Container = styled.div`
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const CenterContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const Heading = styled(H3)`
-  color: #ff6347;
-`;
-
-const SubText = styled.p`
-  color: #666;
-  text-align: center;
-  max-width: 400px;
-`;
-
-const ActionButton = styled.button`
-  padding: 12px 40px;
-  border-radius: 8px;
-  border: 3px solid black;
-  background: #ffb1a3;
-  font-family: 'Space Mono', monospace;
-  font-weight: 700;
-  font-size: 14px;
-  text-transform: uppercase;
-  color: black;
-  cursor: pointer;
-  transition: all 0.1s ease;
-
-  &:hover {
-    background: #ff6347;
-    transform: translate(-2px, -2px);
-    box-shadow: 4px 4px 0px black;
-  }
-
-  &:active {
-    transform: translate(0, 0);
-    box-shadow: none;
-  }
-`;
-
-export const getServerSideProps: GetServerSideProps = async () => {
-  const tallyFormUrl =
-    process.env.NEXT_PUBLIC_TALLY_SUBMISSION_FORM_URL || null;
-  const submissionsOpen = !!tallyFormUrl;
-
-  return {
-    props: {
-      submissionsOpen,
-      tallyFormUrl,
-    } as ServerSideProps,
-  };
-};
