@@ -71,6 +71,10 @@ const handler: NextApiHandler = async (req, res) => {
     'Live Demo URL (Optional)'
   );
   const pdfUrl = extractFileUrl(body.data.fields, 'Project Report');
+  const hwBomUrl = extractFieldValue(
+    body.data.fields,
+    'Hardware BoM Public Google Sheet'
+  );
 
   const supabase = createClient(
     getEnv().Hibiscus.Supabase.apiUrl,
@@ -115,6 +119,7 @@ const handler: NextApiHandler = async (req, res) => {
       github_url: githubUrl,
       live_url: liveUrl,
       pdf_url: pdfUrl,
+      hw_bom_url: hwBomUrl,
       tally_data: body.data,
     },
     {
