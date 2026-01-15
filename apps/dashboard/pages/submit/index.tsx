@@ -202,6 +202,7 @@ export function SubmitPage() {
 
       <SubmissionTallyEmbed
         teamId={team?.teamId ?? ''}
+        userId={user.id}
         isUnlocked={isFormComplete && canSubmit}
       />
     </PageContainer>

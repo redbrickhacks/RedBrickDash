@@ -7,6 +7,7 @@ import { getEnv } from '@hibiscus/env';
 
 interface SubmissionTallyEmbedProps {
   teamId: string;
+  userId: string;
   isUnlocked: boolean;
 }
 
@@ -84,6 +85,7 @@ const HelpText = styled.p`
 
 export function SubmissionTallyEmbed({
   teamId,
+  userId,
   isUnlocked,
 }: SubmissionTallyEmbedProps) {
   useEffect(() => {
@@ -97,12 +99,12 @@ export function SubmissionTallyEmbed({
     }
   }, [isUnlocked]);
 
-  // Build Tally URL with teamId for webhook identification
+  // Build Tally URL with teamId and userId for webhook identification
   const baseTallyUrl = getEnv().Hibiscus.Submission?.TallyProjectFormUrl || '';
-  const tallyUrlWithTeamId = baseTallyUrl
+  const tallyUrl = baseTallyUrl
     ? `${baseTallyUrl}${
         baseTallyUrl.includes('?') ? '&' : '?'
-      }hibiscusTeamId=${teamId}`
+      }hibiscusTeamId=${teamId}&hibiscusUserId=${userId}`
     : '';
 
   return (
@@ -120,7 +122,7 @@ export function SubmissionTallyEmbed({
               final submission form.
             </LockedDescription>
           </LockedOverlay>
-        ) : !tallyUrlWithTeamId ? (
+        ) : !tallyUrl ? (
           <LockedOverlay>
             <LockedTitle>Submission Form Not Configured</LockedTitle>
             <LockedDescription>
@@ -131,7 +133,7 @@ export function SubmissionTallyEmbed({
           <>
             <TallyContainer>
               <iframe
-                data-tally-src={tallyUrlWithTeamId}
+                data-tally-src={tallyUrl}
                 loading="lazy"
                 width="100%"
                 height="100%"

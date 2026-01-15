@@ -51,6 +51,12 @@ const handler: NextApiHandler = async (req, res) => {
   const teamId = teamIdField.value;
   const responseId = body.data.responseId;
 
+  // Extract user ID from hidden field (optional, for tracking who submitted)
+  const userIdField = body.data.fields.find(
+    ({ label, type }) => label === 'hibiscusUserId' && type === 'HIDDEN_FIELDS'
+  );
+  const userId = userIdField?.value || null;
+
   // Extract submission fields by label
   const youtubeUrl = extractFieldValue(
     body.data.fields,
@@ -104,6 +110,7 @@ const handler: NextApiHandler = async (req, res) => {
       team_id: teamId,
       tally_response_id: responseId,
       submitted_at: new Date().toISOString(),
+      submitted_by: userId,
       youtube_url: youtubeUrl,
       github_url: githubUrl,
       live_url: liveUrl,
