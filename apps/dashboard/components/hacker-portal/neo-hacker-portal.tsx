@@ -12,6 +12,7 @@ import {
   FaDiscord,
   FaUsers,
   FaCloudArrowUp,
+  FaGift,
 } from 'react-icons/fa6';
 import { getEnv } from '@hibiscus/env';
 import { CountdownTimer } from '../countdown-timer/countdown-timer';
@@ -53,7 +54,7 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
   const deadlineStr = getEnv().Hibiscus.Submission?.Deadline;
   const submissionDeadline = deadlineStr
     ? new Date(deadlineStr)
-    : new Date('2026-01-16T23:59:59+05:30');
+    : new Date('2026-01-17T23:59:59+05:30');
   const isDeadlinePassed = new Date() > submissionDeadline;
 
   const hasTeam = !!user.teamId;
@@ -154,6 +155,22 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
             </CountdownWrapper>
           )}
         </WelcomeBanner>
+
+        {!isDeadlinePassed && (
+          <SoftExtensionBanner>
+            <SoftExtensionIcon>
+              <FaGift />
+            </SoftExtensionIcon>
+            <SoftExtensionContent>
+              <SoftExtensionTitle>Deadline Extended!</SoftExtensionTitle>
+              <SoftExtensionText>
+                Due to overwhelming registrations, we&apos;ve extended the
+                deadline by 24 hours. This is a soft extension for existing
+                participants and won&apos;t be publicly announced.
+              </SoftExtensionText>
+            </SoftExtensionContent>
+          </SoftExtensionBanner>
+        )}
 
         {/* Dynamic Next Step Card */}
         {nextStep === 'discord' && (
@@ -962,4 +979,51 @@ const StayConnectedLinks = styled.div`
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+`;
+
+const SoftExtensionBanner = styled.div`
+  background: #e8f5e9;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #2e7d32;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+`;
+
+const SoftExtensionIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #c8e6c9;
+  border: 2px solid #000;
+  font-size: 1.25rem;
+  color: #2e7d32;
+  flex-shrink: 0;
+`;
+
+const SoftExtensionContent = styled.div`
+  flex: 1;
+`;
+
+const SoftExtensionTitle = styled.h4`
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1b5e20;
+`;
+
+const SoftExtensionText = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  color: #2e7d32;
+  line-height: 1.5;
 `;

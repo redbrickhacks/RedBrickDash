@@ -5,9 +5,9 @@ import { HibiscusSupabaseClient } from '@hibiscus/hibiscus-supabase-client';
 import { getAuthenticatedUser } from '../../../common/auth';
 import { getEnv } from '@hibiscus/env';
 
-// Submission deadline: January 16, 2026 11:59 PM IST
+// Submission deadline: January 17, 2026 11:59 PM IST - soft extension
 const SUBMISSION_DEADLINE = new Date(
-  getEnv().Hibiscus.Submission?.Deadline || '2026-01-16T23:59:59+05:30'
+  getEnv().Hibiscus.Submission?.Deadline || '2026-01-17T23:59:59+05:30'
 );
 
 /**

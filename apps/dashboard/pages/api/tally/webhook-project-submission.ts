@@ -3,9 +3,9 @@ import { getEnv } from '@hibiscus/env';
 import { createClient } from '@supabase/supabase-js';
 import { NextApiHandler, NextApiResponse } from 'next';
 
-// Submission deadline: January 16, 2026 11:59 PM IST
+// Submission deadline: January 17, 2026 11:59 PM IST - soft extension
 const SUBMISSION_DEADLINE = new Date(
-  getEnv().Hibiscus.Submission?.Deadline || '2026-01-16T23:59:59+05:30'
+  getEnv().Hibiscus.Submission?.Deadline || '2026-01-17T23:59:59+05:30'
 );
 
 const handler: NextApiHandler = async (req, res) => {
