@@ -33,6 +33,8 @@ export function VerifyCard() {
   const MAX_CODE_LENGTH = 6;
 
   const handleOTP = async () => {
+    if (verifyState === 'verifying') return;
+
     const email = String(router.query.email);
 
     const { data, error } = await supabase.verifyOtp(email, code, 'signup');
@@ -108,9 +110,11 @@ export function VerifyCard() {
       <button
         color="blue"
         onClick={handleOTP}
-        disabled={!pinReady}
+        disabled={!pinReady || verifyState === 'verifying'}
         className={`py-[8px] w-[278px] rounded-[8px] border-[1px] ${
-          pinReady ? 'bg-red-300 hover:bg-theme-redward' : 'bg-gray-300'
+          pinReady && verifyState !== 'verifying'
+            ? 'bg-red-300 hover:bg-theme-redward'
+            : 'bg-gray-300'
         }`}
       >
         Submit
