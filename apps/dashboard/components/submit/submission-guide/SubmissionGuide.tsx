@@ -346,7 +346,132 @@ export function SubmissionGuide() {
         </Paragraph>
       </NeoAccordion>
 
-      {/* Section 2: Writing Your Report */}
+      {/* Section 2: Show Your Work */}
+      <NeoAccordion
+        id="show-your-work"
+        title="AI Tools & Your Process"
+        defaultOpen
+      >
+        <Paragraph>
+          You built something. Before you submit, we want to hear <em>how</em>{' '}
+          it came together.
+        </Paragraph>
+
+        <SubTitle>One Question</SubTitle>
+        <Quote>What did you learn while building this?</Quote>
+
+        <Divider />
+
+        <SubTitle>On AI Tools</SubTitle>
+        <Paragraph>
+          Some of you pair-programmed with Copilot. Some used Claude as a
+          thinking partner. Some went fully solo with Stack Overflow and
+          stubbornness. Some did all of the above at different moments.
+        </Paragraph>
+        <Paragraph>
+          There's no wrong answer. Just <em>your</em> answer.
+        </Paragraph>
+        <Paragraph>
+          AI tools are part of how things get built now. We're not asking you to
+          confess. We're asking you to reflect.
+        </Paragraph>
+
+        <Divider />
+
+        <SubTitle>Reflection Prompts</SubTitle>
+        <Paragraph>As you write your project report, consider these:</Paragraph>
+        <List>
+          <li>
+            <strong>Where did you get stuck?</strong> What finally unstuck you?
+          </li>
+          <li>
+            <strong>
+              What's one thing you understand now that you didn't before?
+            </strong>
+          </li>
+          <li>
+            <strong>
+              If AI helped you, what did that collaboration look like?
+            </strong>{' '}
+            Did you accept suggestions blindly, or wrestle with them?
+          </li>
+          <li>
+            <strong>What would you do differently next time?</strong>
+          </li>
+          <li>
+            <strong>
+              Could you rebuild the core of this without AI if you had to?
+            </strong>
+          </li>
+        </List>
+
+        <Divider />
+
+        <SubTitle>Tell Us Your Process</SubTitle>
+        <Paragraph>
+          In your report, include a short section about how this got built:
+        </Paragraph>
+        <List>
+          <li>
+            Which tools were part of your workflow (Copilot, ChatGPT, Claude,
+            Cursor, etc.)
+          </li>
+          <li>
+            What they helped with (boilerplate? debugging? architecture
+            thinking? documentation?)
+          </li>
+          <li>
+            What YOU brought to the table: the decisions, the pivots, the
+            "actually, that's wrong" moments
+          </li>
+        </List>
+
+        <SubTitle>What This Might Sound Like</SubTitle>
+        <ExampleBlock>
+          <Paragraph>
+            "We used Copilot throughout for autocomplete. ChatGPT helped us
+            debug a gnarly WebSocket issue. It took three wrong answers before
+            we landed on the fix together. The database schema started as a
+            Claude suggestion but we reworked it twice once we understood our
+            actual data flow. The payment integration was all us, lots of Stripe
+            docs and trial and error."
+          </Paragraph>
+        </ExampleBlock>
+        <Paragraph>That's a story. That's what we're looking for.</Paragraph>
+
+        <Divider />
+
+        <SubTitle>Why This Matters</SubTitle>
+        <Paragraph>
+          Hackathons are about growth. A project where you struggled, got lost,
+          asked for help, and emerged understanding something new? That's a win.
+        </Paragraph>
+        <Paragraph>
+          We want to see what <em>you</em> built. AI can help, but the thinking
+          should be yours.
+        </Paragraph>
+        <Paragraph>
+          A polished submission you can't explain? That's a missed opportunity.
+          For you, not just for us.
+        </Paragraph>
+        <Paragraph>
+          When you present to judges, they'll ask questions. Not to catch you
+          out, but because they're curious. The teams that can speak genuinely
+          about their process, including the messy parts, are the ones that
+          stand out.
+        </Paragraph>
+
+        <Divider />
+
+        <Paragraph>
+          <strong>
+            Be honest. We care about what you learned, not just what you
+            shipped.
+          </strong>
+        </Paragraph>
+      </NeoAccordion>
+
+      {/* Section 3: Writing Your Report */}
       <NeoAccordion id="report-guide" title="Writing Your Report">
         <Paragraph>
           Your report has one job: convince a skeptical, smart person that you
@@ -440,7 +565,7 @@ export function SubmissionGuide() {
         </Paragraph>
       </NeoAccordion>
 
-      {/* Section 3: Recording Your Demo Video */}
+      {/* Section 4: Recording Your Demo Video */}
       <NeoAccordion id="video-guide" title="Recording Your Demo Video">
         <Paragraph>You have 90 seconds. Here's how to use them well:</Paragraph>
 
@@ -516,7 +641,7 @@ export function SubmissionGuide() {
         </Paragraph>
       </NeoAccordion>
 
-      {/* Section 4: Your Code Repository */}
+      {/* Section 5: Your Code Repository */}
       <NeoAccordion id="repo-guide" title="Your Code Repository">
         <Paragraph>
           Your repository shows how you work. Here's what judges look for:
@@ -584,7 +709,7 @@ export function SubmissionGuide() {
         <Paragraph>We care that it works and that you built it.</Paragraph>
       </NeoAccordion>
 
-      {/* Section 5: Track-Specific Tips */}
+      {/* Section 6: Track-Specific Tips */}
       <NeoAccordion id="track-tips" title="Track-Specific Tips">
         <Paragraph>
           Each track rewards different kinds of thinking. Here's what we've seen
@@ -740,7 +865,7 @@ export function SubmissionGuide() {
         </TrackSection>
       </NeoAccordion>
 
-      {/* Section 6: Sample Submissions */}
+      {/* Section 7: Sample Submissions */}
       <NeoAccordion id="sample-submissions" title="Sample Submissions">
         <Paragraph>
           Here are examples to calibrate your expectations. These are
