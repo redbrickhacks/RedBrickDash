@@ -53,6 +53,19 @@ const handler: NextApiHandler = async (req, res) => {
 
     const user = authData.user;
 
+    // Check if profile already exists (idempotent - handles retries/double-submits)
+    const { data: existingProfile } = await serviceClient
+      .getClient()
+      .from('user_profiles')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (existingProfile) {
+      res.status(200).json({ success: true });
+      return;
+    }
+
     // Generate referral code for this user
     const newReferralCode = generateReferralCode();
 
