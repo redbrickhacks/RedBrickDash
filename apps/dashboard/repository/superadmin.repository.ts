@@ -11,6 +11,10 @@ export class SuperadminRepository {
     this.client = hbc.getClient();
   }
 
+  getClient() {
+    return this.client;
+  }
+
   // Stats queries
 
   async getParticipantCountsByStatus() {
