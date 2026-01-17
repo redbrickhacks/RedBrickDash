@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
 import { isSuperadmin } from '../../common/superadmin-auth';
 import { OverviewTab } from '../../components/superadmin/overview-tab';
+import { ParticipantsTab } from '../../components/superadmin/participants-tab';
 import {
   NeoButton,
   neoColors,
@@ -94,9 +95,7 @@ export default function SuperadminPage() {
         {activeTab === 'overview' && (
           <OverviewTab stats={stats} isLoading={isLoading} />
         )}
-        {activeTab === 'participants' && (
-          <PlaceholderText>Participants tab coming soon...</PlaceholderText>
-        )}
+        {activeTab === 'participants' && <ParticipantsTab />}
         {activeTab === 'teams' && (
           <PlaceholderText>Teams tab coming soon...</PlaceholderText>
         )}
