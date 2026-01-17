@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { neoColors, neoBorders, neoShadows } from '../neo-ui/theme';
-import { FaCheck, FaClock, FaExclamationTriangle } from 'react-icons/fa6';
+import { FaCheck, FaClock, FaTriangleExclamation } from 'react-icons/fa6';
 
 interface SubmissionStatusBannerProps {
   submissionStatus: number;
@@ -81,7 +81,7 @@ export function SubmissionStatusBanner({
     return (
       <Banner $variant="closed">
         <IconWrapper $color={neoColors.status.error}>
-          <FaExclamationTriangle />
+          <FaTriangleExclamation />
         </IconWrapper>
         <Content>
           <Title>Submissions Closed</Title>
