@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { ApplicationStatus } from '@hibiscus/types';
+import { useHibiscusSupabase } from '@hibiscus/hibiscus-supabase-context';
 import Link from 'next/link';
 import {
   FaClipboardCheck,
@@ -27,6 +29,8 @@ interface NeoHackerPortalProps {
     attendanceConfirmed: boolean | null;
     teamId?: string | null;
     submissionStatus?: number;
+    submittedAt?: Date;
+    createdAt?: Date;
     referralCode?: string;
     referralCount?: number;
   };
@@ -47,6 +51,7 @@ function getNextStep(
 }
 
 export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
+  const { supabase } = useHibiscusSupabase();
   const discordVerification = useDiscordVerification();
   const discordUrl = getEnv().Hibiscus.Discord.InviteUrl || '#';
 
@@ -63,6 +68,50 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
     hasTeam,
     hasSubmitted
   );
+
+  // Fetch team member count for the journey narrative
+  const [teamMemberCount, setTeamMemberCount] = useState<number>(1);
+  useEffect(() => {
+    async function fetchTeamMemberCount() {
+      if (!user.teamId) return;
+      const { data } = await supabase
+        .getClient()
+        .from('user_profiles')
+        .select('user_id')
+        .eq('team_id', user.teamId);
+      if (data) {
+        setTeamMemberCount(data.length);
+      }
+    }
+    fetchTeamMemberCount();
+  }, [user.teamId, supabase]);
+
+  // Fetch submission iteration count for the journey narrative
+  const [iterationData, setIterationData] = useState<{
+    iterationCount: number;
+    firstSubmittedAt: Date | null;
+  }>({ iterationCount: 0, firstSubmittedAt: null });
+
+  useEffect(() => {
+    async function fetchIterations() {
+      if (!isDeadlinePassed || !hasSubmitted) return;
+      try {
+        const res = await fetch('/api/submit/iterations');
+        if (res.ok) {
+          const data = await res.json();
+          setIterationData({
+            iterationCount: data.iterationCount,
+            firstSubmittedAt: data.firstSubmittedAt
+              ? new Date(data.firstSubmittedAt)
+              : null,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch iterations:', err);
+      }
+    }
+    fetchIterations();
+  }, [isDeadlinePassed, hasSubmitted]);
 
   // NOT_APPLIED: Simple onboarding view
   if (user.applicationStatus === ApplicationStatus.NOT_APPLIED) {
@@ -198,6 +247,124 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
             discordUsername={discordVerification.discordUsername}
             isLoading={discordVerification.isLoading}
           />
+        )}
+
+        {isDeadlinePassed && (
+          <WhatsNextCard>
+            <WhatsNextTitle>WHAT&apos;S NEXT</WhatsNextTitle>
+            <Timeline>
+              <TimelineItem $status="active">
+                <TimelineDot $status="active" />
+                <TimelineContent>
+                  <TimelineLabel>Judging</TimelineLabel>
+                  <TimelineDescription>
+                    Our judges are reviewing all submissions
+                  </TimelineDescription>
+                </TimelineContent>
+              </TimelineItem>
+              <TimelineItem $status="upcoming">
+                <TimelineDot $status="upcoming" />
+                <TimelineContent>
+                  <TimelineLabel>Results</TimelineLabel>
+                  <TimelineDescription>
+                    Finalists announced soon. We&apos;ll reach out to selected
+                    teams.
+                  </TimelineDescription>
+                </TimelineContent>
+              </TimelineItem>
+              <TimelineItem $status="upcoming" $last>
+                <TimelineDot $status="upcoming" />
+                <TimelineContent>
+                  <TimelineLabel>National Finals</TimelineLabel>
+                  <TimelineDescription>
+                    Feb 6-8, 2026 at The Makerspace, Ashoka University
+                  </TimelineDescription>
+                </TimelineContent>
+              </TimelineItem>
+            </Timeline>
+          </WhatsNextCard>
+        )}
+
+        {isDeadlinePassed && (
+          <YourJourneyCard>
+            <YourJourneyTitle>YOUR JOURNEY</YourJourneyTitle>
+            <JourneyNarrative>
+              {user.createdAt && (
+                <>
+                  You joined RedBrick Hacks on{' '}
+                  <JourneyHighlight>
+                    {user.createdAt.toLocaleDateString('en-IN', {
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </JourneyHighlight>
+                  .{' '}
+                </>
+              )}
+              {hasTeam ? (
+                teamMemberCount > 1 ? (
+                  <>
+                    You teamed up with{' '}
+                    <JourneyHighlight>
+                      {teamMemberCount - 1} other
+                      {teamMemberCount - 1 === 1 ? '' : 's'}
+                    </JourneyHighlight>{' '}
+                    and{' '}
+                  </>
+                ) : (
+                  <>You formed a team and </>
+                )
+              ) : (
+                <>You went solo and </>
+              )}
+              {hasSubmitted && iterationData.firstSubmittedAt ? (
+                <>
+                  first submitted on{' '}
+                  <JourneyHighlight>
+                    {iterationData.firstSubmittedAt.toLocaleDateString(
+                      'en-IN',
+                      {
+                        month: 'long',
+                        day: 'numeric',
+                      }
+                    )}
+                  </JourneyHighlight>
+                  {iterationData.iterationCount > 1 && (
+                    <>
+                      {' '}
+                      and came back{' '}
+                      <JourneyHighlight>
+                        {iterationData.iterationCount - 1} more{' '}
+                        {iterationData.iterationCount - 1 === 1
+                          ? 'time'
+                          : 'times'}
+                      </JourneyHighlight>{' '}
+                      to improve it
+                    </>
+                  )}
+                  .
+                  {iterationData.iterationCount >= 4 && (
+                    <> That kind of dedication stands out.</>
+                  )}
+                </>
+              ) : hasSubmitted ? (
+                <>submitted your project.</>
+              ) : (
+                <>gave it your best shot.</>
+              )}
+              {(user.referralCount ?? 0) > 0 && (
+                <>
+                  {' '}
+                  You also brought{' '}
+                  <JourneyHighlight>
+                    {user.referralCount}{' '}
+                    {user.referralCount === 1 ? 'friend' : 'friends'}
+                  </JourneyHighlight>{' '}
+                  along for the ride.
+                </>
+              )}
+            </JourneyNarrative>
+          </YourJourneyCard>
         )}
 
         {/* Dynamic Next Step Card - only show before deadline */}
@@ -1081,4 +1248,104 @@ const ThankYouLinks = styled.div`
   @media (max-width: 600px) {
     justify-content: center;
   }
+`;
+
+const WhatsNextCard = styled.div`
+  background: #fff;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  padding: 1.5rem;
+`;
+
+const WhatsNextTitle = styled.h3`
+  font-family: 'Space Mono', monospace;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 1.25rem 0;
+  color: #666;
+`;
+
+const Timeline = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+`;
+
+const TimelineItem = styled.div<{
+  $status: 'active' | 'upcoming';
+  $last?: boolean;
+}>`
+  display: flex;
+  gap: 1rem;
+  padding-bottom: ${(p) => (p.$last ? '0' : '1.25rem')};
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 24px;
+    bottom: 0;
+    width: 2px;
+    background: ${(p) => (p.$last ? 'transparent' : '#ddd')};
+  }
+`;
+
+const TimelineDot = styled.div<{ $status: 'active' | 'upcoming' }>`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: ${(p) => (p.$status === 'active' ? '#FF5C5C' : '#fff')};
+  border: 3px solid ${(p) => (p.$status === 'active' ? '#FF5C5C' : '#ddd')};
+  flex-shrink: 0;
+  z-index: 1;
+`;
+
+const TimelineContent = styled.div`
+  flex: 1;
+  padding-top: 2px;
+`;
+
+const TimelineLabel = styled.h4`
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 700;
+`;
+
+const TimelineDescription = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.5;
+`;
+
+const YourJourneyCard = styled.div`
+  background: linear-gradient(135deg, #fafafa 0%, #fff 100%);
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  padding: 1.5rem;
+`;
+
+const YourJourneyTitle = styled.h3`
+  font-family: 'Space Mono', monospace;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 1rem 0;
+  color: #666;
+`;
+
+const JourneyNarrative = styled.p`
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #333;
+  margin: 0;
+`;
+
+const JourneyHighlight = styled.span`
+  font-weight: 700;
+  color: #ff5c5c;
 `;
