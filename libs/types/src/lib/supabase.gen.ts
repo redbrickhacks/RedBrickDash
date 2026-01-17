@@ -272,6 +272,116 @@ export type Database = {
         };
         Relationships: [];
       };
+      email_jobs: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          custom_body: string | null;
+          error_message: string | null;
+          failed_count: number;
+          id: string;
+          sent_count: number;
+          started_at: string | null;
+          status: string;
+          subject: string;
+          target_status: number[];
+          template: string;
+          total_recipients: number;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          custom_body?: string | null;
+          error_message?: string | null;
+          failed_count?: number;
+          id?: string;
+          sent_count?: number;
+          started_at?: string | null;
+          status?: string;
+          subject: string;
+          target_status: number[];
+          template: string;
+          total_recipients?: number;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          custom_body?: string | null;
+          error_message?: string | null;
+          failed_count?: number;
+          id?: string;
+          sent_count?: number;
+          started_at?: string | null;
+          status?: string;
+          subject?: string;
+          target_status?: number[];
+          template?: string;
+          total_recipients?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'email_jobs_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          }
+        ];
+      };
+      email_logs: {
+        Row: {
+          created_at: string;
+          error_message: string | null;
+          id: string;
+          job_id: string;
+          recipient_email: string;
+          recipient_id: string | null;
+          resend_id: string | null;
+          sent_at: string | null;
+          status: string;
+        };
+        Insert: {
+          created_at?: string;
+          error_message?: string | null;
+          id?: string;
+          job_id: string;
+          recipient_email: string;
+          recipient_id?: string | null;
+          resend_id?: string | null;
+          sent_at?: string | null;
+          status?: string;
+        };
+        Update: {
+          created_at?: string;
+          error_message?: string | null;
+          id?: string;
+          job_id?: string;
+          recipient_email?: string;
+          recipient_id?: string | null;
+          resend_id?: string | null;
+          sent_at?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'email_logs_job_id_fkey';
+            columns: ['job_id'];
+            isOneToOne: false;
+            referencedRelation: 'email_jobs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'email_logs_recipient_id_fkey';
+            columns: ['recipient_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          }
+        ];
+      };
       event_log: {
         Row: {
           check_in_time: string;
