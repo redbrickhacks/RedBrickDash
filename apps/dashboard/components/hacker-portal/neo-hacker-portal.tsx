@@ -12,7 +12,6 @@ import {
   FaDiscord,
   FaUsers,
   FaCloudArrowUp,
-  FaGift,
 } from 'react-icons/fa6';
 import { getEnv } from '@hibiscus/env';
 import { CountdownTimer } from '../countdown-timer/countdown-timer';
@@ -145,7 +144,7 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
               {isDeadlinePassed
                 ? hasSubmitted
                   ? 'The online round has ended. Results will be announced soon!'
-                  : 'The submission deadline has passed. Stay tuned for announcements.'
+                  : 'The submission deadline has passed.'
                 : 'Welcome to the Online Round. Build something amazing and submit before the deadline.'}
             </WelcomeSubtext>
           </WelcomeContent>
@@ -156,137 +155,178 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
           )}
         </WelcomeBanner>
 
+        {isDeadlinePassed && (
+          <ThankYouCard>
+            <ThankYouIcon>
+              <FaRocket />
+            </ThankYouIcon>
+            <ThankYouContent>
+              <ThankYouTitle>Thank You</ThankYouTitle>
+              <ThankYouText>
+                We received an overwhelming response this year and can&apos;t
+                wait to see what everyone has built.
+              </ThankYouText>
+              <ThankYouText>
+                Building something from scratch and sharing it with others takes
+                courage. We appreciate everyone who took the leap, whether you
+                finished your project or are still working on it.
+              </ThankYouText>
+              <ThankYouText>
+                This is just the start. Keep building, keep learning, and stick
+                with your ideas. The best projects grow over time.
+              </ThankYouText>
+              <ThankYouText>
+                If you want to talk about your project, bounce around ideas, or
+                just chat, reach out. We&apos;d love to hear from you.
+              </ThankYouText>
+              <ThankYouLinks>
+                <ActionButton
+                  as="a"
+                  href="mailto:redbrickhacks@ashoka.edu.in"
+                  $color="#FF5C5C"
+                >
+                  Email Us
+                </ActionButton>
+              </ThankYouLinks>
+            </ThankYouContent>
+          </ThankYouCard>
+        )}
+
+        {isDeadlinePassed && (
+          <DiscordSection
+            isVerified={discordVerification.isVerified}
+            discordUsername={discordVerification.discordUsername}
+            isLoading={discordVerification.isLoading}
+          />
+        )}
+
+        {/* Dynamic Next Step Card - only show before deadline */}
         {!isDeadlinePassed && (
-          <SoftExtensionBanner>
-            <SoftExtensionIcon>
-              <FaGift />
-            </SoftExtensionIcon>
-            <SoftExtensionContent>
-              <SoftExtensionTitle>Deadline Extended!</SoftExtensionTitle>
-              <SoftExtensionText>
-                Due to overwhelming registrations, we&apos;ve extended the
-                deadline by 24 hours. This is a soft extension for existing
-                participants and won&apos;t be publicly announced.
-              </SoftExtensionText>
-            </SoftExtensionContent>
-          </SoftExtensionBanner>
-        )}
+          <>
+            {nextStep === 'discord' && (
+              <NextStepCard $accent="#5865F2">
+                <NextStepLabel>YOUR NEXT STEP</NextStepLabel>
+                <NextStepContent>
+                  <ActionIconWrapper $bg="#E8EAFF">
+                    <FaDiscord />
+                  </ActionIconWrapper>
+                  <ActionContent>
+                    <ActionTitle>Join Our Discord</ActionTitle>
+                    <ActionDescription>
+                      Connect with other hackers, find teammates, and get
+                      support from mentors.
+                    </ActionDescription>
+                  </ActionContent>
+                  <ActionButton
+                    as="a"
+                    href={discordUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    $color="#5865F2"
+                  >
+                    Join Server
+                  </ActionButton>
+                </NextStepContent>
+              </NextStepCard>
+            )}
 
-        {/* Dynamic Next Step Card */}
-        {nextStep === 'discord' && (
-          <NextStepCard $accent="#5865F2">
-            <NextStepLabel>YOUR NEXT STEP</NextStepLabel>
-            <NextStepContent>
-              <ActionIconWrapper $bg="#E8EAFF">
-                <FaDiscord />
-              </ActionIconWrapper>
-              <ActionContent>
-                <ActionTitle>Join Our Discord</ActionTitle>
-                <ActionDescription>
-                  Connect with other hackers, find teammates, and get support
-                  from mentors.
-                </ActionDescription>
-              </ActionContent>
-              <ActionButton
-                as="a"
-                href={discordUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                $color="#5865F2"
-              >
-                Join Server
-              </ActionButton>
-            </NextStepContent>
-          </NextStepCard>
-        )}
+            {nextStep === 'team' && (
+              <NextStepCard $accent="#FF9F1C">
+                <NextStepLabel>YOUR NEXT STEP</NextStepLabel>
+                <NextStepContent>
+                  <ActionIconWrapper $bg="#FFF3E0">
+                    <FaUsers />
+                  </ActionIconWrapper>
+                  <ActionContent>
+                    <ActionTitle>Set Up Your Team</ActionTitle>
+                    <ActionDescription>
+                      Teams of up to 4 can compete together. Find teammates in
+                      #team-finding on Discord!
+                    </ActionDescription>
+                  </ActionContent>
+                  <ActionButtonGroup>
+                    <Link href="/team" passHref legacyBehavior>
+                      <ActionButton $color="#FF9F1C">Create Team</ActionButton>
+                    </Link>
+                  </ActionButtonGroup>
+                </NextStepContent>
+                <SkipLink>
+                  <Link href="/submit">
+                    Prefer to work alone? Skip to submission →
+                  </Link>
+                </SkipLink>
+              </NextStepCard>
+            )}
 
-        {nextStep === 'team' && (
-          <NextStepCard $accent="#FF9F1C">
-            <NextStepLabel>YOUR NEXT STEP</NextStepLabel>
-            <NextStepContent>
-              <ActionIconWrapper $bg="#FFF3E0">
-                <FaUsers />
-              </ActionIconWrapper>
-              <ActionContent>
-                <ActionTitle>Set Up Your Team</ActionTitle>
-                <ActionDescription>
-                  Teams of up to 4 can compete together. Find teammates in
-                  #team-finding on Discord!
-                </ActionDescription>
-              </ActionContent>
-              <ActionButtonGroup>
-                <Link href="/team" passHref legacyBehavior>
-                  <ActionButton $color="#FF9F1C">Create Team</ActionButton>
-                </Link>
-              </ActionButtonGroup>
-            </NextStepContent>
-            <SkipLink>
-              <Link href="/submit">
-                Prefer to work alone? Skip to submission →
-              </Link>
-            </SkipLink>
-          </NextStepCard>
-        )}
+            {nextStep === 'submit' && (
+              <NextStepCard $accent="#00D4C8">
+                <NextStepLabel>YOUR NEXT STEP</NextStepLabel>
+                <NextStepContent>
+                  <ActionIconWrapper $bg="#E0FAF8">
+                    <FaCloudArrowUp />
+                  </ActionIconWrapper>
+                  <ActionContent>
+                    <ActionTitle>Submit Your Project</ActionTitle>
+                    <ActionDescription>
+                      {hasTeam
+                        ? 'Your team is ready! Submit your project before the deadline.'
+                        : 'Ready to submit? You can always add teammates later.'}
+                    </ActionDescription>
+                  </ActionContent>
+                  <Link href="/submit" passHref legacyBehavior>
+                    <ActionButton $color="#00D4C8">Submit Project</ActionButton>
+                  </Link>
+                </NextStepContent>
+              </NextStepCard>
+            )}
 
-        {nextStep === 'submit' && (
-          <NextStepCard $accent="#00D4C8">
-            <NextStepLabel>YOUR NEXT STEP</NextStepLabel>
-            <NextStepContent>
-              <ActionIconWrapper $bg="#E0FAF8">
-                <FaCloudArrowUp />
-              </ActionIconWrapper>
-              <ActionContent>
-                <ActionTitle>Submit Your Project</ActionTitle>
-                <ActionDescription>
-                  {hasTeam
-                    ? 'Your team is ready! Submit your project before the deadline.'
-                    : 'Ready to submit? You can always add teammates later.'}
-                </ActionDescription>
-              </ActionContent>
-              <Link href="/submit" passHref legacyBehavior>
-                <ActionButton $color="#00D4C8">Submit Project</ActionButton>
-              </Link>
-            </NextStepContent>
-          </NextStepCard>
-        )}
+            {nextStep === 'done' && (
+              <NextStepCard $accent="#22c55e">
+                <NextStepLabel>ALL SET!</NextStepLabel>
+                <NextStepContent>
+                  <ActionIconWrapper $bg="#E8F5E9">
+                    <FaCheck />
+                  </ActionIconWrapper>
+                  <ActionContent>
+                    <ActionTitle>You&apos;re All Set!</ActionTitle>
+                    <ActionDescription>
+                      Your submission is in. You can update it anytime before
+                      the deadline.
+                    </ActionDescription>
+                  </ActionContent>
+                  <Link href="/submit" passHref legacyBehavior>
+                    <ActionButton $color="#22c55e">
+                      Edit Submission
+                    </ActionButton>
+                  </Link>
+                </NextStepContent>
+              </NextStepCard>
+            )}
 
-        {nextStep === 'done' && (
-          <NextStepCard $accent="#22c55e">
-            <NextStepLabel>ALL SET!</NextStepLabel>
-            <NextStepContent>
-              <ActionIconWrapper $bg="#E8F5E9">
-                <FaCheck />
-              </ActionIconWrapper>
-              <ActionContent>
-                <ActionTitle>You&apos;re All Set!</ActionTitle>
-                <ActionDescription>
-                  Your submission is in. You can update it anytime before the
-                  deadline.
-                </ActionDescription>
-              </ActionContent>
-              <Link href="/submit" passHref legacyBehavior>
-                <ActionButton $color="#22c55e">Edit Submission</ActionButton>
-              </Link>
-            </NextStepContent>
-          </NextStepCard>
-        )}
-
-        {/* Coming Up Section */}
-        {nextStep !== 'done' && (
-          <ComingUpCard>
-            <ComingUpTitle>COMING UP</ComingUpTitle>
-            <ComingUpList>
-              {nextStep === 'discord' && (
-                <>
-                  <ComingUpItem $done={false}>Set up your team</ComingUpItem>
-                  <ComingUpItem $done={false}>Submit your project</ComingUpItem>
-                </>
-              )}
-              {nextStep === 'team' && (
-                <ComingUpItem $done={false}>Submit your project</ComingUpItem>
-              )}
-            </ComingUpList>
-          </ComingUpCard>
+            {/* Coming Up Section */}
+            {nextStep !== 'done' && (
+              <ComingUpCard>
+                <ComingUpTitle>COMING UP</ComingUpTitle>
+                <ComingUpList>
+                  {nextStep === 'discord' && (
+                    <>
+                      <ComingUpItem $done={false}>
+                        Set up your team
+                      </ComingUpItem>
+                      <ComingUpItem $done={false}>
+                        Submit your project
+                      </ComingUpItem>
+                    </>
+                  )}
+                  {nextStep === 'team' && (
+                    <ComingUpItem $done={false}>
+                      Submit your project
+                    </ComingUpItem>
+                  )}
+                </ComingUpList>
+              </ComingUpCard>
+            )}
+          </>
         )}
 
         {/* Team Section */}
@@ -314,7 +354,7 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
           </TeamStatusContent>
         </TeamStatusCard>
 
-        {user.referralCode && (
+        {!isDeadlinePassed && user.referralCode && (
           <ReferralSection
             referralCode={user.referralCode}
             referralCount={user.referralCount ?? 0}
@@ -323,11 +363,13 @@ export function NeoHackerPortal({ user, onRSVP }: NeoHackerPortalProps) {
 
         <TracksSection />
 
-        <DiscordSection
-          isVerified={discordVerification.isVerified}
-          discordUsername={discordVerification.discordUsername}
-          isLoading={discordVerification.isLoading}
-        />
+        {!isDeadlinePassed && (
+          <DiscordSection
+            isVerified={discordVerification.isVerified}
+            discordUsername={discordVerification.discordUsername}
+            isLoading={discordVerification.isLoading}
+          />
+        )}
       </PortalContainer>
     );
   }
@@ -981,49 +1023,62 @@ const StayConnectedLinks = styled.div`
   flex-wrap: wrap;
 `;
 
-const SoftExtensionBanner = styled.div`
-  background: #e8f5e9;
+const ThankYouCard = styled.div`
+  background: linear-gradient(135deg, #fff9f0 0%, #fff 100%);
   border: 3px solid #000;
-  box-shadow: 4px 4px 0 #2e7d32;
-  padding: 1rem 1.25rem;
+  box-shadow: 6px 6px 0 #ff5c5c;
+  padding: 1.5rem;
   display: flex;
-  align-items: flex-start;
-  gap: 1rem;
+  gap: 1.25rem;
 
-  @media (max-width: 480px) {
+  @media (max-width: 600px) {
     flex-direction: column;
     text-align: center;
     align-items: center;
   }
 `;
 
-const SoftExtensionIcon = styled.div`
-  width: 40px;
-  height: 40px;
+const ThankYouIcon = styled.div`
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #c8e6c9;
+  background: #ffe8e8;
   border: 2px solid #000;
-  font-size: 1.25rem;
-  color: #2e7d32;
+  font-size: 1.5rem;
+  color: #ff5c5c;
   flex-shrink: 0;
 `;
 
-const SoftExtensionContent = styled.div`
+const ThankYouContent = styled.div`
   flex: 1;
 `;
 
-const SoftExtensionTitle = styled.h4`
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
+const ThankYouTitle = styled.h3`
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #1b5e20;
+  color: #333;
 `;
 
-const SoftExtensionText = styled.p`
-  margin: 0;
-  font-size: 0.875rem;
-  color: #2e7d32;
-  line-height: 1.5;
+const ThankYouText = styled.p`
+  margin: 0 0 0.75rem 0;
+  color: #555;
+  line-height: 1.7;
+  font-size: 0.95rem;
+
+  &:last-of-type {
+    margin-bottom: 1.25rem;
+  }
+`;
+
+const ThankYouLinks = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 600px) {
+    justify-content: center;
+  }
 `;

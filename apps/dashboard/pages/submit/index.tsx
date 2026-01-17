@@ -8,11 +8,7 @@ import { ProjectDetailsForm } from '../../components/submit/project-details-form
 import { SubmissionStatusBanner } from '../../components/submit/submission-status-banner';
 import { SubmissionTallyEmbed } from '../../components/submit/submission-tally-embed';
 import { SubmissionGuide } from '../../components/submit/submission-guide';
-import {
-  neoColors,
-  neoBorders,
-  neoShadows,
-} from '../../components/neo-ui/theme';
+import { neoColors, neoBorders } from '../../components/neo-ui/theme';
 import { ApplicationStatus } from '@hibiscus/types';
 import { NeoButton } from '../../components/neo-ui/NeoButton';
 
@@ -82,27 +78,6 @@ const DeadlineTitle = styled.div`
 const DeadlineSubtext = styled.div`
   font-size: 0.9rem;
   color: ${neoColors.textMuted};
-`;
-
-const SoftExtensionBanner = styled.div`
-  background: #e8f5e9;
-  border: ${neoBorders.standard};
-  box-shadow: ${neoShadows.colored('#2e7d32')};
-  padding: 1rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const SoftExtensionTitle = styled.div`
-  font-size: 1rem;
-  font-weight: 700;
-  color: #1b5e20;
-`;
-
-const SoftExtensionText = styled.div`
-  font-size: 0.875rem;
-  color: #2e7d32;
 `;
 
 export function SubmitPage() {
@@ -240,17 +215,6 @@ export function SubmitPage() {
           deadline.
         </DeadlineSubtext>
       </DeadlineBanner>
-
-      {canSubmit && (
-        <SoftExtensionBanner>
-          <SoftExtensionTitle>Deadline Extended!</SoftExtensionTitle>
-          <SoftExtensionText>
-            Due to overwhelming registrations, we&apos;ve extended the deadline
-            by 24 hours. This is a soft extension for existing participants and
-            won&apos;t be publicly announced.
-          </SoftExtensionText>
-        </SoftExtensionBanner>
-      )}
 
       <SubmissionGuide />
 
