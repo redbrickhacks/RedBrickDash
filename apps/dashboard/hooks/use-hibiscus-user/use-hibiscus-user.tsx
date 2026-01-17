@@ -68,6 +68,10 @@ const getUserProfile = async (
       teamId: profile.team_id,
       attendanceConfirmed: profile.attendance_confirmed,
       submissionStatus: profile.submission_status,
+      submittedAt: profile.submitted_at
+        ? new Date(profile.submitted_at)
+        : undefined,
+      createdAt: profile.created_at ? new Date(profile.created_at) : undefined,
       email: profile.email,
       referralCode: profile.referral_code,
       referralCount,

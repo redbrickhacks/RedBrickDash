@@ -14,6 +14,8 @@ export interface HibiscusUser {
   teamId?: string;
   attendanceConfirmed?: boolean;
   submissionStatus?: number;
+  submittedAt?: Date;
+  createdAt?: Date;
   points?: number;
   referralCode?: string;
   referralCount?: number;
