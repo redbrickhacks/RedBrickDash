@@ -5,6 +5,7 @@ import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
 import { isSuperadmin } from '../../common/superadmin-auth';
 import { OverviewTab } from '../../components/superadmin/overview-tab';
 import { ParticipantsTab } from '../../components/superadmin/participants-tab';
+import { TeamsTab } from '../../components/superadmin/teams-tab';
 import {
   NeoButton,
   neoColors,
@@ -96,9 +97,7 @@ export default function SuperadminPage() {
           <OverviewTab stats={stats} isLoading={isLoading} />
         )}
         {activeTab === 'participants' && <ParticipantsTab />}
-        {activeTab === 'teams' && (
-          <PlaceholderText>Teams tab coming soon...</PlaceholderText>
-        )}
+        {activeTab === 'teams' && <TeamsTab />}
         {activeTab === 'email' && (
           <PlaceholderText>Email tab coming soon...</PlaceholderText>
         )}
