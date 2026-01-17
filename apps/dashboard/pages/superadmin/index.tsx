@@ -3,16 +3,13 @@ import styled from 'styled-components';
 import { useRouter } from 'next/router';
 import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
 import { isSuperadmin } from '../../common/superadmin-auth';
-import { OverviewTab } from '../../components/superadmin/overview-tab';
-import { ParticipantsTab } from '../../components/superadmin/participants-tab';
-import { TeamsTab } from '../../components/superadmin/teams-tab';
-import { EmailTab } from '../../components/superadmin/email-tab';
 import {
-  NeoButton,
-  neoColors,
-  neoBorders,
-  neoShadows,
-} from '../../components/neo-ui';
+  OverviewTab,
+  ParticipantsTab,
+  TeamsTab,
+  EmailTab,
+} from '../../components/superadmin';
+import { NeoButton, neoColors, neoBorders } from '../../components/neo-ui';
 
 type TabType = 'overview' | 'participants' | 'teams' | 'email';
 
