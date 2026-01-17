@@ -6,6 +6,7 @@ import { isSuperadmin } from '../../common/superadmin-auth';
 import { OverviewTab } from '../../components/superadmin/overview-tab';
 import { ParticipantsTab } from '../../components/superadmin/participants-tab';
 import { TeamsTab } from '../../components/superadmin/teams-tab';
+import { EmailTab } from '../../components/superadmin/email-tab';
 import {
   NeoButton,
   neoColors,
@@ -98,9 +99,7 @@ export default function SuperadminPage() {
         )}
         {activeTab === 'participants' && <ParticipantsTab />}
         {activeTab === 'teams' && <TeamsTab />}
-        {activeTab === 'email' && (
-          <PlaceholderText>Email tab coming soon...</PlaceholderText>
-        )}
+        {activeTab === 'email' && <EmailTab />}
       </TabContent>
     </Container>
   );
@@ -163,10 +162,4 @@ const LoadingText = styled.p`
   font-size: 1rem;
   color: ${neoColors.textMuted};
   font-weight: 500;
-`;
-
-const PlaceholderText = styled.p`
-  font-size: 1rem;
-  color: ${neoColors.textMuted};
-  font-style: italic;
 `;
