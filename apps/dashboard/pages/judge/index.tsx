@@ -20,6 +20,7 @@ import type {
 type Pass1Decision = 'yes' | 'no' | 'maybe';
 type Pass2Decision = 'yes' | 'no' | 'waitlist';
 type FilterStatus = 'all' | 'yes' | 'no' | 'maybe' | 'waitlist' | 'unreviewed';
+type HardwareFilter = 'all' | 'hardware' | 'software';
 type SortField = 'teamName' | 'pass1Avg' | 'pass2Avg';
 
 const CRITERIA = ['problem', 'solution', 'implementation', 'roadmap'] as const;
@@ -54,6 +55,7 @@ export default function JudgePortal() {
   const [pass1Filter, setPass1Filter] = useState<FilterStatus>('all');
   const [pass2Filter, setPass2Filter] = useState<FilterStatus>('all');
   const [trackFilter, setTrackFilter] = useState<number | 'all'>('all');
+  const [hardwareFilter, setHardwareFilter] = useState<HardwareFilter>('all');
   const [sortField, setSortField] = useState<SortField>('teamName');
   const [sortAsc, setSortAsc] = useState(true);
 
@@ -137,6 +139,9 @@ export default function JudgePortal() {
     const sub = submissions.find((s) => s.teamId === expandedTeamId);
     if (!sub) return;
 
+    // Can't switch to pass 2 if pass 1 isn't complete
+    if (pass === 2 && !sub.judgingNotes?.pass_1) return;
+
     setActivePass(pass);
     const notes = sub.judgingNotes;
 
@@ -217,6 +222,13 @@ export default function JudgePortal() {
       result = result.filter((s) => s.track?.sdgNumber === trackFilter);
     }
 
+    // Hardware filter
+    if (hardwareFilter !== 'all') {
+      result = result.filter((s) =>
+        hardwareFilter === 'hardware' ? s.isHardware : !s.isHardware
+      );
+    }
+
     // Pass 1 filter
     if (pass1Filter !== 'all') {
       if (pass1Filter === 'unreviewed') {
@@ -259,6 +271,7 @@ export default function JudgePortal() {
     pass1Filter,
     pass2Filter,
     trackFilter,
+    hardwareFilter,
     sortField,
     sortAsc,
   ]);
@@ -332,6 +345,23 @@ export default function JudgePortal() {
             <option value="4">SDG 4 - Education</option>
             <option value="11">SDG 11 - Cities</option>
             <option value="13">SDG 13 - Climate</option>
+          </Select>
+        </FilterGroup>
+
+        <FilterGroup>
+          <FilterLabel>Type:</FilterLabel>
+          <Select
+            value={hardwareFilter}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === 'all' || val === 'hardware' || val === 'software') {
+                setHardwareFilter(val);
+              }
+            }}
+          >
+            <option value="all">All</option>
+            <option value="hardware">Hardware</option>
+            <option value="software">Software</option>
           </Select>
         </FilterGroup>
 
@@ -496,12 +526,14 @@ export default function JudgePortal() {
                             >
                               Pass 1
                             </PassTab>
-                            <PassTab
-                              $active={activePass === 2}
-                              onClick={() => handleSwitchPass(2)}
-                            >
-                              Pass 2
-                            </PassTab>
+                            {sub.judgingNotes?.pass_1 && (
+                              <PassTab
+                                $active={activePass === 2}
+                                onClick={() => handleSwitchPass(2)}
+                              >
+                                Pass 2
+                              </PassTab>
+                            )}
                           </PassTabs>
 
                           <ScoresGrid>
@@ -600,7 +632,7 @@ export default function JudgePortal() {
                                   (e.target as HTMLTextAreaElement).value
                                 )
                               }
-                              placeholder="Add any notes about this submission..."
+                              placeholder="Please include your name (e.g., [Abhinav] Great demo video...)"
                             />
                           </NotesWrapper>
 
