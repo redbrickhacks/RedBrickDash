@@ -1,13 +1,17 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  ChangeEvent,
+} from 'react';
 import styled from 'styled-components';
 import { useRouter } from 'next/router';
 import useHibiscusUser from '../../hooks/use-hibiscus-user/use-hibiscus-user';
 import { HibiscusRole } from '@hibiscus/types';
 import {
   NeoButton,
-  NeoCard,
   NeoInput,
-  NeoBadge,
   neoColors,
   neoBorders,
   neoShadows,
@@ -40,6 +44,16 @@ const CRITERIA_HINTS: Record<Criterion, string> = {
   roadmap: 'Specific finals plans, room to grow, momentum',
 };
 
+// SDG track color mapping - centralized to avoid duplication
+const SDG_COLORS: Record<number, { bg: string; border: string }> = {
+  4: { bg: '#FFF3E0', border: '#E65100' }, // Education - orange
+  11: { bg: '#E8F5E9', border: '#2E7D32' }, // Cities - green
+  13: { bg: '#E3F2FD', border: '#1565C0' }, // Climate - blue
+};
+const DEFAULT_SDG_COLOR = { bg: '#F5F5F5', border: '#666' };
+
+const getSDGColor = (sdg: number) => SDG_COLORS[sdg] ?? DEFAULT_SDG_COLOR;
+
 export default function JudgePortal() {
   const { user } = useHibiscusUser();
   const router = useRouter();
@@ -52,6 +66,7 @@ export default function JudgePortal() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [pass1Filter, setPass1Filter] = useState<FilterStatus>('all');
   const [pass2Filter, setPass2Filter] = useState<FilterStatus>('all');
   const [trackFilter, setTrackFilter] = useState<number | 'all'>('all');
@@ -80,6 +95,14 @@ export default function JudgePortal() {
     }
   }, [user, router]);
 
+  // Debounce search query to avoid filtering on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Fetch submissions
   const fetchSubmissions = useCallback(async () => {
     try {
@@ -107,11 +130,64 @@ export default function JudgePortal() {
     }
   }, [user, fetchSubmissions]);
 
+  // Check if there are unsaved changes for the currently expanded row
+  const hasUnsavedChanges = useCallback(() => {
+    if (!expandedTeamId) return false;
+
+    const sub = submissions.find((s) => s.teamId === expandedTeamId);
+    if (!sub) return false;
+
+    const notes = sub.judgingNotes;
+    const prefix = activePass === 1 ? 'pass_1' : 'pass_2';
+
+    const savedScores = {
+      problem: notes?.[`${prefix}_problem` as keyof JudgingNotes] ?? null,
+      solution: notes?.[`${prefix}_solution` as keyof JudgingNotes] ?? null,
+      implementation:
+        notes?.[`${prefix}_implementation` as keyof JudgingNotes] ?? null,
+      roadmap: notes?.[`${prefix}_roadmap` as keyof JudgingNotes] ?? null,
+    };
+    const savedDecision = notes?.[prefix as keyof JudgingNotes] ?? null;
+    const savedNotes = notes?.[`${prefix}_notes` as keyof JudgingNotes] ?? '';
+
+    const scoresChanged = CRITERIA.some(
+      (c) => localScores[c] !== savedScores[c]
+    );
+    const decisionChanged = localDecision !== savedDecision;
+    const notesChanged = localNotes !== savedNotes;
+
+    return scoresChanged || decisionChanged || notesChanged;
+  }, [
+    expandedTeamId,
+    submissions,
+    activePass,
+    localScores,
+    localDecision,
+    localNotes,
+  ]);
+
+  // Close the expanded row, with optional unsaved changes check
+  const handleClose = useCallback(() => {
+    if (hasUnsavedChanges()) {
+      if (!confirm('You have unsaved changes. Discard them?')) {
+        return;
+      }
+    }
+    setExpandedTeamId(null);
+  }, [hasUnsavedChanges]);
+
   // When expanding a row, load its current values
   const handleExpand = (teamId: string) => {
     if (expandedTeamId === teamId) {
-      setExpandedTeamId(null);
+      handleClose();
       return;
+    }
+
+    // If switching to a different row with unsaved changes, confirm
+    if (expandedTeamId && hasUnsavedChanges()) {
+      if (!confirm('You have unsaved changes. Discard them?')) {
+        return;
+      }
     }
 
     const sub = submissions.find((s) => s.teamId === teamId);
@@ -222,9 +298,9 @@ export default function JudgePortal() {
   const filteredSubmissions = useMemo(() => {
     let result = [...submissions];
 
-    // Search filter
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+    // Search filter (uses debounced value for performance)
+    if (debouncedSearchQuery) {
+      const q = debouncedSearchQuery.toLowerCase();
       result = result.filter(
         (s) =>
           s.teamName.toLowerCase().includes(q) ||
@@ -282,7 +358,7 @@ export default function JudgePortal() {
     return result;
   }, [
     submissions,
-    searchQuery,
+    debouncedSearchQuery,
     pass1Filter,
     pass2Filter,
     trackFilter,
@@ -340,8 +416,8 @@ export default function JudgePortal() {
           <NeoInput
             placeholder="Search team or project..."
             value={searchQuery}
-            onChange={(e) =>
-              setSearchQuery((e.target as HTMLInputElement).value)
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setSearchQuery(e.target.value)
             }
           />
         </SearchWrapper>
@@ -642,10 +718,8 @@ export default function JudgePortal() {
                               label="Notes"
                               multiline
                               value={localNotes}
-                              onChange={(e) =>
-                                setLocalNotes(
-                                  (e.target as HTMLTextAreaElement).value
-                                )
+                              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                                setLocalNotes(e.target.value)
                               }
                               placeholder="Please include your name (e.g., [Abhinav] Great demo video...)"
                             />
@@ -661,7 +735,7 @@ export default function JudgePortal() {
                             </NeoButton>
                             <NeoButton
                               variant="secondary"
-                              onClick={() => setExpandedTeamId(null)}
+                              onClick={handleClose}
                             >
                               Close
                             </NeoButton>
@@ -995,42 +1069,9 @@ const TrackBadge = styled.span<{ $sdg: number }>`
   font-size: 0.75rem;
   font-weight: 700;
   border: 2px solid;
-  background: ${({ $sdg }) => {
-    switch ($sdg) {
-      case 4:
-        return '#FFF3E0';
-      case 11:
-        return '#E8F5E9';
-      case 13:
-        return '#E3F2FD';
-      default:
-        return '#F5F5F5';
-    }
-  }};
-  border-color: ${({ $sdg }) => {
-    switch ($sdg) {
-      case 4:
-        return '#E65100';
-      case 11:
-        return '#2E7D32';
-      case 13:
-        return '#1565C0';
-      default:
-        return '#666';
-    }
-  }};
-  color: ${({ $sdg }) => {
-    switch ($sdg) {
-      case 4:
-        return '#E65100';
-      case 11:
-        return '#2E7D32';
-      case 13:
-        return '#1565C0';
-      default:
-        return '#666';
-    }
-  }};
+  background: ${({ $sdg }) => getSDGColor($sdg).bg};
+  border-color: ${({ $sdg }) => getSDGColor($sdg).border};
+  color: ${({ $sdg }) => getSDGColor($sdg).border};
 `;
 
 const DecisionBadge = styled.span<{ $decision: string | null }>`
