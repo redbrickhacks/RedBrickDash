@@ -74,6 +74,10 @@ export default function JudgePortal() {
   const [sortField, setSortField] = useState<SortField>('teamName');
   const [sortAsc, setSortAsc] = useState(true);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 25;
+
   // Local edits for expanded row
   const [localScores, setLocalScores] = useState<Record<string, number | null>>(
     {}
@@ -367,6 +371,26 @@ export default function JudgePortal() {
     sortAsc,
   ]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    debouncedSearchQuery,
+    pass1Filter,
+    pass2Filter,
+    trackFilter,
+    hardwareFilter,
+    sortField,
+    sortAsc,
+  ]);
+
+  // Paginate filtered results
+  const totalPages = Math.ceil(filteredSubmissions.length / ITEMS_PER_PAGE);
+  const paginatedSubmissions = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredSubmissions.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredSubmissions, currentPage, ITEMS_PER_PAGE]);
+
   // Stats
   const stats = useMemo(() => {
     const total = submissions.length;
@@ -515,7 +539,7 @@ export default function JudgePortal() {
             </tr>
           </thead>
           <tbody>
-            {filteredSubmissions.map((sub) => (
+            {paginatedSubmissions.map((sub) => (
               <React.Fragment key={sub.teamId}>
                 <TableRow
                   onClick={() => handleExpand(sub.teamId)}
@@ -752,6 +776,38 @@ export default function JudgePortal() {
 
         {filteredSubmissions.length === 0 && (
           <EmptyState>No submissions match your filters</EmptyState>
+        )}
+
+        {filteredSubmissions.length > 0 && (
+          <PaginationRow>
+            <PaginationInfo>
+              Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-
+              {Math.min(
+                currentPage * ITEMS_PER_PAGE,
+                filteredSubmissions.length
+              )}{' '}
+              of {filteredSubmissions.length}
+            </PaginationInfo>
+            <PaginationButtons>
+              <PaginationButton
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                ← Prev
+              </PaginationButton>
+              <PageIndicator>
+                {currentPage} / {totalPages}
+              </PageIndicator>
+              <PaginationButton
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                Next →
+              </PaginationButton>
+            </PaginationButtons>
+          </PaginationRow>
         )}
       </TableContainer>
     </PageContainer>
@@ -1127,4 +1183,45 @@ const EmptyState = styled.div`
   padding: 3rem;
   color: ${neoColors.textMuted};
   font-size: 1rem;
+`;
+
+const PaginationRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-top: ${neoBorders.standard};
+  background: ${neoColors.surface};
+`;
+
+const PaginationInfo = styled.span`
+  font-size: 0.85rem;
+  color: ${neoColors.textMuted};
+`;
+
+const PaginationButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const PaginationButton = styled.button<{ disabled?: boolean }>`
+  padding: 0.5rem 1rem;
+  border: ${neoBorders.standard};
+  background: ${({ disabled }) => (disabled ? '#eee' : neoColors.surface)};
+  color: ${({ disabled }) => (disabled ? '#999' : neoColors.text)};
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
+
+  &:hover:not(:disabled) {
+    background: ${neoColors.background};
+  }
+`;
+
+const PageIndicator = styled.span`
+  font-weight: 600;
+  font-size: 0.85rem;
+  min-width: 60px;
+  text-align: center;
 `;
