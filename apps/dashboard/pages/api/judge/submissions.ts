@@ -4,8 +4,25 @@ import { container } from 'tsyringe';
 import { HibiscusSupabaseClient } from '@hibiscus/hibiscus-supabase-client';
 import { getAuthenticatedUser } from '../../../common/auth';
 
-// Admin role = 1, Judge role = 7
+/**
+ * Role IDs from the `roles` table:
+ *   1 = SUPERADMIN
+ *   7 = JUDGE
+ * These are checked against user_profiles.role
+ */
 const ALLOWED_ROLES = [1, 7];
+
+// Pagination defaults
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 100;
+
+// Type for track data from Supabase join
+interface TrackData {
+  id: number;
+  name: string;
+  sdg_number: number;
+}
 
 export interface JudgingNotes {
   team_id: string;
@@ -26,6 +43,7 @@ export interface JudgingNotes {
   pass_2_by: string | null;
   pass_2_at: string | null;
   final_decision: 'finalist' | 'waitlist' | 'not_selected' | null;
+  updated_at: string | null;
 }
 
 export interface SubmissionForJudging {
@@ -52,10 +70,24 @@ export interface SubmissionForJudging {
   pass2Avg: number | null;
 }
 
+export interface SubmissionsResponse {
+  submissions: SubmissionForJudging[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 /**
  * GET /api/judge/submissions
- * Returns all submitted teams with their submissions and judging notes.
+ * Returns submitted teams with their submissions and judging notes.
  * Only accessible by admins (role=1) and judges (role=7).
+ *
+ * Query params:
+ *   - page: Page number (default: 1)
+ *   - limit: Items per page (default: 50, max: 100)
  */
 export default async function handler(
   req: NextApiRequest,
@@ -76,12 +108,39 @@ export default async function handler(
       .json({ message: 'Forbidden: Admin or Judge role required' });
   }
 
+  // Parse pagination params
+  const page = Math.max(1, parseInt(req.query.page as string) || DEFAULT_PAGE);
+  const limit = Math.min(
+    MAX_LIMIT,
+    Math.max(1, parseInt(req.query.limit as string) || DEFAULT_LIMIT)
+  );
+  const offset = (page - 1) * limit;
+
   try {
     const hbc = container.resolve(HibiscusSupabaseClient);
     hbc.setOptions({ useServiceKey: true });
     const supabase = hbc.getClient();
 
-    // Get all teams with submission_status = 3 (submitted)
+    // Get total count of submitted teams
+    const { count: totalCount, error: countError } = await supabase
+      .from('teams')
+      .select('*', { count: 'exact', head: true })
+      .eq('submission_status', 3);
+
+    if (countError) {
+      console.error('[judge/submissions] Count error:', countError);
+      return res.status(500).json({ message: 'Failed to count teams' });
+    }
+
+    const total = totalCount ?? 0;
+    if (total === 0) {
+      return res.status(200).json({
+        submissions: [],
+        pagination: { page, limit, total: 0, totalPages: 0 },
+      });
+    }
+
+    // Get paginated teams with submission_status = 3 (submitted)
     const { data: teams, error: teamsError } = await supabase
       .from('teams')
       .select(
@@ -99,7 +158,9 @@ export default async function handler(
         )
       `
       )
-      .eq('submission_status', 3);
+      .eq('submission_status', 3)
+      .order('name', { ascending: true })
+      .range(offset, offset + limit - 1);
 
     if (teamsError) {
       console.error('[judge/submissions] Teams fetch error:', teamsError);
@@ -107,7 +168,15 @@ export default async function handler(
     }
 
     if (!teams || teams.length === 0) {
-      return res.status(200).json({ submissions: [] });
+      return res.status(200).json({
+        submissions: [],
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
     }
 
     const teamIds = teams.map((t) => t.team_id);
@@ -166,27 +235,32 @@ export default async function handler(
       );
     };
 
+    // Helper to safely extract track data from Supabase join result
+    const extractTrack = (
+      tracks: unknown
+    ): { id: number; name: string; sdgNumber: number } | null => {
+      if (!tracks || typeof tracks !== 'object') return null;
+      const t = tracks as Record<string, unknown>;
+      if (
+        typeof t.id === 'number' &&
+        typeof t.name === 'string' &&
+        typeof t.sdg_number === 'number'
+      ) {
+        return { id: t.id, name: t.name, sdgNumber: t.sdg_number };
+      }
+      return null;
+    };
+
     // Build response
     const result: SubmissionForJudging[] = teams.map((team) => {
       const sub = latestSubmissionByTeam.get(team.team_id);
       const notes = notesByTeam.get(team.team_id);
-      const trackData = team.tracks as {
-        id: number;
-        name: string;
-        sdg_number: number;
-      } | null;
 
       return {
         teamId: team.team_id,
         teamName: team.name,
         projectTitle: team.project_title,
-        track: trackData
-          ? {
-              id: trackData.id,
-              name: trackData.name,
-              sdgNumber: trackData.sdg_number,
-            }
-          : null,
+        track: extractTrack(team.tracks),
         isHardware: team.is_hardware ?? false,
         submission: sub
           ? {
@@ -219,6 +293,7 @@ export default async function handler(
               pass_2_by: notes.pass_2_by,
               pass_2_at: notes.pass_2_at,
               final_decision: notes.final_decision,
+              updated_at: notes.updated_at,
             }
           : null,
         pass1Avg: notes
@@ -240,10 +315,17 @@ export default async function handler(
       };
     });
 
-    // Sort by team name by default
-    result.sort((a, b) => a.teamName.localeCompare(b.teamName));
+    // Results are already sorted by team name from the database query
 
-    return res.status(200).json({ submissions: result });
+    return res.status(200).json({
+      submissions: result,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    } as SubmissionsResponse);
   } catch (e) {
     console.error('[judge/submissions] Error:', e);
     return res.status(500).json({ message: 'Internal server error' });

@@ -4,8 +4,16 @@ import { container } from 'tsyringe';
 import { HibiscusSupabaseClient } from '@hibiscus/hibiscus-supabase-client';
 import { getAuthenticatedUser } from '../../../../common/auth';
 
-// Admin role = 1, Judge role = 7
+/**
+ * Role IDs from the `roles` table:
+ *   1 = SUPERADMIN
+ *   7 = JUDGE
+ * These are checked against user_profiles.role
+ */
 const ALLOWED_ROLES = [1, 7];
+
+// Submission status that allows judging
+const SUBMITTED_STATUS = 3;
 
 interface JudgingNotesUpdate {
   // Pass 1
@@ -24,12 +32,19 @@ interface JudgingNotesUpdate {
   pass_2_notes?: string | null;
   // Final
   final_decision?: 'finalist' | 'waitlist' | 'not_selected' | null;
+  // Optimistic locking - client sends the updated_at value they last saw
+  expected_updated_at?: string | null;
 }
 
 /**
  * PATCH /api/judge/notes/[teamId]
  * Upserts judging notes for a team.
  * Only accessible by admins (role=1) and judges (role=7).
+ *
+ * Optimistic locking:
+ *   - Client should send `expected_updated_at` (the value from their last fetch)
+ *   - If another judge updated the record, returns 409 Conflict
+ *   - For new records, `expected_updated_at` should be null or omitted
  */
 export default async function handler(
   req: NextApiRequest,
@@ -99,11 +114,9 @@ export default async function handler(
     if (
       !['finalist', 'waitlist', 'not_selected'].includes(updates.final_decision)
     ) {
-      return res
-        .status(400)
-        .json({
-          message: 'final_decision must be finalist, waitlist, or not_selected',
-        });
+      return res.status(400).json({
+        message: 'final_decision must be finalist, waitlist, or not_selected',
+      });
     }
   }
 
@@ -121,6 +134,51 @@ export default async function handler(
 
     if (teamError || !team) {
       return res.status(404).json({ message: 'Team not found' });
+    }
+
+    if (team.submission_status !== SUBMITTED_STATUS) {
+      return res
+        .status(400)
+        .json({
+          message:
+            'Team has not submitted yet. Only submitted teams can be judged.',
+        });
+    }
+
+    // Optimistic locking: check if another judge updated the record
+    const { expected_updated_at } = updates;
+    if (expected_updated_at !== undefined) {
+      const { data: existingNotes } = await supabase
+        .from('judging_notes')
+        .select('updated_at')
+        .eq('team_id', teamId)
+        .single();
+
+      if (existingNotes) {
+        // Record exists - check for conflicts
+        const currentUpdatedAt = existingNotes.updated_at;
+        if (expected_updated_at === null) {
+          // Client thought this was a new record, but it exists
+          return res.status(409).json({
+            message:
+              'Another judge has already started reviewing this team. Please refresh.',
+            currentUpdatedAt,
+          });
+        }
+        if (currentUpdatedAt !== expected_updated_at) {
+          // Record was updated since client last fetched
+          return res.status(409).json({
+            message:
+              'Another judge has updated this record. Please refresh to see their changes.',
+            currentUpdatedAt,
+          });
+        }
+      } else if (expected_updated_at !== null) {
+        // Client had a timestamp but record doesn't exist (was deleted?)
+        return res.status(409).json({
+          message: 'This judging record no longer exists. Please refresh.',
+        });
+      }
     }
 
     // Build update payload with timestamps
@@ -161,9 +219,9 @@ export default async function handler(
       payload.pass_2_at = now;
     }
 
-    // Copy over provided updates
+    // Copy over provided updates (excluding client-only fields)
     for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) {
+      if (value !== undefined && key !== 'expected_updated_at') {
         payload[key] = value;
       }
     }

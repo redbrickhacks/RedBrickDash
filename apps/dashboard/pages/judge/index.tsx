@@ -172,6 +172,7 @@ export default function JudgePortal() {
 
     setSavingTeamId(expandedTeamId);
 
+    const sub = submissions.find((s) => s.teamId === expandedTeamId);
     const prefix = activePass === 1 ? 'pass_1' : 'pass_2';
     const payload: Record<string, unknown> = {
       [`${prefix}_problem`]: localScores.problem,
@@ -180,6 +181,8 @@ export default function JudgePortal() {
       [`${prefix}_roadmap`]: localScores.roadmap,
       [`${prefix}_notes`]: localNotes || null,
       [prefix]: localDecision,
+      // Optimistic locking: send the updated_at we last saw
+      expected_updated_at: sub?.judgingNotes?.updated_at ?? null,
     };
 
     try {
@@ -188,6 +191,18 @@ export default function JudgePortal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
+      if (res.status === 409) {
+        // Another judge updated this record
+        const data = await res.json();
+        alert(
+          data.message ||
+            'Another judge has updated this record. Please refresh.'
+        );
+        await fetchSubmissions();
+        setExpandedTeamId(null);
+        return;
+      }
 
       if (!res.ok) {
         throw new Error('Failed to save');
