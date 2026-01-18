@@ -12,10 +12,10 @@ import { getAuthenticatedUser } from '../../../common/auth';
  */
 const ALLOWED_ROLES = [1, 7];
 
-// Pagination defaults
+// Pagination defaults (high limit to load all for hackathon scale)
 const DEFAULT_PAGE = 1;
-const DEFAULT_LIMIT = 50;
-const MAX_LIMIT = 100;
+const DEFAULT_LIMIT = 1000;
+const MAX_LIMIT = 1000;
 
 // Type for track data from Supabase join
 interface TrackData {
