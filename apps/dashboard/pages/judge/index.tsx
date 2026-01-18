@@ -23,9 +23,48 @@ import type {
 
 type Pass1Decision = 'yes' | 'no' | 'maybe';
 type Pass2Decision = 'yes' | 'no' | 'waitlist';
+type FinalDecision = 'finalist' | 'waitlist' | 'not_selected';
 type FilterStatus = 'all' | 'yes' | 'no' | 'maybe' | 'waitlist' | 'unreviewed';
+type FinalFilterStatus =
+  | 'all'
+  | 'finalist'
+  | 'waitlist'
+  | 'not_selected'
+  | 'unreviewed';
+type ActivePass = 1 | 2 | 'final';
 type HardwareFilter = 'all' | 'hardware' | 'software';
 type SortField = 'teamName' | 'pass1Avg' | 'pass2Avg';
+
+// Decision color mapping - centralized to avoid duplication in styled components
+type DecisionColorType = 'success' | 'warning' | 'error' | 'neutral';
+const DECISION_COLORS: Record<
+  DecisionColorType,
+  { bg: string; border: string }
+> = {
+  success: { bg: '#E8F5E9', border: neoColors.status.success },
+  warning: { bg: '#FFF8E1', border: '#F57C00' },
+  error: { bg: '#FFEBEE', border: neoColors.status.error },
+  neutral: { bg: '#F5F5F5', border: '#ccc' },
+};
+
+const getDecisionColorType = (decision: string | null): DecisionColorType => {
+  switch (decision) {
+    case 'yes':
+    case 'finalist':
+      return 'success';
+    case 'maybe':
+    case 'waitlist':
+      return 'warning';
+    case 'no':
+    case 'not_selected':
+      return 'error';
+    default:
+      return 'neutral';
+  }
+};
+
+const getDecisionColors = (decision: string | null) =>
+  DECISION_COLORS[getDecisionColorType(decision)];
 
 const CRITERIA = ['problem', 'solution', 'implementation', 'roadmap'] as const;
 type Criterion = (typeof CRITERIA)[number];
@@ -69,6 +108,7 @@ export default function JudgePortal() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [pass1Filter, setPass1Filter] = useState<FilterStatus>('all');
   const [pass2Filter, setPass2Filter] = useState<FilterStatus>('all');
+  const [finalFilter, setFinalFilter] = useState<FinalFilterStatus>('all');
   const [trackFilter, setTrackFilter] = useState<number | 'all'>('all');
   const [hardwareFilter, setHardwareFilter] = useState<HardwareFilter>('all');
   const [sortField, setSortField] = useState<SortField>('teamName');
@@ -83,10 +123,10 @@ export default function JudgePortal() {
     {}
   );
   const [localDecision, setLocalDecision] = useState<
-    Pass1Decision | Pass2Decision | null
+    Pass1Decision | Pass2Decision | FinalDecision | null
   >(null);
   const [localNotes, setLocalNotes] = useState('');
-  const [activePass, setActivePass] = useState<1 | 2>(1);
+  const [activePass, setActivePass] = useState<ActivePass>(1);
 
   // Auth check
   useEffect(() => {
@@ -142,6 +182,13 @@ export default function JudgePortal() {
     if (!sub) return false;
 
     const notes = sub.judgingNotes;
+
+    // Final decision - only check decision changed
+    if (activePass === 'final') {
+      const savedDecision = notes?.final_decision ?? null;
+      return localDecision !== savedDecision;
+    }
+
     const prefix = activePass === 1 ? 'pass_1' : 'pass_2';
 
     const savedScores = {
@@ -213,7 +260,7 @@ export default function JudgePortal() {
   };
 
   // Switch between pass 1 and pass 2
-  const handleSwitchPass = (pass: 1 | 2) => {
+  const handleSwitchPass = (pass: ActivePass) => {
     if (!expandedTeamId) return;
 
     const sub = submissions.find((s) => s.teamId === expandedTeamId);
@@ -221,6 +268,8 @@ export default function JudgePortal() {
 
     // Can't switch to pass 2 if pass 1 isn't complete
     if (pass === 2 && !sub.judgingNotes?.pass_1) return;
+    // Can't switch to final if pass 2 isn't complete
+    if (pass === 'final' && !sub.judgingNotes?.pass_2) return;
 
     setActivePass(pass);
     const notes = sub.judgingNotes;
@@ -234,7 +283,7 @@ export default function JudgePortal() {
       });
       setLocalDecision(notes?.pass_1 ?? null);
       setLocalNotes(notes?.pass_1_notes ?? '');
-    } else {
+    } else if (pass === 2) {
       setLocalScores({
         problem: notes?.pass_2_problem ?? null,
         solution: notes?.pass_2_solution ?? null,
@@ -243,6 +292,11 @@ export default function JudgePortal() {
       });
       setLocalDecision(notes?.pass_2 ?? null);
       setLocalNotes(notes?.pass_2_notes ?? '');
+    } else {
+      // Final decision - no scores, just decision
+      setLocalScores({});
+      setLocalDecision(notes?.final_decision ?? null);
+      setLocalNotes('');
     }
   };
 
@@ -253,17 +307,27 @@ export default function JudgePortal() {
     setSavingTeamId(expandedTeamId);
 
     const sub = submissions.find((s) => s.teamId === expandedTeamId);
-    const prefix = activePass === 1 ? 'pass_1' : 'pass_2';
-    const payload: Record<string, unknown> = {
-      [`${prefix}_problem`]: localScores.problem,
-      [`${prefix}_solution`]: localScores.solution,
-      [`${prefix}_implementation`]: localScores.implementation,
-      [`${prefix}_roadmap`]: localScores.roadmap,
-      [`${prefix}_notes`]: localNotes || null,
-      [prefix]: localDecision,
-      // Optimistic locking: send the updated_at we last saw
-      expected_updated_at: sub?.judgingNotes?.updated_at ?? null,
-    };
+    let payload: Record<string, unknown>;
+
+    if (activePass === 'final') {
+      // Final decision - just the decision, no scores
+      payload = {
+        final_decision: localDecision,
+        expected_updated_at: sub?.judgingNotes?.updated_at ?? null,
+      };
+    } else {
+      const prefix = activePass === 1 ? 'pass_1' : 'pass_2';
+      payload = {
+        [`${prefix}_problem`]: localScores.problem,
+        [`${prefix}_solution`]: localScores.solution,
+        [`${prefix}_implementation`]: localScores.implementation,
+        [`${prefix}_roadmap`]: localScores.roadmap,
+        [`${prefix}_notes`]: localNotes || null,
+        [prefix]: localDecision,
+        // Optimistic locking: send the updated_at we last saw
+        expected_updated_at: sub?.judgingNotes?.updated_at ?? null,
+      };
+    }
 
     try {
       const res = await fetch(`/api/judge/notes/${expandedTeamId}`, {
@@ -342,6 +406,17 @@ export default function JudgePortal() {
       }
     }
 
+    // Final decision filter
+    if (finalFilter !== 'all') {
+      if (finalFilter === 'unreviewed') {
+        result = result.filter((s) => !s.judgingNotes?.final_decision);
+      } else {
+        result = result.filter(
+          (s) => s.judgingNotes?.final_decision === finalFilter
+        );
+      }
+    }
+
     // Sort
     result.sort((a, b) => {
       let cmp = 0;
@@ -365,6 +440,7 @@ export default function JudgePortal() {
     debouncedSearchQuery,
     pass1Filter,
     pass2Filter,
+    finalFilter,
     trackFilter,
     hardwareFilter,
     sortField,
@@ -378,6 +454,7 @@ export default function JudgePortal() {
     debouncedSearchQuery,
     pass1Filter,
     pass2Filter,
+    finalFilter,
     trackFilter,
     hardwareFilter,
     sortField,
@@ -399,7 +476,10 @@ export default function JudgePortal() {
       (s) => s.judgingNotes?.pass_1 === 'yes'
     ).length;
     const p2Reviewed = submissions.filter((s) => s.judgingNotes?.pass_2).length;
-    return { total, p1Reviewed, p1Yes, p2Reviewed };
+    const finalists = submissions.filter(
+      (s) => s.judgingNotes?.final_decision === 'finalist'
+    ).length;
+    return { total, p1Reviewed, p1Yes, p2Reviewed, finalists };
   }, [submissions]);
 
   if (!user) {
@@ -432,6 +512,7 @@ export default function JudgePortal() {
           </StatBadge>
           <StatBadge>P1 Yes: {stats.p1Yes}</StatBadge>
           <StatBadge>P2 Reviewed: {stats.p2Reviewed}</StatBadge>
+          <StatBadge>Finalists: {stats.finalists}</StatBadge>
         </StatsRow>
       </Header>
 
@@ -509,6 +590,22 @@ export default function JudgePortal() {
         </FilterGroup>
 
         <FilterGroup>
+          <FilterLabel>Final:</FilterLabel>
+          <Select
+            value={finalFilter}
+            onChange={(e) =>
+              setFinalFilter(e.target.value as FinalFilterStatus)
+            }
+          >
+            <option value="all">All</option>
+            <option value="unreviewed">Unreviewed</option>
+            <option value="finalist">Finalist</option>
+            <option value="waitlist">Waitlist</option>
+            <option value="not_selected">Not Selected</option>
+          </Select>
+        </FilterGroup>
+
+        <FilterGroup>
           <FilterLabel>Sort:</FilterLabel>
           <Select
             value={sortField}
@@ -536,6 +633,7 @@ export default function JudgePortal() {
               <Th>P1 Decision</Th>
               <Th>P2 Avg</Th>
               <Th>P2 Decision</Th>
+              <Th>Final</Th>
             </tr>
           </thead>
           <tbody>
@@ -573,11 +671,19 @@ export default function JudgePortal() {
                       {sub.judgingNotes?.pass_2 ?? '-'}
                     </DecisionBadge>
                   </Td>
+                  <Td>
+                    <FinalBadge
+                      $decision={sub.judgingNotes?.final_decision ?? null}
+                    >
+                      {sub.judgingNotes?.final_decision?.replace('_', ' ') ??
+                        '-'}
+                    </FinalBadge>
+                  </Td>
                 </TableRow>
 
                 {expandedTeamId === sub.teamId && (
                   <ExpandedRow>
-                    <ExpandedCell colSpan={8}>
+                    <ExpandedCell colSpan={9}>
                       <ExpandedContent>
                         <LinksSection>
                           <SectionTitle>Submission Links</SectionTitle>
@@ -649,41 +755,57 @@ export default function JudgePortal() {
                                 Pass 2
                               </PassTab>
                             )}
+                            {sub.judgingNotes?.pass_2 && (
+                              <PassTab
+                                $active={activePass === 'final'}
+                                onClick={() => handleSwitchPass('final')}
+                              >
+                                Final
+                              </PassTab>
+                            )}
                           </PassTabs>
 
-                          <ScoresGrid>
-                            {CRITERIA.map((criterion) => (
-                              <ScoreRow key={criterion}>
-                                <ScoreLabel>
-                                  <strong>{CRITERIA_LABELS[criterion]}</strong>
-                                  <ScoreHint>
-                                    {CRITERIA_HINTS[criterion]}
-                                  </ScoreHint>
-                                </ScoreLabel>
-                                <ScoreButtons>
-                                  {[1, 2, 3, 4, 5].map((score) => (
-                                    <ScoreButton
-                                      key={score}
-                                      $selected={
-                                        localScores[criterion] === score
-                                      }
-                                      onClick={() =>
-                                        setLocalScores((prev) => ({
-                                          ...prev,
-                                          [criterion]: score,
-                                        }))
-                                      }
-                                    >
-                                      {score}
-                                    </ScoreButton>
-                                  ))}
-                                </ScoreButtons>
-                              </ScoreRow>
-                            ))}
-                          </ScoresGrid>
+                          {activePass !== 'final' && (
+                            <ScoresGrid>
+                              {CRITERIA.map((criterion) => (
+                                <ScoreRow key={criterion}>
+                                  <ScoreLabel>
+                                    <strong>
+                                      {CRITERIA_LABELS[criterion]}
+                                    </strong>
+                                    <ScoreHint>
+                                      {CRITERIA_HINTS[criterion]}
+                                    </ScoreHint>
+                                  </ScoreLabel>
+                                  <ScoreButtons>
+                                    {[1, 2, 3, 4, 5].map((score) => (
+                                      <ScoreButton
+                                        key={score}
+                                        $selected={
+                                          localScores[criterion] === score
+                                        }
+                                        onClick={() =>
+                                          setLocalScores((prev) => ({
+                                            ...prev,
+                                            [criterion]: score,
+                                          }))
+                                        }
+                                      >
+                                        {score}
+                                      </ScoreButton>
+                                    ))}
+                                  </ScoreButtons>
+                                </ScoreRow>
+                              ))}
+                            </ScoresGrid>
+                          )}
 
                           <DecisionRow>
-                            <DecisionLabel>Decision:</DecisionLabel>
+                            <DecisionLabel>
+                              {activePass === 'final'
+                                ? 'Final Decision:'
+                                : 'Decision:'}
+                            </DecisionLabel>
                             <DecisionButtons>
                               {activePass === 1 ? (
                                 <>
@@ -709,7 +831,7 @@ export default function JudgePortal() {
                                     No
                                   </DecisionBtn>
                                 </>
-                              ) : (
+                              ) : activePass === 2 ? (
                                 <>
                                   <DecisionBtn
                                     $variant="yes"
@@ -733,21 +855,71 @@ export default function JudgePortal() {
                                     No
                                   </DecisionBtn>
                                 </>
+                              ) : (
+                                <>
+                                  <FinalDecisionBtn
+                                    $variant="finalist"
+                                    $selected={localDecision === 'finalist'}
+                                    onClick={() => setLocalDecision('finalist')}
+                                  >
+                                    🏆 Finalist
+                                  </FinalDecisionBtn>
+                                  <FinalDecisionBtn
+                                    $variant="waitlist"
+                                    $selected={localDecision === 'waitlist'}
+                                    onClick={() => setLocalDecision('waitlist')}
+                                  >
+                                    ⏳ Waitlist
+                                  </FinalDecisionBtn>
+                                  <FinalDecisionBtn
+                                    $variant="not_selected"
+                                    $selected={localDecision === 'not_selected'}
+                                    onClick={() =>
+                                      setLocalDecision('not_selected')
+                                    }
+                                  >
+                                    Not Selected
+                                  </FinalDecisionBtn>
+                                </>
                               )}
                             </DecisionButtons>
                           </DecisionRow>
 
-                          <NotesWrapper>
-                            <NeoInput
-                              label="Notes"
-                              multiline
-                              value={localNotes}
-                              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                                setLocalNotes(e.target.value)
-                              }
-                              placeholder="Please include your name (e.g., [Abhinav] Great demo video...)"
-                            />
-                          </NotesWrapper>
+                          {activePass !== 'final' ? (
+                            <NotesWrapper>
+                              <NeoInput
+                                label="Notes"
+                                multiline
+                                value={localNotes}
+                                onChange={(
+                                  e: ChangeEvent<HTMLTextAreaElement>
+                                ) => setLocalNotes(e.target.value)}
+                                placeholder="Please include your name (e.g., [Abhinav] Great demo video...)"
+                              />
+                            </NotesWrapper>
+                          ) : (
+                            <PreviousNotesSection>
+                              <PreviousNotesTitle>
+                                Previous Review Notes
+                              </PreviousNotesTitle>
+                              {sub.judgingNotes?.pass_1_notes && (
+                                <PreviousNote>
+                                  <strong>Pass 1:</strong>{' '}
+                                  {sub.judgingNotes.pass_1_notes}
+                                </PreviousNote>
+                              )}
+                              {sub.judgingNotes?.pass_2_notes && (
+                                <PreviousNote>
+                                  <strong>Pass 2:</strong>{' '}
+                                  {sub.judgingNotes.pass_2_notes}
+                                </PreviousNote>
+                              )}
+                              {!sub.judgingNotes?.pass_1_notes &&
+                                !sub.judgingNotes?.pass_2_notes && (
+                                  <PreviousNote>No notes recorded</PreviousNote>
+                                )}
+                            </PreviousNotesSection>
+                          )}
 
                           <ActionButtons>
                             <NeoButton
@@ -1114,6 +1286,31 @@ const NotesWrapper = styled.div`
   margin-bottom: 1rem;
 `;
 
+const PreviousNotesSection = styled.div`
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: ${neoColors.background};
+  border: ${neoBorders.standard};
+`;
+
+const PreviousNotesTitle = styled.div`
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  color: ${neoColors.textMuted};
+`;
+
+const PreviousNote = styled.div`
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
 const ActionButtons = styled.div`
   display: flex;
   gap: 0.75rem;
@@ -1136,46 +1333,40 @@ const DecisionBadge = styled.span<{ $decision: string | null }>`
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  background: ${({ $decision }) => {
-    switch ($decision) {
-      case 'yes':
-        return '#E8F5E9';
-      case 'maybe':
-      case 'waitlist':
-        return '#FFF8E1';
-      case 'no':
-        return '#FFEBEE';
-      default:
-        return '#F5F5F5';
-    }
-  }};
-  border: 2px solid
-    ${({ $decision }) => {
-      switch ($decision) {
-        case 'yes':
-          return neoColors.status.success;
-        case 'maybe':
-        case 'waitlist':
-          return '#F57C00';
-        case 'no':
-          return neoColors.status.error;
-        default:
-          return '#ccc';
-      }
-    }};
-  color: ${({ $decision }) => {
-    switch ($decision) {
-      case 'yes':
-        return neoColors.status.success;
-      case 'maybe':
-      case 'waitlist':
-        return '#F57C00';
-      case 'no':
-        return neoColors.status.error;
-      default:
-        return '#999';
-    }
-  }};
+  background: ${({ $decision }) => getDecisionColors($decision).bg};
+  border: 2px solid ${({ $decision }) => getDecisionColors($decision).border};
+  color: ${({ $decision }) =>
+    $decision ? getDecisionColors($decision).border : '#999'};
+`;
+
+const FinalBadge = styled.span<{ $decision: string | null }>`
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  background: ${({ $decision }) => getDecisionColors($decision).bg};
+  border: 2px solid ${({ $decision }) => getDecisionColors($decision).border};
+  color: ${({ $decision }) =>
+    $decision ? getDecisionColors($decision).border : '#999'};
+`;
+
+const FinalDecisionBtn = styled.button<{
+  $variant: 'finalist' | 'waitlist' | 'not_selected';
+  $selected: boolean;
+}>`
+  padding: 0.75rem 1.5rem;
+  border: ${neoBorders.standard};
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  background: ${({ $variant, $selected }) =>
+    $selected ? getDecisionColors($variant).border : neoColors.surface};
+  color: ${({ $selected }) => ($selected ? '#fff' : neoColors.text)};
+
+  &:hover {
+    opacity: 0.9;
+  }
 `;
 
 const EmptyState = styled.div`
