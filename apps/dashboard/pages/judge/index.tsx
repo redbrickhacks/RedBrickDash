@@ -909,139 +909,9 @@ export default function JudgePortal() {
               <ScoringContent>
                 {activePass !== 'final' && (
                   <>
-                    {/* All Reviewers' Scores */}
-                    <ReviewersSection>
-                      <SectionTitle>
-                        All Reviews (
-                        {activePass === 1
-                          ? selectedSubmission.pass1.aggregate.reviewCount
-                          : selectedSubmission.pass2.aggregate.reviewCount}
-                        /
-                        {activePass === 1
-                          ? PASS_1_MAX_REVIEWERS
-                          : PASS_2_MAX_REVIEWERS}
-                        )
-                      </SectionTitle>
-                      <ReviewersList>
-                        {(activePass === 1
-                          ? selectedSubmission.pass1.scores
-                          : selectedSubmission.pass2.scores
-                        ).map((score, idx) => (
-                          <ReviewerCard
-                            key={score.judgeId || idx}
-                            $isMe={score.judgeId === user?.userId}
-                          >
-                            <ReviewerName>
-                              {score.judgeName || 'Unknown'}
-                              {score.judgeId === user?.userId && ' (You)'}
-                            </ReviewerName>
-                            <ReviewerScores>
-                              <ScorePill>P: {score.problem ?? '-'}</ScorePill>
-                              <ScorePill>S: {score.solution ?? '-'}</ScorePill>
-                              <ScorePill>
-                                I: {score.implementation ?? '-'}
-                              </ScorePill>
-                              <ScorePill>R: {score.roadmap ?? '-'}</ScorePill>
-                              <ScorePill $highlight>
-                                Avg: {score.avgScore?.toFixed(1) ?? '-'}
-                              </ScorePill>
-                            </ReviewerScores>
-                            <ReviewerDecision $decision={score.decision}>
-                              {score.decision || 'No decision'}
-                            </ReviewerDecision>
-                            {score.notes && (
-                              <ReviewerNotes>{score.notes}</ReviewerNotes>
-                            )}
-                          </ReviewerCard>
-                        ))}
-                        {(activePass === 1
-                          ? selectedSubmission.pass1.scores
-                          : selectedSubmission.pass2.scores
-                        ).length === 0 && (
-                          <EmptyReviews>No reviews yet</EmptyReviews>
-                        )}
-                      </ReviewersList>
-
-                      {/* Aggregate */}
-                      {(activePass === 1
-                        ? selectedSubmission.pass1
-                        : selectedSubmission.pass2
-                      ).aggregate.reviewCount > 0 && (
-                        <AggregateSection>
-                          <AggregateTitle>Aggregate</AggregateTitle>
-                          <AggregateScores>
-                            <ScorePill>
-                              P:{' '}
-                              {(activePass === 1
-                                ? selectedSubmission.pass1
-                                : selectedSubmission.pass2
-                              ).aggregate.avgProblem?.toFixed(1) ?? '-'}
-                            </ScorePill>
-                            <ScorePill>
-                              S:{' '}
-                              {(activePass === 1
-                                ? selectedSubmission.pass1
-                                : selectedSubmission.pass2
-                              ).aggregate.avgSolution?.toFixed(1) ?? '-'}
-                            </ScorePill>
-                            <ScorePill>
-                              I:{' '}
-                              {(activePass === 1
-                                ? selectedSubmission.pass1
-                                : selectedSubmission.pass2
-                              ).aggregate.avgImplementation?.toFixed(1) ?? '-'}
-                            </ScorePill>
-                            <ScorePill>
-                              R:{' '}
-                              {(activePass === 1
-                                ? selectedSubmission.pass1
-                                : selectedSubmission.pass2
-                              ).aggregate.avgRoadmap?.toFixed(1) ?? '-'}
-                            </ScorePill>
-                            <ScorePill $highlight>
-                              Total:{' '}
-                              {(activePass === 1
-                                ? selectedSubmission.pass1
-                                : selectedSubmission.pass2
-                              ).aggregate.avgTotal?.toFixed(1) ?? '-'}
-                            </ScorePill>
-                          </AggregateScores>
-                          <ConsensusDisplay>
-                            <ConsensusLabel>Consensus:</ConsensusLabel>
-                            <ConsensusBadge
-                              $decision={
-                                (activePass === 1
-                                  ? selectedSubmission.pass1
-                                  : selectedSubmission.pass2
-                                ).aggregate.consensus
-                              }
-                              $large
-                            >
-                              {(activePass === 1
-                                ? selectedSubmission.pass1
-                                : selectedSubmission.pass2
-                              ).aggregate.consensus || 'N/A'}
-                            </ConsensusBadge>
-                            <VoteBreakdown>
-                              {Object.entries(
-                                (activePass === 1
-                                  ? selectedSubmission.pass1
-                                  : selectedSubmission.pass2
-                                ).aggregate.decisions
-                              ).map(([decision, count]) => (
-                                <VoteCount key={decision} $decision={decision}>
-                                  {decision}: {count}
-                                </VoteCount>
-                              ))}
-                            </VoteBreakdown>
-                          </ConsensusDisplay>
-                        </AggregateSection>
-                      )}
-                    </ReviewersSection>
-
-                    {/* Your Scores Form */}
+                    {/* Your Review Form - Primary action, shown first */}
                     <YourScoresSection>
-                      <SectionTitle>Your Scores</SectionTitle>
+                      <SectionTitle>Your Review</SectionTitle>
                       {(activePass === 1
                         ? selectedSubmission.pass1.aggregate.reviewCount >=
                           PASS_1_MAX_REVIEWERS
@@ -1169,6 +1039,140 @@ export default function JudgePortal() {
                         </>
                       )}
                     </YourScoresSection>
+
+                    {/* Other Reviewers' Scores - Reference info, shown after */}
+                    <ReviewersSection>
+                      <SectionTitle>
+                        Other Reviews (
+                        {activePass === 1
+                          ? selectedSubmission.pass1.aggregate.reviewCount
+                          : selectedSubmission.pass2.aggregate.reviewCount}
+                        /
+                        {activePass === 1
+                          ? PASS_1_MAX_REVIEWERS
+                          : PASS_2_MAX_REVIEWERS}
+                        )
+                      </SectionTitle>
+                      <ReviewersList>
+                        {(activePass === 1
+                          ? selectedSubmission.pass1.scores
+                          : selectedSubmission.pass2.scores
+                        )
+                          .filter((score) => score.judgeId !== user?.userId)
+                          .map((score, idx) => (
+                            <ReviewerCard
+                              key={score.judgeId || idx}
+                              $isMe={false}
+                            >
+                              <ReviewerName>
+                                {score.judgeName || 'Unknown'}
+                              </ReviewerName>
+                              <ReviewerScores>
+                                <ScorePill>P: {score.problem ?? '-'}</ScorePill>
+                                <ScorePill>
+                                  S: {score.solution ?? '-'}
+                                </ScorePill>
+                                <ScorePill>
+                                  I: {score.implementation ?? '-'}
+                                </ScorePill>
+                                <ScorePill>R: {score.roadmap ?? '-'}</ScorePill>
+                                <ScorePill $highlight>
+                                  Avg: {score.avgScore?.toFixed(1) ?? '-'}
+                                </ScorePill>
+                              </ReviewerScores>
+                              <ReviewerDecision $decision={score.decision}>
+                                {score.decision || 'No decision'}
+                              </ReviewerDecision>
+                              {score.notes && (
+                                <ReviewerNotes>{score.notes}</ReviewerNotes>
+                              )}
+                            </ReviewerCard>
+                          ))}
+                        {(activePass === 1
+                          ? selectedSubmission.pass1.scores
+                          : selectedSubmission.pass2.scores
+                        ).filter((score) => score.judgeId !== user?.userId)
+                          .length === 0 && (
+                          <EmptyReviews>No other reviews yet</EmptyReviews>
+                        )}
+                      </ReviewersList>
+
+                      {/* Aggregate */}
+                      {(activePass === 1
+                        ? selectedSubmission.pass1
+                        : selectedSubmission.pass2
+                      ).aggregate.reviewCount > 0 && (
+                        <AggregateSection>
+                          <AggregateTitle>Aggregate</AggregateTitle>
+                          <AggregateScores>
+                            <ScorePill>
+                              P:{' '}
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.avgProblem?.toFixed(1) ?? '-'}
+                            </ScorePill>
+                            <ScorePill>
+                              S:{' '}
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.avgSolution?.toFixed(1) ?? '-'}
+                            </ScorePill>
+                            <ScorePill>
+                              I:{' '}
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.avgImplementation?.toFixed(1) ?? '-'}
+                            </ScorePill>
+                            <ScorePill>
+                              R:{' '}
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.avgRoadmap?.toFixed(1) ?? '-'}
+                            </ScorePill>
+                            <ScorePill $highlight>
+                              Total:{' '}
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.avgTotal?.toFixed(1) ?? '-'}
+                            </ScorePill>
+                          </AggregateScores>
+                          <ConsensusDisplay>
+                            <ConsensusLabel>Consensus:</ConsensusLabel>
+                            <ConsensusBadge
+                              $decision={
+                                (activePass === 1
+                                  ? selectedSubmission.pass1
+                                  : selectedSubmission.pass2
+                                ).aggregate.consensus
+                              }
+                              $large
+                            >
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.consensus || 'N/A'}
+                            </ConsensusBadge>
+                            <VoteBreakdown>
+                              {Object.entries(
+                                (activePass === 1
+                                  ? selectedSubmission.pass1
+                                  : selectedSubmission.pass2
+                                ).aggregate.decisions
+                              ).map(([decision, count]) => (
+                                <VoteCount key={decision} $decision={decision}>
+                                  {decision}: {count}
+                                </VoteCount>
+                              ))}
+                            </VoteBreakdown>
+                          </ConsensusDisplay>
+                        </AggregateSection>
+                      )}
+                    </ReviewersSection>
                   </>
                 )}
 
