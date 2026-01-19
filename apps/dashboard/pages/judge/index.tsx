@@ -842,12 +842,12 @@ export default function JudgePortal() {
                   <TeamInfo>
                     <TeamName>{sub.teamName}</TeamName>
                     <TeamMeta>
+                      {sub.isHardware && <HWBadge>HW</HWBadge>}
                       {sub.track && (
                         <TrackBadge $sdg={sub.track.sdgNumber}>
                           SDG {sub.track.sdgNumber}
                         </TrackBadge>
                       )}
-                      {sub.isHardware && <HWBadge>HW</HWBadge>}
                     </TeamMeta>
                   </TeamInfo>
                   <ScoreSummary>
@@ -1003,7 +1003,7 @@ export default function JudgePortal() {
                   }
                   onClick={() => handleSwitchPass('final')}
                 >
-                  Final
+                  Final {selectedSubmission.finalDecision ? '✓' : '—'}
                 </PassTab>
               </PassTabs>
 
@@ -1494,14 +1494,16 @@ const FilterToggle = styled.button`
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 0.5rem 0;
-  border: none;
-  background: transparent;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  background: ${neoColors.surface};
   cursor: pointer;
   font-family: inherit;
+  border-radius: 2px;
 
   &:hover {
-    opacity: 0.8;
+    background: ${neoColors.background};
+    border-color: #bbb;
   }
 `;
 
@@ -1511,7 +1513,7 @@ const FilterToggleText = styled.span`
   gap: 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: ${neoColors.textMuted};
+  color: ${neoColors.text};
 `;
 
 const ActiveFilterBadge = styled.span`
@@ -1588,7 +1590,7 @@ const TeamList = styled.div`
 `;
 
 const TeamListItem = styled.div<{ $selected: boolean }>`
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   background: ${({ $selected }) =>
@@ -1606,12 +1608,12 @@ const TeamInfo = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 `;
 
 const TeamName = styled.div`
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 `;
 
 const TeamMeta = styled.div`
@@ -1621,10 +1623,10 @@ const TeamMeta = styled.div`
 
 const TrackBadge = styled.span<{ $sdg: number }>`
   display: inline-block;
-  padding: 0.125rem 0.375rem;
-  font-size: 0.65rem;
+  padding: 0.0625rem 0.25rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  border: 2px solid;
+  border: 1px solid;
   background: ${({ $sdg }) => getSDGColor($sdg).bg};
   border-color: ${({ $sdg }) => getSDGColor($sdg).border};
   color: ${({ $sdg }) => getSDGColor($sdg).border};
@@ -1641,14 +1643,18 @@ const HWBadge = styled.span`
 
 const ScoreSummary = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
+  align-items: center;
 `;
 
 const PassSummary = styled.div`
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  padding: 0.125rem 0.25rem;
+  background: ${neoColors.background};
+  border-radius: 2px;
 `;
 
 const PassLabel = styled.span`
@@ -2031,7 +2037,7 @@ const DecisionBtn = styled.button<{
       case 'yes':
         return neoColors.status.success;
       case 'maybe':
-        return neoColors.status.warning;
+        return '#E65100'; // Darker orange for better white text contrast
       case 'no':
         return neoColors.status.error;
     }
