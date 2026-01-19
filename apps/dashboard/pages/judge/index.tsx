@@ -3,6 +3,7 @@ import React, {
   useEffect,
   useMemo,
   useCallback,
+  useRef,
   ChangeEvent,
   KeyboardEvent,
 } from 'react';
@@ -121,6 +122,8 @@ export default function JudgePortal() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [savingScore, setSavingScore] = useState(false);
   const [savingFinalDecision, setSavingFinalDecision] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const saveSuccessTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Mobile view state
   const [isMobileDetailView, setIsMobileDetailView] = useState(false);
@@ -156,6 +159,26 @@ export default function JudgePortal() {
       router.push('/');
     }
   }, [user, router]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveSuccessTimeoutRef.current) {
+        clearTimeout(saveSuccessTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Helper to show save success toast
+  const showSaveSuccess = useCallback((message: string) => {
+    if (saveSuccessTimeoutRef.current) {
+      clearTimeout(saveSuccessTimeoutRef.current);
+    }
+    setSaveSuccess(message);
+    saveSuccessTimeoutRef.current = setTimeout(() => {
+      setSaveSuccess(null);
+    }, 2500);
+  }, []);
 
   // Debounce search query
   useEffect(() => {
@@ -347,6 +370,7 @@ export default function JudgePortal() {
       }
 
       await fetchSubmissions();
+      showSaveSuccess('Score saved');
     } catch (e) {
       console.error('Save error:', e);
       alert('Failed to save score');
@@ -360,6 +384,7 @@ export default function JudgePortal() {
     localDecision,
     localNotes,
     fetchSubmissions,
+    showSaveSuccess,
   ]);
 
   // Save final decision
@@ -388,13 +413,20 @@ export default function JudgePortal() {
       }
 
       await fetchSubmissions();
+      showSaveSuccess('Final decision saved');
     } catch (e) {
       console.error('Save error:', e);
       alert('Failed to save final decision');
     } finally {
       setSavingFinalDecision(false);
     }
-  }, [selectedTeamId, activePass, localDecision, fetchSubmissions]);
+  }, [
+    selectedTeamId,
+    activePass,
+    localDecision,
+    fetchSubmissions,
+    showSaveSuccess,
+  ]);
 
   // Handle back button on mobile
   const handleBackToList = useCallback(() => {
@@ -1026,16 +1058,6 @@ export default function JudgePortal() {
                               placeholder="Add your notes here..."
                             />
                           </NotesWrapper>
-
-                          <ActionButtons>
-                            <NeoButton
-                              variant="primary"
-                              onClick={handleSaveScore}
-                              loading={savingScore}
-                            >
-                              Save Score
-                            </NeoButton>
-                          </ActionButtons>
                         </>
                       )}
                     </YourScoresSection>
@@ -1242,17 +1264,43 @@ export default function JudgePortal() {
                         </FinalDecisionBtn>
                       </DecisionButtons>
                     </DecisionRow>
-
-                    <ActionButtons>
-                      <NeoButton
-                        variant="primary"
-                        onClick={handleSaveFinalDecision}
-                        loading={savingFinalDecision}
-                      >
-                        Save Final Decision
-                      </NeoButton>
-                    </ActionButtons>
                   </FinalDecisionSection>
+                )}
+
+                {/* Sticky Save Bar - only show if user can save */}
+                {(activePass === 'final' ||
+                  !(
+                    (activePass === 1
+                      ? selectedSubmission.pass1.aggregate.reviewCount >=
+                        PASS_1_MAX_REVIEWERS
+                      : selectedSubmission.pass2.aggregate.reviewCount >=
+                        PASS_2_MAX_REVIEWERS) &&
+                    !(activePass === 1
+                      ? selectedSubmission.myPass1Score
+                      : selectedSubmission.myPass2Score)
+                  )) && (
+                  <StickyActionBar>
+                    <NeoButton
+                      variant="primary"
+                      onClick={
+                        activePass === 'final'
+                          ? handleSaveFinalDecision
+                          : handleSaveScore
+                      }
+                      loading={
+                        activePass === 'final'
+                          ? savingFinalDecision
+                          : savingScore
+                      }
+                    >
+                      {activePass === 'final'
+                        ? 'Save Final Decision'
+                        : 'Save Score'}
+                    </NeoButton>
+                    {saveSuccess && (
+                      <SuccessToast>✓ {saveSuccess}</SuccessToast>
+                    )}
+                  </StickyActionBar>
                 )}
               </ScoringContent>
             </>
@@ -1849,9 +1897,43 @@ const NotesWrapper = styled.div`
   margin-bottom: 1rem;
 `;
 
-const ActionButtons = styled.div`
+const StickyActionBar = styled.div`
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.75rem 1rem;
+  background: ${neoColors.surface};
+  border-top: ${neoBorders.thick};
   display: flex;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem -1rem -1rem -1rem;
+  z-index: 10;
+`;
+
+const SuccessToast = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: ${neoColors.status.success};
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: ${neoBorders.standard};
+  animation: fadeIn 0.2s ease-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 `;
 
 const FinalDecisionSection = styled.div``;
