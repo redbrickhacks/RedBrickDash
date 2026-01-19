@@ -906,14 +906,10 @@ export default function JudgePortal() {
               <DetailHeader>
                 <BackButton onClick={handleBackToList}>← Back</BackButton>
                 <DetailTitle>
-                  {selectedSubmission.teamName}
-                  {selectedSubmission.projectTitle && (
-                    <ProjectTitle>
-                      {' '}
-                      - {selectedSubmission.projectTitle}
-                    </ProjectTitle>
-                  )}
+                  {selectedSubmission.projectTitle ||
+                    selectedSubmission.teamName}
                 </DetailTitle>
+                <TeamByline>by {selectedSubmission.teamName}</TeamByline>
                 <DetailMeta>
                   {selectedSubmission.track && (
                     <TrackBadge $sdg={selectedSubmission.track.sdgNumber}>
@@ -1745,12 +1741,13 @@ const BackButton = styled.button`
 const DetailTitle = styled.h2`
   font-size: 1.25rem;
   font-weight: 900;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.25rem 0;
 `;
 
-const ProjectTitle = styled.span`
-  font-weight: 400;
+const TeamByline = styled.div`
+  font-size: 0.85rem;
   color: ${neoColors.textMuted};
+  margin-bottom: 0.5rem;
 `;
 
 const DetailMeta = styled.div`
