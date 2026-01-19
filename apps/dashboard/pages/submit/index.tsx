@@ -9,7 +9,7 @@ import { SubmissionStatusBanner } from '../../components/submit/submission-statu
 import { SubmissionTallyEmbed } from '../../components/submit/submission-tally-embed';
 import { SubmissionGuide } from '../../components/submit/submission-guide';
 import { neoColors, neoBorders } from '../../components/neo-ui/theme';
-import { ApplicationStatus } from '@hibiscus/types';
+import { ApplicationStatus, HibiscusRole } from '@hibiscus/types';
 import { NeoButton } from '../../components/neo-ui/NeoButton';
 
 const PageContainer = styled.div`
@@ -80,6 +80,26 @@ const DeadlineSubtext = styled.div`
   color: ${neoColors.textMuted};
 `;
 
+const PreviewBanner = styled.div`
+  background: ${neoColors.accent.blue}20;
+  border: 2px solid ${neoColors.accent.blue};
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const PreviewTitle = styled.div`
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${neoColors.accent.blue};
+`;
+
+const PreviewSubtext = styled.div`
+  font-size: 0.9rem;
+  color: ${neoColors.textMuted};
+`;
+
 export function SubmitPage() {
   const { user } = useHibiscusUser();
   const router = useRouter();
@@ -97,6 +117,10 @@ export function SubmitPage() {
 
   const [showSoloModal, setShowSoloModal] = useState(false);
 
+  // Check if user is admin or judge
+  const isAdminOrJudge =
+    user?.role === HibiscusRole.SUPERADMIN || user?.role === HibiscusRole.JUDGE;
+
   // Loading state
   if (user === null || isLoading) {
     return (
@@ -106,8 +130,11 @@ export function SubmitPage() {
     );
   }
 
-  // User must complete profile first
-  if (user.applicationStatus === ApplicationStatus.NOT_APPLIED) {
+  // User must complete profile first (skip for admin/judge)
+  if (
+    !isAdminOrJudge &&
+    user.applicationStatus === ApplicationStatus.NOT_APPLIED
+  ) {
     return (
       <PageContainer>
         <ErrorContainer>
@@ -123,12 +150,13 @@ export function SubmitPage() {
     );
   }
 
-  // Users past online round cannot submit
+  // Users past online round cannot submit (skip for admin/judge)
   if (
-    user.applicationStatus === ApplicationStatus.FINALIST ||
-    user.applicationStatus === ApplicationStatus.CONFIRMED ||
-    user.applicationStatus === ApplicationStatus.DECLINED ||
-    user.applicationStatus === ApplicationStatus.NOT_SELECTED
+    !isAdminOrJudge &&
+    (user.applicationStatus === ApplicationStatus.FINALIST ||
+      user.applicationStatus === ApplicationStatus.CONFIRMED ||
+      user.applicationStatus === ApplicationStatus.DECLINED ||
+      user.applicationStatus === ApplicationStatus.NOT_SELECTED)
   ) {
     return (
       <PageContainer>
@@ -145,8 +173,8 @@ export function SubmitPage() {
     );
   }
 
-  // Error loading submission status
-  if (error && !status) {
+  // Error loading submission status (skip for admin/judge preview)
+  if (!isAdminOrJudge && error && !status) {
     return (
       <PageContainer>
         <ErrorContainer>
@@ -160,8 +188,8 @@ export function SubmitPage() {
     );
   }
 
-  // User has no team - prompt for solo submission
-  if (!hasTeam) {
+  // User has no team - prompt for solo submission (skip for admin/judge)
+  if (!isAdminOrJudge && !hasTeam) {
     return (
       <PageContainer>
         <PageTitle>Submit Project</PageTitle>
@@ -197,6 +225,36 @@ export function SubmitPage() {
           }}
           userId={user.id}
         />
+      </PageContainer>
+    );
+  }
+
+  // Admin/Judge preview mode - show guide without submission functionality
+  if (isAdminOrJudge && !hasTeam) {
+    return (
+      <PageContainer>
+        <PageTitle>Submit Project</PageTitle>
+
+        <PreviewBanner>
+          <PreviewTitle>Preview Mode</PreviewTitle>
+          <PreviewSubtext>
+            You are viewing this page as{' '}
+            {user.role === HibiscusRole.SUPERADMIN ? 'an admin' : 'a judge'}.
+            This shows what participants see when submitting their projects.
+          </PreviewSubtext>
+        </PreviewBanner>
+
+        <DeadlineBanner>
+          <DeadlineTitle>
+            Deadline: January 17, 2026, 11:59 PM IST
+          </DeadlineTitle>
+          <DeadlineSubtext>
+            Submit now, perfect later. You can update everything until the
+            deadline.
+          </DeadlineSubtext>
+        </DeadlineBanner>
+
+        <SubmissionGuide />
       </PageContainer>
     );
   }
