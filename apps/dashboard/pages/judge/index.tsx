@@ -138,6 +138,9 @@ export default function JudgePortal() {
   const [hardwareFilter, setHardwareFilter] = useState<HardwareFilter>('all');
   const [sortField, setSortField] = useState<SortField>('teamName');
   const [sortAsc, setSortAsc] = useState(true);
+  // Quick filters
+  const [myUnreviewedP1, setMyUnreviewedP1] = useState(false);
+  const [myUnreviewedP2, setMyUnreviewedP2] = useState(false);
 
   // Local edits for scoring
   const [localScores, setLocalScores] = useState<Record<string, number | null>>(
@@ -503,6 +506,14 @@ export default function JudgePortal() {
       }
     }
 
+    // My Unreviewed quick filters
+    if (myUnreviewedP1) {
+      result = result.filter((s) => s.myPass1Score === null);
+    }
+    if (myUnreviewedP2) {
+      result = result.filter((s) => s.myPass2Score === null);
+    }
+
     // Sort
     result.sort((a, b) => {
       let cmp = 0;
@@ -537,6 +548,8 @@ export default function JudgePortal() {
     hardwareFilter,
     sortField,
     sortAsc,
+    myUnreviewedP1,
+    myUnreviewedP2,
   ]);
 
   // Keyboard navigation
@@ -650,6 +663,21 @@ export default function JudgePortal() {
                 }
               />
             </SearchWrapper>
+
+            <QuickFilterRow>
+              <QuickFilterButton
+                $active={myUnreviewedP1}
+                onClick={() => setMyUnreviewedP1(!myUnreviewedP1)}
+              >
+                My Unreviewed P1
+              </QuickFilterButton>
+              <QuickFilterButton
+                $active={myUnreviewedP2}
+                onClick={() => setMyUnreviewedP2(!myUnreviewedP2)}
+              >
+                My Unreviewed P2
+              </QuickFilterButton>
+            </QuickFilterRow>
 
             <FilterRow>
               <FilterGroup>
@@ -1396,6 +1424,29 @@ const FiltersSection = styled.div`
 
 const SearchWrapper = styled.div`
   margin-bottom: 0.5rem;
+`;
+
+const QuickFilterRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+`;
+
+const QuickFilterButton = styled.button<{ $active: boolean }>`
+  padding: 0.375rem 0.75rem;
+  border: ${neoBorders.standard};
+  background: ${({ $active }) =>
+    $active ? neoColors.accent.blue : neoColors.surface};
+  color: ${({ $active }) => ($active ? '#fff' : neoColors.text)};
+  font-weight: 600;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: ${({ $active }) =>
+      $active ? neoColors.accent.blue : neoColors.background};
+  }
 `;
 
 const FilterRow = styled.div`
