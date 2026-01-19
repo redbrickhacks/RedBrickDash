@@ -1,6 +1,11 @@
 -- Create judging_notes table for two-pass judging system (MVP: single reviewer per pass)
 -- Future: migrate to judging_reviews table if multiple reviewers needed per pass
 
+BEGIN;
+
+-- Ensure moddatetime extension is available (required for updated_at trigger)
+CREATE EXTENSION IF NOT EXISTS moddatetime;
+
 CREATE TABLE judging_notes (
   team_id UUID PRIMARY KEY REFERENCES teams(team_id) ON DELETE CASCADE,
 
@@ -88,3 +93,5 @@ CREATE TRIGGER trigger_judging_notes_updated_at
   BEFORE UPDATE ON judging_notes
   FOR EACH ROW
   EXECUTE FUNCTION moddatetime(updated_at);
+
+COMMIT;
