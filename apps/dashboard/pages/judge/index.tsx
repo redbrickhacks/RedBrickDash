@@ -1033,21 +1033,21 @@ export default function JudgePortal() {
                                     $selected={localDecision === 'yes'}
                                     onClick={() => setLocalDecision('yes')}
                                   >
-                                    Yes
+                                    ✓ Yes
                                   </DecisionBtn>
                                   <DecisionBtn
                                     $variant="maybe"
                                     $selected={localDecision === 'maybe'}
                                     onClick={() => setLocalDecision('maybe')}
                                   >
-                                    Maybe
+                                    ◐ Maybe
                                   </DecisionBtn>
                                   <DecisionBtn
                                     $variant="no"
                                     $selected={localDecision === 'no'}
                                     onClick={() => setLocalDecision('no')}
                                   >
-                                    No
+                                    ✗ No
                                   </DecisionBtn>
                                 </>
                               ) : (
@@ -1057,21 +1057,21 @@ export default function JudgePortal() {
                                     $selected={localDecision === 'yes'}
                                     onClick={() => setLocalDecision('yes')}
                                   >
-                                    Yes
+                                    ✓ Yes
                                   </DecisionBtn>
                                   <DecisionBtn
                                     $variant="maybe"
                                     $selected={localDecision === 'waitlist'}
                                     onClick={() => setLocalDecision('waitlist')}
                                   >
-                                    Waitlist
+                                    ◐ Waitlist
                                   </DecisionBtn>
                                   <DecisionBtn
                                     $variant="no"
                                     $selected={localDecision === 'no'}
                                     onClick={() => setLocalDecision('no')}
                                   >
-                                    No
+                                    ✗ No
                                   </DecisionBtn>
                                 </>
                               )}
@@ -1277,21 +1277,21 @@ export default function JudgePortal() {
                           $selected={localDecision === 'finalist'}
                           onClick={() => setLocalDecision('finalist')}
                         >
-                          Finalist
+                          ★ Finalist
                         </FinalDecisionBtn>
                         <FinalDecisionBtn
                           $variant="waitlist"
                           $selected={localDecision === 'waitlist'}
                           onClick={() => setLocalDecision('waitlist')}
                         >
-                          Waitlist
+                          ◐ Waitlist
                         </FinalDecisionBtn>
                         <FinalDecisionBtn
                           $variant="not_selected"
                           $selected={localDecision === 'not_selected'}
                           onClick={() => setLocalDecision('not_selected')}
                         >
-                          Not Selected
+                          ✗ Not Selected
                         </FinalDecisionBtn>
                       </DecisionButtons>
                     </DecisionRow>
@@ -1937,9 +1937,11 @@ const DecisionBtn = styled.button<{
   $variant: 'yes' | 'maybe' | 'no';
   $selected: boolean;
 }>`
-  padding: 0.5rem 1.25rem;
-  border: ${neoBorders.standard};
-  font-weight: 700;
+  padding: 0.75rem 1.5rem;
+  border: ${neoBorders.thick};
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-transform: uppercase;
   cursor: pointer;
   background: ${({ $variant, $selected }) => {
     if (!$selected) return neoColors.surface;
@@ -1953,9 +1955,16 @@ const DecisionBtn = styled.button<{
     }
   }};
   color: ${({ $selected }) => ($selected ? '#fff' : neoColors.text)};
+  box-shadow: ${({ $selected }) => ($selected ? neoShadows.small : 'none')};
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 
   &:hover {
-    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: ${neoShadows.small};
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -2046,16 +2055,24 @@ const FinalDecisionBtn = styled.button<{
   $selected: boolean;
 }>`
   padding: 0.75rem 1.5rem;
-  border: ${neoBorders.standard};
-  font-weight: 700;
+  border: ${neoBorders.thick};
+  font-weight: 800;
   font-size: 1rem;
+  text-transform: uppercase;
   cursor: pointer;
   background: ${({ $variant, $selected }) =>
     $selected ? getDecisionColors($variant).border : neoColors.surface};
   color: ${({ $selected }) => ($selected ? '#fff' : neoColors.text)};
+  box-shadow: ${({ $selected }) => ($selected ? neoShadows.small : 'none')};
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 
   &:hover {
-    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: ${neoShadows.small};
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
