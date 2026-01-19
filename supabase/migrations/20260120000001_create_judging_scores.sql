@@ -4,6 +4,9 @@
 
 BEGIN;
 
+-- Ensure moddatetime extension is available
+CREATE EXTENSION IF NOT EXISTS moddatetime;
+
 -- 1. Create the judging_scores table
 CREATE TABLE judging_scores (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
