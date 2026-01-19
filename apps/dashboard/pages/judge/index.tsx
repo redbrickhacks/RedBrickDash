@@ -854,7 +854,10 @@ export default function JudgePortal() {
           </TeamList>
 
           <ListFooter>
-            Showing {filteredSubmissions.length} of {submissions.length} teams
+            <span>
+              Showing {filteredSubmissions.length} of {submissions.length} teams
+            </span>
+            <KeyboardHint>↑↓ or j/k to navigate</KeyboardHint>
           </ListFooter>
         </ListPanel>
 
@@ -1598,11 +1601,23 @@ const ConsensusBadge = styled.span<{
 `;
 
 const ListFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 0.5rem 0.75rem;
   font-size: 0.75rem;
   color: ${neoColors.textMuted};
   border-top: ${neoBorders.standard};
   background: ${neoColors.background};
+`;
+
+const KeyboardHint = styled.span`
+  font-size: 0.7rem;
+  opacity: 0.7;
+
+  @media (max-width: 899px) {
+    display: none;
+  }
 `;
 
 const DetailPanel = styled.div<{ $showOnMobile: boolean }>`
