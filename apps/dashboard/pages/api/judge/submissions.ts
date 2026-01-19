@@ -17,6 +17,10 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 1000;
 const MAX_LIMIT = 1000;
 
+// Reviewer caps per pass
+const PASS_1_MAX_REVIEWERS = 4;
+const PASS_2_MAX_REVIEWERS = 3;
+
 // Type for track data from Supabase join
 interface TrackData {
   id: number;
@@ -24,6 +28,7 @@ interface TrackData {
   sdg_number: number;
 }
 
+// Legacy JudgingNotes type (kept for backward compatibility)
 export interface JudgingNotes {
   team_id: string;
   pass_1: 'yes' | 'no' | 'maybe' | null;
@@ -46,6 +51,31 @@ export interface JudgingNotes {
   updated_at: string | null;
 }
 
+// New multi-reviewer types
+export interface ReviewerScore {
+  judgeId: string | null;
+  judgeName: string | null;
+  problem: number | null;
+  solution: number | null;
+  implementation: number | null;
+  roadmap: number | null;
+  decision: string | null;
+  notes: string | null;
+  avgScore: number | null;
+}
+
+export interface PassAggregate {
+  reviewCount: number;
+  maxReviewers: number;
+  avgProblem: number | null;
+  avgSolution: number | null;
+  avgImplementation: number | null;
+  avgRoadmap: number | null;
+  avgTotal: number | null;
+  decisions: Record<string, number>;
+  consensus: string | null;
+}
+
 export interface SubmissionForJudging {
   teamId: string;
   teamName: string;
@@ -65,6 +95,13 @@ export interface SubmissionForJudging {
     tallyData: Record<string, unknown> | null;
     submittedAt: string | null;
   } | null;
+  // New multi-reviewer data
+  pass1: { scores: ReviewerScore[]; aggregate: PassAggregate };
+  pass2: { scores: ReviewerScore[]; aggregate: PassAggregate };
+  myPass1Score: ReviewerScore | null;
+  myPass2Score: ReviewerScore | null;
+  finalDecision: string | null;
+  // Legacy fields (kept for backward compatibility during transition)
   judgingNotes: JudgingNotes | null;
   pass1Avg: number | null;
   pass2Avg: number | null;
@@ -196,7 +233,7 @@ export default async function handler(
       return res.status(500).json({ message: 'Failed to fetch submissions' });
     }
 
-    // Get judging notes
+    // Get judging notes (for final_decision and backward compatibility)
     const { data: judgingNotes, error: notesError } = await supabase
       .from('judging_notes')
       .select('*')
@@ -204,7 +241,39 @@ export default async function handler(
 
     if (notesError) {
       console.error('[judge/submissions] Notes fetch error:', notesError);
-      // Don't fail if judging_notes table doesn't exist yet
+    }
+
+    // Get judging scores (multi-reviewer)
+    const { data: judgingScores, error: scoresError } = await supabase
+      .from('judging_scores')
+      .select('*')
+      .in('team_id', teamIds);
+
+    if (scoresError) {
+      console.error('[judge/submissions] Scores fetch error:', scoresError);
+    }
+
+    // Get judge names for display
+    const judgeIds = [
+      ...new Set(
+        (judgingScores || [])
+          .map((s) => s.judge_id)
+          .filter((id): id is string => id !== null)
+      ),
+    ];
+    const judgeNameMap = new Map<string, string>();
+    if (judgeIds.length > 0) {
+      const { data: judges } = await supabase
+        .from('user_profiles')
+        .select('user_id, first_name, last_name')
+        .in('user_id', judgeIds);
+
+      for (const judge of judges || []) {
+        const name = [judge.first_name, judge.last_name]
+          .filter(Boolean)
+          .join(' ');
+        judgeNameMap.set(judge.user_id, name || 'Unknown');
+      }
     }
 
     // Build lookup maps
@@ -220,6 +289,25 @@ export default async function handler(
       notesByTeam.set(note.team_id, note);
     }
 
+    // Group scores by team and pass
+    type ScoreRow = (typeof judgingScores)[0];
+    const scoresByTeamPass = new Map<
+      string,
+      { pass1: ScoreRow[]; pass2: ScoreRow[] }
+    >();
+    for (const score of judgingScores || []) {
+      const key = score.team_id;
+      if (!scoresByTeamPass.has(key)) {
+        scoresByTeamPass.set(key, { pass1: [], pass2: [] });
+      }
+      const entry = scoresByTeamPass.get(key)!;
+      if (score.pass === 1) {
+        entry.pass1.push(score);
+      } else if (score.pass === 2) {
+        entry.pass2.push(score);
+      }
+    }
+
     // Compute averages helper
     const computeAvg = (
       p: number | null,
@@ -233,6 +321,97 @@ export default async function handler(
         Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) /
         10
       );
+    };
+
+    // Compute aggregate average from array of numbers
+    const computeArrayAvg = (values: (number | null)[]): number | null => {
+      const nums = values.filter((x): x is number => x !== null);
+      if (nums.length === 0) return null;
+      return (
+        Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 10) / 10
+      );
+    };
+
+    // Consensus logic for Pass 1 (4 reviewers): yes/no/maybe
+    const computePass1Consensus = (decisions: string[]): string | null => {
+      if (decisions.length === 0) return null;
+      const counts = { yes: 0, no: 0, maybe: 0 };
+      for (const d of decisions) {
+        if (d === 'yes' || d === 'no' || d === 'maybe') {
+          counts[d]++;
+        }
+      }
+      if (counts.yes > counts.no + counts.maybe) return 'yes';
+      if (counts.no > counts.yes + counts.maybe) return 'no';
+      if (counts.yes + counts.maybe > counts.no) return 'maybe';
+      return 'no';
+    };
+
+    // Consensus logic for Pass 2 (3 reviewers): yes/no/waitlist
+    const computePass2Consensus = (decisions: string[]): string | null => {
+      if (decisions.length === 0) return null;
+      const counts = { yes: 0, no: 0, waitlist: 0 };
+      for (const d of decisions) {
+        if (d === 'yes' || d === 'no' || d === 'waitlist') {
+          counts[d]++;
+        }
+      }
+      if (counts.yes >= 2) return 'yes';
+      if (counts.no >= 2) return 'no';
+      if (counts.waitlist >= 2) return 'waitlist';
+      return counts.yes > 0 ? 'waitlist' : 'no';
+    };
+
+    // Build ReviewerScore from a score row
+    const buildReviewerScore = (score: ScoreRow): ReviewerScore => ({
+      judgeId: score.judge_id,
+      judgeName: score.judge_id
+        ? judgeNameMap.get(score.judge_id) || null
+        : null,
+      problem: score.problem,
+      solution: score.solution,
+      implementation: score.implementation,
+      roadmap: score.roadmap,
+      decision: score.decision,
+      notes: score.notes,
+      avgScore: computeAvg(
+        score.problem,
+        score.solution,
+        score.implementation,
+        score.roadmap
+      ),
+    });
+
+    // Build PassAggregate from array of scores
+    const buildPassAggregate = (
+      scores: ScoreRow[],
+      maxReviewers: number,
+      computeConsensus: (decisions: string[]) => string | null
+    ): PassAggregate => {
+      const decisions = scores
+        .map((s) => s.decision)
+        .filter((d): d is string => d !== null);
+
+      const decisionCounts: Record<string, number> = {};
+      for (const d of decisions) {
+        decisionCounts[d] = (decisionCounts[d] || 0) + 1;
+      }
+
+      return {
+        reviewCount: scores.length,
+        maxReviewers,
+        avgProblem: computeArrayAvg(scores.map((s) => s.problem)),
+        avgSolution: computeArrayAvg(scores.map((s) => s.solution)),
+        avgImplementation: computeArrayAvg(scores.map((s) => s.implementation)),
+        avgRoadmap: computeArrayAvg(scores.map((s) => s.roadmap)),
+        avgTotal: computeArrayAvg(
+          scores.map((s) =>
+            computeAvg(s.problem, s.solution, s.implementation, s.roadmap)
+          )
+        ),
+        decisions: decisionCounts,
+        consensus: computeConsensus(decisions),
+      };
     };
 
     // Helper to safely extract track data from Supabase join result
@@ -255,6 +434,32 @@ export default async function handler(
     const result: SubmissionForJudging[] = teams.map((team) => {
       const sub = latestSubmissionByTeam.get(team.team_id);
       const notes = notesByTeam.get(team.team_id);
+      const teamScores = scoresByTeamPass.get(team.team_id) || {
+        pass1: [],
+        pass2: [],
+      };
+
+      // Find current user's scores
+      const myPass1 = teamScores.pass1.find((s) => s.judge_id === user.user_id);
+      const myPass2 = teamScores.pass2.find((s) => s.judge_id === user.user_id);
+
+      // Build pass aggregates
+      const pass1 = {
+        scores: teamScores.pass1.map(buildReviewerScore),
+        aggregate: buildPassAggregate(
+          teamScores.pass1,
+          PASS_1_MAX_REVIEWERS,
+          computePass1Consensus
+        ),
+      };
+      const pass2 = {
+        scores: teamScores.pass2.map(buildReviewerScore),
+        aggregate: buildPassAggregate(
+          teamScores.pass2,
+          PASS_2_MAX_REVIEWERS,
+          computePass2Consensus
+        ),
+      };
 
       return {
         teamId: team.team_id,
@@ -273,6 +478,13 @@ export default async function handler(
               submittedAt: sub.submitted_at,
             }
           : null,
+        // New multi-reviewer data
+        pass1,
+        pass2,
+        myPass1Score: myPass1 ? buildReviewerScore(myPass1) : null,
+        myPass2Score: myPass2 ? buildReviewerScore(myPass2) : null,
+        finalDecision: notes?.final_decision ?? null,
+        // Legacy fields (for backward compatibility)
         judgingNotes: notes
           ? {
               team_id: notes.team_id,
@@ -296,26 +508,10 @@ export default async function handler(
               updated_at: notes.updated_at,
             }
           : null,
-        pass1Avg: notes
-          ? computeAvg(
-              notes.pass_1_problem,
-              notes.pass_1_solution,
-              notes.pass_1_implementation,
-              notes.pass_1_roadmap
-            )
-          : null,
-        pass2Avg: notes
-          ? computeAvg(
-              notes.pass_2_problem,
-              notes.pass_2_solution,
-              notes.pass_2_implementation,
-              notes.pass_2_roadmap
-            )
-          : null,
+        pass1Avg: pass1.aggregate.avgTotal,
+        pass2Avg: pass2.aggregate.avgTotal,
       };
     });
-
-    // Results are already sorted by team name from the database query
 
     return res.status(200).json({
       submissions: result,
