@@ -599,6 +599,66 @@ export type Database = {
           }
         ];
       };
+      judging_scores: {
+        Row: {
+          id: string;
+          team_id: string;
+          judge_id: string | null;
+          pass: number;
+          problem: number | null;
+          solution: number | null;
+          implementation: number | null;
+          roadmap: number | null;
+          decision: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          judge_id?: string | null;
+          pass: number;
+          problem?: number | null;
+          solution?: number | null;
+          implementation?: number | null;
+          roadmap?: number | null;
+          decision?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          team_id?: string;
+          judge_id?: string | null;
+          pass?: number;
+          problem?: number | null;
+          solution?: number | null;
+          implementation?: number | null;
+          roadmap?: number | null;
+          decision?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'judging_scores_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['team_id'];
+          },
+          {
+            foreignKeyName: 'judging_scores_judge_id_fkey';
+            columns: ['judge_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          }
+        ];
+      };
       leaderboard: {
         Row: {
           bonus_points: number;
