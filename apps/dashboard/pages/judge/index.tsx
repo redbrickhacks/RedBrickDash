@@ -141,6 +141,27 @@ export default function JudgePortal() {
   // Quick filters
   const [myUnreviewedP1, setMyUnreviewedP1] = useState(false);
   const [myUnreviewedP2, setMyUnreviewedP2] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+
+  // Count active dropdown filters (not including search/quick filters)
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (trackFilter !== 'all') count++;
+    if (hardwareFilter !== 'all') count++;
+    if (pass1Filter !== 'all') count++;
+    if (pass2Filter !== 'all') count++;
+    if (finalFilter !== 'all') count++;
+    if (sortField !== 'teamName' || !sortAsc) count++;
+    return count;
+  }, [
+    trackFilter,
+    hardwareFilter,
+    pass1Filter,
+    pass2Filter,
+    finalFilter,
+    sortField,
+    sortAsc,
+  ]);
 
   // Local edits for scoring
   const [localScores, setLocalScores] = useState<Record<string, number | null>>(
@@ -679,116 +700,133 @@ export default function JudgePortal() {
               </QuickFilterButton>
             </QuickFilterRow>
 
-            <FilterRow>
-              <FilterGroup>
-                <FilterLabel>Track:</FilterLabel>
-                <Select
-                  value={trackFilter}
-                  onChange={(e) =>
-                    setTrackFilter(
-                      e.target.value === 'all' ? 'all' : Number(e.target.value)
-                    )
-                  }
-                >
-                  <option value="all">All</option>
-                  <option value="4">SDG 4</option>
-                  <option value="11">SDG 11</option>
-                  <option value="13">SDG 13</option>
-                </Select>
-              </FilterGroup>
+            <FilterToggle onClick={() => setFiltersExpanded(!filtersExpanded)}>
+              <FilterToggleText>
+                {filtersExpanded ? '▼' : '▶'} Filters
+                {activeFilterCount > 0 && (
+                  <ActiveFilterBadge>{activeFilterCount}</ActiveFilterBadge>
+                )}
+              </FilterToggleText>
+            </FilterToggle>
 
-              <FilterGroup>
-                <FilterLabel>Type:</FilterLabel>
-                <Select
-                  value={hardwareFilter}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (
-                      val === 'all' ||
-                      val === 'hardware' ||
-                      val === 'software'
-                    ) {
-                      setHardwareFilter(val);
-                    }
-                  }}
-                >
-                  <option value="all">All</option>
-                  <option value="hardware">HW</option>
-                  <option value="software">SW</option>
-                </Select>
-              </FilterGroup>
-            </FilterRow>
+            {filtersExpanded && (
+              <CollapsibleFilters>
+                <FilterRow>
+                  <FilterGroup>
+                    <FilterLabel>Track:</FilterLabel>
+                    <Select
+                      value={trackFilter}
+                      onChange={(e) =>
+                        setTrackFilter(
+                          e.target.value === 'all'
+                            ? 'all'
+                            : Number(e.target.value)
+                        )
+                      }
+                    >
+                      <option value="all">All</option>
+                      <option value="4">SDG 4</option>
+                      <option value="11">SDG 11</option>
+                      <option value="13">SDG 13</option>
+                    </Select>
+                  </FilterGroup>
 
-            <FilterRow>
-              <FilterGroup>
-                <FilterLabel>P1:</FilterLabel>
-                <Select
-                  value={pass1Filter}
-                  onChange={(e) =>
-                    setPass1Filter(e.target.value as FilterStatus)
-                  }
-                >
-                  <option value="all">All</option>
-                  <option value="needs_reviews">Needs Reviews</option>
-                  <option value="unreviewed">Unreviewed</option>
-                  <option value="yes">Yes</option>
-                  <option value="maybe">Maybe</option>
-                  <option value="no">No</option>
-                </Select>
-              </FilterGroup>
+                  <FilterGroup>
+                    <FilterLabel>Type:</FilterLabel>
+                    <Select
+                      value={hardwareFilter}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (
+                          val === 'all' ||
+                          val === 'hardware' ||
+                          val === 'software'
+                        ) {
+                          setHardwareFilter(val);
+                        }
+                      }}
+                    >
+                      <option value="all">All</option>
+                      <option value="hardware">HW</option>
+                      <option value="software">SW</option>
+                    </Select>
+                  </FilterGroup>
+                </FilterRow>
 
-              <FilterGroup>
-                <FilterLabel>P2:</FilterLabel>
-                <Select
-                  value={pass2Filter}
-                  onChange={(e) =>
-                    setPass2Filter(e.target.value as FilterStatus)
-                  }
-                >
-                  <option value="all">All</option>
-                  <option value="needs_reviews">Needs Reviews</option>
-                  <option value="unreviewed">Unreviewed</option>
-                  <option value="yes">Yes</option>
-                  <option value="waitlist">Waitlist</option>
-                  <option value="no">No</option>
-                </Select>
-              </FilterGroup>
+                <FilterRow>
+                  <FilterGroup>
+                    <FilterLabel>P1:</FilterLabel>
+                    <Select
+                      value={pass1Filter}
+                      onChange={(e) =>
+                        setPass1Filter(e.target.value as FilterStatus)
+                      }
+                    >
+                      <option value="all">All</option>
+                      <option value="needs_reviews">Needs Reviews</option>
+                      <option value="unreviewed">Unreviewed</option>
+                      <option value="yes">Yes</option>
+                      <option value="maybe">Maybe</option>
+                      <option value="no">No</option>
+                    </Select>
+                  </FilterGroup>
 
-              <FilterGroup>
-                <FilterLabel>Final:</FilterLabel>
-                <Select
-                  value={finalFilter}
-                  onChange={(e) =>
-                    setFinalFilter(e.target.value as FinalFilterStatus)
-                  }
-                >
-                  <option value="all">All</option>
-                  <option value="unreviewed">Unreviewed</option>
-                  <option value="finalist">Finalist</option>
-                  <option value="waitlist">Waitlist</option>
-                  <option value="not_selected">Not Selected</option>
-                </Select>
-              </FilterGroup>
-            </FilterRow>
+                  <FilterGroup>
+                    <FilterLabel>P2:</FilterLabel>
+                    <Select
+                      value={pass2Filter}
+                      onChange={(e) =>
+                        setPass2Filter(e.target.value as FilterStatus)
+                      }
+                    >
+                      <option value="all">All</option>
+                      <option value="needs_reviews">Needs Reviews</option>
+                      <option value="unreviewed">Unreviewed</option>
+                      <option value="yes">Yes</option>
+                      <option value="waitlist">Waitlist</option>
+                      <option value="no">No</option>
+                    </Select>
+                  </FilterGroup>
 
-            <FilterRow>
-              <FilterGroup>
-                <FilterLabel>Sort:</FilterLabel>
-                <Select
-                  value={sortField}
-                  onChange={(e) => setSortField(e.target.value as SortField)}
-                >
-                  <option value="teamName">Name</option>
-                  <option value="pass1Avg">P1 Avg</option>
-                  <option value="pass2Avg">P2 Avg</option>
-                  <option value="p1ReviewCount">P1 Reviews</option>
-                  <option value="p2ReviewCount">P2 Reviews</option>
-                </Select>
-                <SortButton onClick={() => setSortAsc(!sortAsc)}>
-                  {sortAsc ? '↑' : '↓'}
-                </SortButton>
-              </FilterGroup>
-            </FilterRow>
+                  <FilterGroup>
+                    <FilterLabel>Final:</FilterLabel>
+                    <Select
+                      value={finalFilter}
+                      onChange={(e) =>
+                        setFinalFilter(e.target.value as FinalFilterStatus)
+                      }
+                    >
+                      <option value="all">All</option>
+                      <option value="unreviewed">Unreviewed</option>
+                      <option value="finalist">Finalist</option>
+                      <option value="waitlist">Waitlist</option>
+                      <option value="not_selected">Not Selected</option>
+                    </Select>
+                  </FilterGroup>
+                </FilterRow>
+
+                <FilterRow>
+                  <FilterGroup>
+                    <FilterLabel>Sort:</FilterLabel>
+                    <Select
+                      value={sortField}
+                      onChange={(e) =>
+                        setSortField(e.target.value as SortField)
+                      }
+                    >
+                      <option value="teamName">Name</option>
+                      <option value="pass1Avg">P1 Avg</option>
+                      <option value="pass2Avg">P2 Avg</option>
+                      <option value="p1ReviewCount">P1 Reviews</option>
+                      <option value="p2ReviewCount">P2 Reviews</option>
+                    </Select>
+                    <SortButton onClick={() => setSortAsc(!sortAsc)}>
+                      {sortAsc ? '↑' : '↓'}
+                    </SortButton>
+                  </FilterGroup>
+                </FilterRow>
+              </CollapsibleFilters>
+            )}
           </FiltersSection>
 
           <TeamList>
@@ -1450,6 +1488,50 @@ const QuickFilterButton = styled.button<{ $active: boolean }>`
     background: ${({ $active }) =>
       $active ? neoColors.accent.blue : neoColors.background};
   }
+`;
+
+const FilterToggle = styled.button`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    opacity: 0.8;
+  }
+`;
+
+const FilterToggleText = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: ${neoColors.textMuted};
+`;
+
+const ActiveFilterBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 0.25rem;
+  background: ${neoColors.accent.blue};
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 9px;
+`;
+
+const CollapsibleFilters = styled.div`
+  padding-top: 0.5rem;
+  border-top: 1px solid #eee;
+  margin-top: 0.25rem;
 `;
 
 const FilterRow = styled.div`
