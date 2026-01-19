@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useCallback,
   ChangeEvent,
+  KeyboardEvent,
 } from 'react';
 import styled from 'styled-components';
 import { useRouter } from 'next/router';
@@ -18,13 +19,21 @@ import {
 } from '../../components/neo-ui';
 import type {
   SubmissionForJudging,
-  JudgingNotes,
+  ReviewerScore,
+  PassAggregate,
 } from '../api/judge/submissions';
 
 type Pass1Decision = 'yes' | 'no' | 'maybe';
 type Pass2Decision = 'yes' | 'no' | 'waitlist';
 type FinalDecision = 'finalist' | 'waitlist' | 'not_selected';
-type FilterStatus = 'all' | 'yes' | 'no' | 'maybe' | 'waitlist' | 'unreviewed';
+type FilterStatus =
+  | 'all'
+  | 'yes'
+  | 'no'
+  | 'maybe'
+  | 'waitlist'
+  | 'unreviewed'
+  | 'needs_reviews';
 type FinalFilterStatus =
   | 'all'
   | 'finalist'
@@ -33,9 +42,14 @@ type FinalFilterStatus =
   | 'unreviewed';
 type ActivePass = 1 | 2 | 'final';
 type HardwareFilter = 'all' | 'hardware' | 'software';
-type SortField = 'teamName' | 'pass1Avg' | 'pass2Avg';
+type SortField =
+  | 'teamName'
+  | 'pass1Avg'
+  | 'pass2Avg'
+  | 'p1ReviewCount'
+  | 'p2ReviewCount';
 
-// Decision color mapping - centralized to avoid duplication in styled components
+// Decision color mapping
 type DecisionColorType = 'success' | 'warning' | 'error' | 'neutral';
 const DECISION_COLORS: Record<
   DecisionColorType,
@@ -83,15 +97,19 @@ const CRITERIA_HINTS: Record<Criterion, string> = {
   roadmap: 'Specific finals plans, room to grow, momentum',
 };
 
-// SDG track color mapping - centralized to avoid duplication
+// SDG track color mapping
 const SDG_COLORS: Record<number, { bg: string; border: string }> = {
-  4: { bg: '#FFF3E0', border: '#E65100' }, // Education - orange
-  11: { bg: '#E8F5E9', border: '#2E7D32' }, // Cities - green
-  13: { bg: '#E3F2FD', border: '#1565C0' }, // Climate - blue
+  4: { bg: '#FFF3E0', border: '#E65100' },
+  11: { bg: '#E8F5E9', border: '#2E7D32' },
+  13: { bg: '#E3F2FD', border: '#1565C0' },
 };
 const DEFAULT_SDG_COLOR = { bg: '#F5F5F5', border: '#666' };
 
 const getSDGColor = (sdg: number) => SDG_COLORS[sdg] ?? DEFAULT_SDG_COLOR;
+
+// Reviewer caps
+const PASS_1_MAX_REVIEWERS = 4;
+const PASS_2_MAX_REVIEWERS = 3;
 
 export default function JudgePortal() {
   const { user } = useHibiscusUser();
@@ -100,8 +118,12 @@ export default function JudgePortal() {
   const [submissions, setSubmissions] = useState<SubmissionForJudging[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
-  const [savingTeamId, setSavingTeamId] = useState<string | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [savingScore, setSavingScore] = useState(false);
+  const [savingFinalDecision, setSavingFinalDecision] = useState(false);
+
+  // Mobile view state
+  const [isMobileDetailView, setIsMobileDetailView] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -114,11 +136,7 @@ export default function JudgePortal() {
   const [sortField, setSortField] = useState<SortField>('teamName');
   const [sortAsc, setSortAsc] = useState(true);
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 25;
-
-  // Local edits for expanded row
+  // Local edits for scoring
   const [localScores, setLocalScores] = useState<Record<string, number | null>>(
     {}
   );
@@ -139,7 +157,7 @@ export default function JudgePortal() {
     }
   }, [user, router]);
 
-  // Debounce search query to avoid filtering on every keystroke
+  // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
@@ -174,199 +192,225 @@ export default function JudgePortal() {
     }
   }, [user, fetchSubmissions]);
 
-  // Check if there are unsaved changes for the currently expanded row
+  // Get current submission
+  const selectedSubmission = useMemo(
+    () => submissions.find((s) => s.teamId === selectedTeamId) || null,
+    [submissions, selectedTeamId]
+  );
+
+  // Check for unsaved changes
   const hasUnsavedChanges = useCallback(() => {
-    if (!expandedTeamId) return false;
+    if (!selectedSubmission) return false;
 
-    const sub = submissions.find((s) => s.teamId === expandedTeamId);
-    if (!sub) return false;
-
-    const notes = sub.judgingNotes;
-
-    // Final decision - only check decision changed
     if (activePass === 'final') {
-      const savedDecision = notes?.final_decision ?? null;
-      return localDecision !== savedDecision;
+      return localDecision !== selectedSubmission.finalDecision;
     }
 
-    const prefix = activePass === 1 ? 'pass_1' : 'pass_2';
+    const myScore =
+      activePass === 1
+        ? selectedSubmission.myPass1Score
+        : selectedSubmission.myPass2Score;
 
-    const savedScores = {
-      problem: notes?.[`${prefix}_problem` as keyof JudgingNotes] ?? null,
-      solution: notes?.[`${prefix}_solution` as keyof JudgingNotes] ?? null,
-      implementation:
-        notes?.[`${prefix}_implementation` as keyof JudgingNotes] ?? null,
-      roadmap: notes?.[`${prefix}_roadmap` as keyof JudgingNotes] ?? null,
-    };
-    const savedDecision = notes?.[prefix as keyof JudgingNotes] ?? null;
-    const savedNotes = notes?.[`${prefix}_notes` as keyof JudgingNotes] ?? '';
+    if (!myScore) {
+      // No existing score - any local data is unsaved
+      return (
+        Object.values(localScores).some((v) => v !== null) ||
+        localDecision !== null ||
+        localNotes !== ''
+      );
+    }
 
     const scoresChanged = CRITERIA.some(
-      (c) => localScores[c] !== savedScores[c]
+      (c) => localScores[c] !== myScore[c as keyof ReviewerScore]
     );
-    const decisionChanged = localDecision !== savedDecision;
-    const notesChanged = localNotes !== savedNotes;
+    const decisionChanged = localDecision !== myScore.decision;
+    const notesChanged = localNotes !== (myScore.notes || '');
 
     return scoresChanged || decisionChanged || notesChanged;
+  }, [selectedSubmission, activePass, localScores, localDecision, localNotes]);
+
+  // Load scores for selected team
+  const loadScoresForPass = useCallback(
+    (sub: SubmissionForJudging, pass: ActivePass) => {
+      if (pass === 'final') {
+        setLocalScores({});
+        setLocalDecision(sub.finalDecision as FinalDecision | null);
+        setLocalNotes('');
+        return;
+      }
+
+      const myScore = pass === 1 ? sub.myPass1Score : sub.myPass2Score;
+      if (myScore) {
+        setLocalScores({
+          problem: myScore.problem,
+          solution: myScore.solution,
+          implementation: myScore.implementation,
+          roadmap: myScore.roadmap,
+        });
+        setLocalDecision(
+          myScore.decision as Pass1Decision | Pass2Decision | null
+        );
+        setLocalNotes(myScore.notes || '');
+      } else {
+        setLocalScores({
+          problem: null,
+          solution: null,
+          implementation: null,
+          roadmap: null,
+        });
+        setLocalDecision(null);
+        setLocalNotes('');
+      }
+    },
+    []
+  );
+
+  // Handle team selection
+  const handleSelectTeam = useCallback(
+    (teamId: string) => {
+      if (selectedTeamId === teamId) return;
+
+      if (selectedTeamId && hasUnsavedChanges()) {
+        if (!confirm('You have unsaved changes. Discard them?')) {
+          return;
+        }
+      }
+
+      const sub = submissions.find((s) => s.teamId === teamId);
+      if (!sub) return;
+
+      setSelectedTeamId(teamId);
+      setActivePass(1);
+      loadScoresForPass(sub, 1);
+      setIsMobileDetailView(true);
+    },
+    [selectedTeamId, submissions, hasUnsavedChanges, loadScoresForPass]
+  );
+
+  // Handle pass switch
+  const handleSwitchPass = useCallback(
+    (pass: ActivePass) => {
+      if (!selectedSubmission) return;
+
+      // Check if can switch to pass 2 (needs at least one P1 review with decision)
+      if (pass === 2 && selectedSubmission.pass1.aggregate.reviewCount === 0) {
+        return;
+      }
+      // Check if can switch to final (needs at least one P2 review with decision)
+      if (
+        pass === 'final' &&
+        selectedSubmission.pass2.aggregate.reviewCount === 0
+      ) {
+        return;
+      }
+
+      if (hasUnsavedChanges()) {
+        if (!confirm('You have unsaved changes. Discard them?')) {
+          return;
+        }
+      }
+
+      setActivePass(pass);
+      loadScoresForPass(selectedSubmission, pass);
+    },
+    [selectedSubmission, hasUnsavedChanges, loadScoresForPass]
+  );
+
+  // Save score
+  const handleSaveScore = useCallback(async () => {
+    if (!selectedTeamId || activePass === 'final') return;
+
+    setSavingScore(true);
+    try {
+      const res = await fetch(`/api/judge/scores/${selectedTeamId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pass: activePass,
+          problem: localScores.problem,
+          solution: localScores.solution,
+          implementation: localScores.implementation,
+          roadmap: localScores.roadmap,
+          decision: localDecision,
+          notes: localNotes || null,
+        }),
+      });
+
+      if (res.status === 409) {
+        const data = await res.json();
+        alert(data.message || 'Cannot add more reviewers to this pass.');
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error('Failed to save score');
+      }
+
+      await fetchSubmissions();
+    } catch (e) {
+      console.error('Save error:', e);
+      alert('Failed to save score');
+    } finally {
+      setSavingScore(false);
+    }
   }, [
-    expandedTeamId,
-    submissions,
+    selectedTeamId,
     activePass,
     localScores,
     localDecision,
     localNotes,
+    fetchSubmissions,
   ]);
 
-  // Close the expanded row, with optional unsaved changes check
-  const handleClose = useCallback(() => {
+  // Save final decision
+  const handleSaveFinalDecision = useCallback(async () => {
+    if (!selectedTeamId || activePass !== 'final') return;
+
+    setSavingFinalDecision(true);
+    try {
+      const res = await fetch(`/api/judge/notes/${selectedTeamId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          final_decision: localDecision,
+        }),
+      });
+
+      if (res.status === 409) {
+        const data = await res.json();
+        alert(data.message || 'Conflict detected. Please refresh.');
+        await fetchSubmissions();
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error('Failed to save final decision');
+      }
+
+      await fetchSubmissions();
+    } catch (e) {
+      console.error('Save error:', e);
+      alert('Failed to save final decision');
+    } finally {
+      setSavingFinalDecision(false);
+    }
+  }, [selectedTeamId, activePass, localDecision, fetchSubmissions]);
+
+  // Handle back button on mobile
+  const handleBackToList = useCallback(() => {
     if (hasUnsavedChanges()) {
       if (!confirm('You have unsaved changes. Discard them?')) {
         return;
       }
     }
-    setExpandedTeamId(null);
+    setIsMobileDetailView(false);
   }, [hasUnsavedChanges]);
 
-  // When expanding a row, load its current values
-  const handleExpand = (teamId: string) => {
-    if (expandedTeamId === teamId) {
-      handleClose();
-      return;
-    }
-
-    // If switching to a different row with unsaved changes, confirm
-    if (expandedTeamId && hasUnsavedChanges()) {
-      if (!confirm('You have unsaved changes. Discard them?')) {
-        return;
-      }
-    }
-
-    const sub = submissions.find((s) => s.teamId === teamId);
-    if (!sub) return;
-
-    setExpandedTeamId(teamId);
-    setActivePass(1);
-
-    // Load pass 1 scores
-    const notes = sub.judgingNotes;
-    setLocalScores({
-      problem: notes?.pass_1_problem ?? null,
-      solution: notes?.pass_1_solution ?? null,
-      implementation: notes?.pass_1_implementation ?? null,
-      roadmap: notes?.pass_1_roadmap ?? null,
-    });
-    setLocalDecision(notes?.pass_1 ?? null);
-    setLocalNotes(notes?.pass_1_notes ?? '');
-  };
-
-  // Switch between pass 1 and pass 2
-  const handleSwitchPass = (pass: ActivePass) => {
-    if (!expandedTeamId) return;
-
-    const sub = submissions.find((s) => s.teamId === expandedTeamId);
-    if (!sub) return;
-
-    // Can't switch to pass 2 if pass 1 isn't complete
-    if (pass === 2 && !sub.judgingNotes?.pass_1) return;
-    // Can't switch to final if pass 2 isn't complete
-    if (pass === 'final' && !sub.judgingNotes?.pass_2) return;
-
-    setActivePass(pass);
-    const notes = sub.judgingNotes;
-
-    if (pass === 1) {
-      setLocalScores({
-        problem: notes?.pass_1_problem ?? null,
-        solution: notes?.pass_1_solution ?? null,
-        implementation: notes?.pass_1_implementation ?? null,
-        roadmap: notes?.pass_1_roadmap ?? null,
-      });
-      setLocalDecision(notes?.pass_1 ?? null);
-      setLocalNotes(notes?.pass_1_notes ?? '');
-    } else if (pass === 2) {
-      setLocalScores({
-        problem: notes?.pass_2_problem ?? null,
-        solution: notes?.pass_2_solution ?? null,
-        implementation: notes?.pass_2_implementation ?? null,
-        roadmap: notes?.pass_2_roadmap ?? null,
-      });
-      setLocalDecision(notes?.pass_2 ?? null);
-      setLocalNotes(notes?.pass_2_notes ?? '');
-    } else {
-      // Final decision - no scores, just decision
-      setLocalScores({});
-      setLocalDecision(notes?.final_decision ?? null);
-      setLocalNotes('');
-    }
-  };
-
-  // Save scores
-  const handleSave = async () => {
-    if (!expandedTeamId) return;
-
-    setSavingTeamId(expandedTeamId);
-
-    const sub = submissions.find((s) => s.teamId === expandedTeamId);
-    let payload: Record<string, unknown>;
-
-    if (activePass === 'final') {
-      // Final decision - just the decision, no scores
-      payload = {
-        final_decision: localDecision,
-        expected_updated_at: sub?.judgingNotes?.updated_at ?? null,
-      };
-    } else {
-      const prefix = activePass === 1 ? 'pass_1' : 'pass_2';
-      payload = {
-        [`${prefix}_problem`]: localScores.problem,
-        [`${prefix}_solution`]: localScores.solution,
-        [`${prefix}_implementation`]: localScores.implementation,
-        [`${prefix}_roadmap`]: localScores.roadmap,
-        [`${prefix}_notes`]: localNotes || null,
-        [prefix]: localDecision,
-        // Optimistic locking: send the updated_at we last saw
-        expected_updated_at: sub?.judgingNotes?.updated_at ?? null,
-      };
-    }
-
-    try {
-      const res = await fetch(`/api/judge/notes/${expandedTeamId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.status === 409) {
-        // Another judge updated this record
-        const data = await res.json();
-        alert(
-          data.message ||
-            'Another judge has updated this record. Please refresh.'
-        );
-        await fetchSubmissions();
-        setExpandedTeamId(null);
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error('Failed to save');
-      }
-
-      // Refresh data
-      await fetchSubmissions();
-    } catch (e) {
-      console.error('Save error:', e);
-      alert('Failed to save notes');
-    } finally {
-      setSavingTeamId(null);
-    }
-  };
-
-  // Filter and sort
+  // Filter and sort submissions
   const filteredSubmissions = useMemo(() => {
     let result = [...submissions];
 
-    // Search filter (uses debounced value for performance)
+    // Search filter
     if (debouncedSearchQuery) {
       const q = debouncedSearchQuery.toLowerCase();
       result = result.filter(
@@ -391,29 +435,39 @@ export default function JudgePortal() {
     // Pass 1 filter
     if (pass1Filter !== 'all') {
       if (pass1Filter === 'unreviewed') {
-        result = result.filter((s) => !s.judgingNotes?.pass_1);
+        result = result.filter((s) => s.pass1.aggregate.reviewCount === 0);
+      } else if (pass1Filter === 'needs_reviews') {
+        result = result.filter(
+          (s) => s.pass1.aggregate.reviewCount < PASS_1_MAX_REVIEWERS
+        );
       } else {
-        result = result.filter((s) => s.judgingNotes?.pass_1 === pass1Filter);
+        result = result.filter(
+          (s) => s.pass1.aggregate.consensus === pass1Filter
+        );
       }
     }
 
     // Pass 2 filter
     if (pass2Filter !== 'all') {
       if (pass2Filter === 'unreviewed') {
-        result = result.filter((s) => !s.judgingNotes?.pass_2);
+        result = result.filter((s) => s.pass2.aggregate.reviewCount === 0);
+      } else if (pass2Filter === 'needs_reviews') {
+        result = result.filter(
+          (s) => s.pass2.aggregate.reviewCount < PASS_2_MAX_REVIEWERS
+        );
       } else {
-        result = result.filter((s) => s.judgingNotes?.pass_2 === pass2Filter);
+        result = result.filter(
+          (s) => s.pass2.aggregate.consensus === pass2Filter
+        );
       }
     }
 
     // Final decision filter
     if (finalFilter !== 'all') {
       if (finalFilter === 'unreviewed') {
-        result = result.filter((s) => !s.judgingNotes?.final_decision);
+        result = result.filter((s) => !s.finalDecision);
       } else {
-        result = result.filter(
-          (s) => s.judgingNotes?.final_decision === finalFilter
-        );
+        result = result.filter((s) => s.finalDecision === finalFilter);
       }
     }
 
@@ -429,6 +483,12 @@ export default function JudgePortal() {
           break;
         case 'pass2Avg':
           cmp = (a.pass2Avg ?? -1) - (b.pass2Avg ?? -1);
+          break;
+        case 'p1ReviewCount':
+          cmp = a.pass1.aggregate.reviewCount - b.pass1.aggregate.reviewCount;
+          break;
+        case 'p2ReviewCount':
+          cmp = a.pass2.aggregate.reviewCount - b.pass2.aggregate.reviewCount;
           break;
       }
       return sortAsc ? cmp : -cmp;
@@ -447,40 +507,60 @@ export default function JudgePortal() {
     sortAsc,
   ]);
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [
-    debouncedSearchQuery,
-    pass1Filter,
-    pass2Filter,
-    finalFilter,
-    trackFilter,
-    hardwareFilter,
-    sortField,
-    sortAsc,
-  ]);
+  // Keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (!filteredSubmissions.length) return;
 
-  // Paginate filtered results
-  const totalPages = Math.ceil(filteredSubmissions.length / ITEMS_PER_PAGE);
-  const paginatedSubmissions = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredSubmissions.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredSubmissions, currentPage, ITEMS_PER_PAGE]);
+      const currentIndex = filteredSubmissions.findIndex(
+        (s) => s.teamId === selectedTeamId
+      );
+
+      if (e.key === 'ArrowDown' || e.key === 'j') {
+        e.preventDefault();
+        const nextIndex = Math.min(
+          currentIndex + 1,
+          filteredSubmissions.length - 1
+        );
+        if (nextIndex !== currentIndex) {
+          handleSelectTeam(filteredSubmissions[nextIndex].teamId);
+        }
+      } else if (e.key === 'ArrowUp' || e.key === 'k') {
+        e.preventDefault();
+        const prevIndex = Math.max(currentIndex - 1, 0);
+        if (prevIndex !== currentIndex) {
+          handleSelectTeam(filteredSubmissions[prevIndex].teamId);
+        }
+      }
+    },
+    [filteredSubmissions, selectedTeamId, handleSelectTeam]
+  );
 
   // Stats
   const stats = useMemo(() => {
     const total = submissions.length;
-    const p1Reviewed = submissions.filter((s) => s.judgingNotes?.pass_1).length;
-    const p1Yes = submissions.filter(
-      (s) => s.judgingNotes?.pass_1 === 'yes'
+    const p1Reviewed = submissions.filter(
+      (s) => s.pass1.aggregate.reviewCount > 0
     ).length;
-    const p2Reviewed = submissions.filter((s) => s.judgingNotes?.pass_2).length;
+    const p1Complete = submissions.filter(
+      (s) => s.pass1.aggregate.reviewCount >= PASS_1_MAX_REVIEWERS
+    ).length;
+    const p2Reviewed = submissions.filter(
+      (s) => s.pass2.aggregate.reviewCount > 0
+    ).length;
     const finalists = submissions.filter(
-      (s) => s.judgingNotes?.final_decision === 'finalist'
+      (s) => s.finalDecision === 'finalist'
     ).length;
-    return { total, p1Reviewed, p1Yes, p2Reviewed, finalists };
+    return { total, p1Reviewed, p1Complete, p2Reviewed, finalists };
   }, [submissions]);
+
+  // Auto-select first team if none selected
+  useEffect(() => {
+    if (!selectedTeamId && filteredSubmissions.length > 0 && !loading) {
+      handleSelectTeam(filteredSubmissions[0].teamId);
+      setIsMobileDetailView(false); // Don't auto-navigate on mobile
+    }
+  }, [filteredSubmissions, selectedTeamId, loading, handleSelectTeam]);
 
   if (!user) {
     return <PageContainer>Loading...</PageContainer>;
@@ -502,310 +582,506 @@ export default function JudgePortal() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer onKeyDown={handleKeyDown} tabIndex={0}>
       <Header>
         <Title>JUDGE PORTAL</Title>
         <StatsRow>
           <StatBadge>Total: {stats.total}</StatBadge>
           <StatBadge>
-            P1 Reviewed: {stats.p1Reviewed}/{stats.total}
+            P1: {stats.p1Reviewed}/{stats.total} ({stats.p1Complete} complete)
           </StatBadge>
-          <StatBadge>P1 Yes: {stats.p1Yes}</StatBadge>
-          <StatBadge>P2 Reviewed: {stats.p2Reviewed}</StatBadge>
+          <StatBadge>P2: {stats.p2Reviewed}</StatBadge>
           <StatBadge>Finalists: {stats.finalists}</StatBadge>
         </StatsRow>
       </Header>
 
-      <FiltersRow>
-        <SearchWrapper>
-          <NeoInput
-            placeholder="Search team or project..."
-            value={searchQuery}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setSearchQuery(e.target.value)
-            }
-          />
-        </SearchWrapper>
+      <SplitContainer>
+        {/* Team List Panel */}
+        <ListPanel $showOnMobile={!isMobileDetailView}>
+          <FiltersSection>
+            <SearchWrapper>
+              <NeoInput
+                placeholder="Search team or project..."
+                value={searchQuery}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setSearchQuery(e.target.value)
+                }
+              />
+            </SearchWrapper>
 
-        <FilterGroup>
-          <FilterLabel>Track:</FilterLabel>
-          <Select
-            value={trackFilter}
-            onChange={(e) =>
-              setTrackFilter(
-                e.target.value === 'all' ? 'all' : Number(e.target.value)
-              )
-            }
-          >
-            <option value="all">All</option>
-            <option value="4">SDG 4 - Education</option>
-            <option value="11">SDG 11 - Cities</option>
-            <option value="13">SDG 13 - Climate</option>
-          </Select>
-        </FilterGroup>
-
-        <FilterGroup>
-          <FilterLabel>Type:</FilterLabel>
-          <Select
-            value={hardwareFilter}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === 'all' || val === 'hardware' || val === 'software') {
-                setHardwareFilter(val);
-              }
-            }}
-          >
-            <option value="all">All</option>
-            <option value="hardware">Hardware</option>
-            <option value="software">Software</option>
-          </Select>
-        </FilterGroup>
-
-        <FilterGroup>
-          <FilterLabel>P1:</FilterLabel>
-          <Select
-            value={pass1Filter}
-            onChange={(e) => setPass1Filter(e.target.value as FilterStatus)}
-          >
-            <option value="all">All</option>
-            <option value="unreviewed">Unreviewed</option>
-            <option value="yes">Yes</option>
-            <option value="maybe">Maybe</option>
-            <option value="no">No</option>
-          </Select>
-        </FilterGroup>
-
-        <FilterGroup>
-          <FilterLabel>P2:</FilterLabel>
-          <Select
-            value={pass2Filter}
-            onChange={(e) => setPass2Filter(e.target.value as FilterStatus)}
-          >
-            <option value="all">All</option>
-            <option value="unreviewed">Unreviewed</option>
-            <option value="yes">Yes</option>
-            <option value="waitlist">Waitlist</option>
-            <option value="no">No</option>
-          </Select>
-        </FilterGroup>
-
-        <FilterGroup>
-          <FilterLabel>Final:</FilterLabel>
-          <Select
-            value={finalFilter}
-            onChange={(e) =>
-              setFinalFilter(e.target.value as FinalFilterStatus)
-            }
-          >
-            <option value="all">All</option>
-            <option value="unreviewed">Unreviewed</option>
-            <option value="finalist">Finalist</option>
-            <option value="waitlist">Waitlist</option>
-            <option value="not_selected">Not Selected</option>
-          </Select>
-        </FilterGroup>
-
-        <FilterGroup>
-          <FilterLabel>Sort:</FilterLabel>
-          <Select
-            value={sortField}
-            onChange={(e) => setSortField(e.target.value as SortField)}
-          >
-            <option value="teamName">Team Name</option>
-            <option value="pass1Avg">P1 Average</option>
-            <option value="pass2Avg">P2 Average</option>
-          </Select>
-          <SortButton onClick={() => setSortAsc(!sortAsc)}>
-            {sortAsc ? '↑' : '↓'}
-          </SortButton>
-        </FilterGroup>
-      </FiltersRow>
-
-      <TableContainer>
-        <Table>
-          <thead>
-            <tr>
-              <Th style={{ width: '40px' }}></Th>
-              <Th>Team</Th>
-              <Th>Project</Th>
-              <Th>Track</Th>
-              <Th>P1 Avg</Th>
-              <Th>P1 Decision</Th>
-              <Th>P2 Avg</Th>
-              <Th>P2 Decision</Th>
-              <Th>Final</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedSubmissions.map((sub) => (
-              <React.Fragment key={sub.teamId}>
-                <TableRow
-                  onClick={() => handleExpand(sub.teamId)}
-                  $expanded={expandedTeamId === sub.teamId}
+            <FilterRow>
+              <FilterGroup>
+                <FilterLabel>Track:</FilterLabel>
+                <Select
+                  value={trackFilter}
+                  onChange={(e) =>
+                    setTrackFilter(
+                      e.target.value === 'all' ? 'all' : Number(e.target.value)
+                    )
+                  }
                 >
-                  <Td>{expandedTeamId === sub.teamId ? '▼' : '▶'}</Td>
-                  <Td>{sub.teamName}</Td>
-                  <Td>{sub.projectTitle || '-'}</Td>
-                  <Td>
-                    {sub.track ? (
-                      <TrackBadge $sdg={sub.track.sdgNumber}>
-                        SDG {sub.track.sdgNumber}
-                      </TrackBadge>
-                    ) : (
-                      '-'
-                    )}
-                  </Td>
-                  <Td>
-                    {sub.pass1Avg !== null ? sub.pass1Avg.toFixed(1) : '-'}
-                  </Td>
-                  <Td>
-                    <DecisionBadge $decision={sub.judgingNotes?.pass_1 ?? null}>
-                      {sub.judgingNotes?.pass_1 ?? '-'}
-                    </DecisionBadge>
-                  </Td>
-                  <Td>
-                    {sub.pass2Avg !== null ? sub.pass2Avg.toFixed(1) : '-'}
-                  </Td>
-                  <Td>
-                    <DecisionBadge $decision={sub.judgingNotes?.pass_2 ?? null}>
-                      {sub.judgingNotes?.pass_2 ?? '-'}
-                    </DecisionBadge>
-                  </Td>
-                  <Td>
-                    <FinalBadge
-                      $decision={sub.judgingNotes?.final_decision ?? null}
+                  <option value="all">All</option>
+                  <option value="4">SDG 4</option>
+                  <option value="11">SDG 11</option>
+                  <option value="13">SDG 13</option>
+                </Select>
+              </FilterGroup>
+
+              <FilterGroup>
+                <FilterLabel>Type:</FilterLabel>
+                <Select
+                  value={hardwareFilter}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (
+                      val === 'all' ||
+                      val === 'hardware' ||
+                      val === 'software'
+                    ) {
+                      setHardwareFilter(val);
+                    }
+                  }}
+                >
+                  <option value="all">All</option>
+                  <option value="hardware">HW</option>
+                  <option value="software">SW</option>
+                </Select>
+              </FilterGroup>
+            </FilterRow>
+
+            <FilterRow>
+              <FilterGroup>
+                <FilterLabel>P1:</FilterLabel>
+                <Select
+                  value={pass1Filter}
+                  onChange={(e) =>
+                    setPass1Filter(e.target.value as FilterStatus)
+                  }
+                >
+                  <option value="all">All</option>
+                  <option value="needs_reviews">Needs Reviews</option>
+                  <option value="unreviewed">Unreviewed</option>
+                  <option value="yes">Yes</option>
+                  <option value="maybe">Maybe</option>
+                  <option value="no">No</option>
+                </Select>
+              </FilterGroup>
+
+              <FilterGroup>
+                <FilterLabel>P2:</FilterLabel>
+                <Select
+                  value={pass2Filter}
+                  onChange={(e) =>
+                    setPass2Filter(e.target.value as FilterStatus)
+                  }
+                >
+                  <option value="all">All</option>
+                  <option value="needs_reviews">Needs Reviews</option>
+                  <option value="unreviewed">Unreviewed</option>
+                  <option value="yes">Yes</option>
+                  <option value="waitlist">Waitlist</option>
+                  <option value="no">No</option>
+                </Select>
+              </FilterGroup>
+
+              <FilterGroup>
+                <FilterLabel>Final:</FilterLabel>
+                <Select
+                  value={finalFilter}
+                  onChange={(e) =>
+                    setFinalFilter(e.target.value as FinalFilterStatus)
+                  }
+                >
+                  <option value="all">All</option>
+                  <option value="unreviewed">Unreviewed</option>
+                  <option value="finalist">Finalist</option>
+                  <option value="waitlist">Waitlist</option>
+                  <option value="not_selected">Not Selected</option>
+                </Select>
+              </FilterGroup>
+            </FilterRow>
+
+            <FilterRow>
+              <FilterGroup>
+                <FilterLabel>Sort:</FilterLabel>
+                <Select
+                  value={sortField}
+                  onChange={(e) => setSortField(e.target.value as SortField)}
+                >
+                  <option value="teamName">Name</option>
+                  <option value="pass1Avg">P1 Avg</option>
+                  <option value="pass2Avg">P2 Avg</option>
+                  <option value="p1ReviewCount">P1 Reviews</option>
+                  <option value="p2ReviewCount">P2 Reviews</option>
+                </Select>
+                <SortButton onClick={() => setSortAsc(!sortAsc)}>
+                  {sortAsc ? '↑' : '↓'}
+                </SortButton>
+              </FilterGroup>
+            </FilterRow>
+          </FiltersSection>
+
+          <TeamList>
+            {filteredSubmissions.length === 0 ? (
+              <EmptyState>No submissions match your filters</EmptyState>
+            ) : (
+              filteredSubmissions.map((sub) => (
+                <TeamListItem
+                  key={sub.teamId}
+                  $selected={selectedTeamId === sub.teamId}
+                  onClick={() => handleSelectTeam(sub.teamId)}
+                >
+                  <TeamInfo>
+                    <TeamName>{sub.teamName}</TeamName>
+                    <TeamMeta>
+                      {sub.track && (
+                        <TrackBadge $sdg={sub.track.sdgNumber}>
+                          SDG {sub.track.sdgNumber}
+                        </TrackBadge>
+                      )}
+                      {sub.isHardware && <HWBadge>HW</HWBadge>}
+                    </TeamMeta>
+                  </TeamInfo>
+                  <ScoreSummary>
+                    <PassSummary>
+                      <PassLabel>P1</PassLabel>
+                      <ReviewCount
+                        $complete={
+                          sub.pass1.aggregate.reviewCount >=
+                          PASS_1_MAX_REVIEWERS
+                        }
+                      >
+                        {sub.pass1.aggregate.reviewCount}/{PASS_1_MAX_REVIEWERS}
+                      </ReviewCount>
+                      {sub.pass1Avg !== null && (
+                        <AvgScore>{sub.pass1Avg.toFixed(1)}</AvgScore>
+                      )}
+                      <ConsensusBadge $decision={sub.pass1.aggregate.consensus}>
+                        {sub.pass1.aggregate.consensus || '-'}
+                      </ConsensusBadge>
+                    </PassSummary>
+                    <PassSummary>
+                      <PassLabel>P2</PassLabel>
+                      <ReviewCount
+                        $complete={
+                          sub.pass2.aggregate.reviewCount >=
+                          PASS_2_MAX_REVIEWERS
+                        }
+                      >
+                        {sub.pass2.aggregate.reviewCount}/{PASS_2_MAX_REVIEWERS}
+                      </ReviewCount>
+                      {sub.pass2Avg !== null && (
+                        <AvgScore>{sub.pass2Avg.toFixed(1)}</AvgScore>
+                      )}
+                      <ConsensusBadge $decision={sub.pass2.aggregate.consensus}>
+                        {sub.pass2.aggregate.consensus || '-'}
+                      </ConsensusBadge>
+                    </PassSummary>
+                  </ScoreSummary>
+                </TeamListItem>
+              ))
+            )}
+          </TeamList>
+
+          <ListFooter>
+            Showing {filteredSubmissions.length} of {submissions.length} teams
+          </ListFooter>
+        </ListPanel>
+
+        {/* Detail Panel */}
+        <DetailPanel $showOnMobile={isMobileDetailView}>
+          {selectedSubmission ? (
+            <>
+              <DetailHeader>
+                <BackButton onClick={handleBackToList}>← Back</BackButton>
+                <DetailTitle>
+                  {selectedSubmission.teamName}
+                  {selectedSubmission.projectTitle && (
+                    <ProjectTitle>
+                      {' '}
+                      - {selectedSubmission.projectTitle}
+                    </ProjectTitle>
+                  )}
+                </DetailTitle>
+                <DetailMeta>
+                  {selectedSubmission.track && (
+                    <TrackBadge $sdg={selectedSubmission.track.sdgNumber}>
+                      SDG {selectedSubmission.track.sdgNumber} -{' '}
+                      {selectedSubmission.track.name}
+                    </TrackBadge>
+                  )}
+                  {selectedSubmission.isHardware && (
+                    <HardwareBadge>HARDWARE PROJECT</HardwareBadge>
+                  )}
+                </DetailMeta>
+              </DetailHeader>
+
+              <LinksSection>
+                <SectionTitle>Submission Links</SectionTitle>
+                <LinksGrid>
+                  {selectedSubmission.submission?.githubUrl && (
+                    <LinkButton
+                      href={selectedSubmission.submission.githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      {sub.judgingNotes?.final_decision?.replace('_', ' ') ??
-                        '-'}
-                    </FinalBadge>
-                  </Td>
-                </TableRow>
+                      GitHub
+                    </LinkButton>
+                  )}
+                  {selectedSubmission.submission?.youtubeUrl && (
+                    <LinkButton
+                      href={selectedSubmission.submission.youtubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Video
+                    </LinkButton>
+                  )}
+                  {selectedSubmission.submission?.liveUrl && (
+                    <LinkButton
+                      href={selectedSubmission.submission.liveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Demo
+                    </LinkButton>
+                  )}
+                  {selectedSubmission.submission?.pdfUrl && (
+                    <LinkButton
+                      href={selectedSubmission.submission.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      PDF
+                    </LinkButton>
+                  )}
+                  {selectedSubmission.submission?.hwBomUrl && (
+                    <LinkButton
+                      href={selectedSubmission.submission.hwBomUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      BOM
+                    </LinkButton>
+                  )}
+                </LinksGrid>
+              </LinksSection>
 
-                {expandedTeamId === sub.teamId && (
-                  <ExpandedRow>
-                    <ExpandedCell colSpan={9}>
-                      <ExpandedContent>
-                        <LinksSection>
-                          <SectionTitle>Submission Links</SectionTitle>
-                          <LinksGrid>
-                            {sub.submission?.githubUrl && (
-                              <LinkButton
-                                href={sub.submission.githubUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                GitHub
-                              </LinkButton>
-                            )}
-                            {sub.submission?.youtubeUrl && (
-                              <LinkButton
-                                href={sub.submission.youtubeUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                Video
-                              </LinkButton>
-                            )}
-                            {sub.submission?.liveUrl && (
-                              <LinkButton
-                                href={sub.submission.liveUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                Demo
-                              </LinkButton>
-                            )}
-                            {sub.submission?.pdfUrl && (
-                              <LinkButton
-                                href={sub.submission.pdfUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                PDF
-                              </LinkButton>
-                            )}
-                            {sub.submission?.hwBomUrl && (
-                              <LinkButton
-                                href={sub.submission.hwBomUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                BOM
-                              </LinkButton>
-                            )}
-                          </LinksGrid>
-                          {sub.isHardware && (
-                            <HardwareBadge>HARDWARE PROJECT</HardwareBadge>
-                          )}
-                        </LinksSection>
+              <PassTabs>
+                <PassTab
+                  $active={activePass === 1}
+                  onClick={() => handleSwitchPass(1)}
+                >
+                  Pass 1 ({selectedSubmission.pass1.aggregate.reviewCount}/
+                  {PASS_1_MAX_REVIEWERS})
+                </PassTab>
+                <PassTab
+                  $active={activePass === 2}
+                  $disabled={
+                    selectedSubmission.pass1.aggregate.reviewCount === 0
+                  }
+                  onClick={() => handleSwitchPass(2)}
+                >
+                  Pass 2 ({selectedSubmission.pass2.aggregate.reviewCount}/
+                  {PASS_2_MAX_REVIEWERS})
+                </PassTab>
+                <PassTab
+                  $active={activePass === 'final'}
+                  $disabled={
+                    selectedSubmission.pass2.aggregate.reviewCount === 0
+                  }
+                  onClick={() => handleSwitchPass('final')}
+                >
+                  Final
+                </PassTab>
+              </PassTabs>
 
-                        <ScoringSection>
-                          <PassTabs>
-                            <PassTab
-                              $active={activePass === 1}
-                              onClick={() => handleSwitchPass(1)}
+              <ScoringContent>
+                {activePass !== 'final' && (
+                  <>
+                    {/* All Reviewers' Scores */}
+                    <ReviewersSection>
+                      <SectionTitle>
+                        All Reviews (
+                        {activePass === 1
+                          ? selectedSubmission.pass1.aggregate.reviewCount
+                          : selectedSubmission.pass2.aggregate.reviewCount}
+                        /
+                        {activePass === 1
+                          ? PASS_1_MAX_REVIEWERS
+                          : PASS_2_MAX_REVIEWERS}
+                        )
+                      </SectionTitle>
+                      <ReviewersList>
+                        {(activePass === 1
+                          ? selectedSubmission.pass1.scores
+                          : selectedSubmission.pass2.scores
+                        ).map((score, idx) => (
+                          <ReviewerCard
+                            key={score.judgeId || idx}
+                            $isMe={score.judgeId === user?.userId}
+                          >
+                            <ReviewerName>
+                              {score.judgeName || 'Unknown'}
+                              {score.judgeId === user?.userId && ' (You)'}
+                            </ReviewerName>
+                            <ReviewerScores>
+                              <ScorePill>P: {score.problem ?? '-'}</ScorePill>
+                              <ScorePill>S: {score.solution ?? '-'}</ScorePill>
+                              <ScorePill>
+                                I: {score.implementation ?? '-'}
+                              </ScorePill>
+                              <ScorePill>R: {score.roadmap ?? '-'}</ScorePill>
+                              <ScorePill $highlight>
+                                Avg: {score.avgScore?.toFixed(1) ?? '-'}
+                              </ScorePill>
+                            </ReviewerScores>
+                            <ReviewerDecision $decision={score.decision}>
+                              {score.decision || 'No decision'}
+                            </ReviewerDecision>
+                            {score.notes && (
+                              <ReviewerNotes>{score.notes}</ReviewerNotes>
+                            )}
+                          </ReviewerCard>
+                        ))}
+                        {(activePass === 1
+                          ? selectedSubmission.pass1.scores
+                          : selectedSubmission.pass2.scores
+                        ).length === 0 && (
+                          <EmptyReviews>No reviews yet</EmptyReviews>
+                        )}
+                      </ReviewersList>
+
+                      {/* Aggregate */}
+                      {(activePass === 1
+                        ? selectedSubmission.pass1
+                        : selectedSubmission.pass2
+                      ).aggregate.reviewCount > 0 && (
+                        <AggregateSection>
+                          <AggregateTitle>Aggregate</AggregateTitle>
+                          <AggregateScores>
+                            <ScorePill>
+                              P:{' '}
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.avgProblem?.toFixed(1) ?? '-'}
+                            </ScorePill>
+                            <ScorePill>
+                              S:{' '}
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.avgSolution?.toFixed(1) ?? '-'}
+                            </ScorePill>
+                            <ScorePill>
+                              I:{' '}
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.avgImplementation?.toFixed(1) ?? '-'}
+                            </ScorePill>
+                            <ScorePill>
+                              R:{' '}
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.avgRoadmap?.toFixed(1) ?? '-'}
+                            </ScorePill>
+                            <ScorePill $highlight>
+                              Total:{' '}
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.avgTotal?.toFixed(1) ?? '-'}
+                            </ScorePill>
+                          </AggregateScores>
+                          <ConsensusDisplay>
+                            <ConsensusLabel>Consensus:</ConsensusLabel>
+                            <ConsensusBadge
+                              $decision={
+                                (activePass === 1
+                                  ? selectedSubmission.pass1
+                                  : selectedSubmission.pass2
+                                ).aggregate.consensus
+                              }
+                              $large
                             >
-                              Pass 1
-                            </PassTab>
-                            {sub.judgingNotes?.pass_1 && (
-                              <PassTab
-                                $active={activePass === 2}
-                                onClick={() => handleSwitchPass(2)}
-                              >
-                                Pass 2
-                              </PassTab>
-                            )}
-                            {sub.judgingNotes?.pass_2 && (
-                              <PassTab
-                                $active={activePass === 'final'}
-                                onClick={() => handleSwitchPass('final')}
-                              >
-                                Final
-                              </PassTab>
-                            )}
-                          </PassTabs>
-
-                          {activePass !== 'final' && (
-                            <ScoresGrid>
-                              {CRITERIA.map((criterion) => (
-                                <ScoreRow key={criterion}>
-                                  <ScoreLabel>
-                                    <strong>
-                                      {CRITERIA_LABELS[criterion]}
-                                    </strong>
-                                    <ScoreHint>
-                                      {CRITERIA_HINTS[criterion]}
-                                    </ScoreHint>
-                                  </ScoreLabel>
-                                  <ScoreButtons>
-                                    {[1, 2, 3, 4, 5].map((score) => (
-                                      <ScoreButton
-                                        key={score}
-                                        $selected={
-                                          localScores[criterion] === score
-                                        }
-                                        onClick={() =>
-                                          setLocalScores((prev) => ({
-                                            ...prev,
-                                            [criterion]: score,
-                                          }))
-                                        }
-                                      >
-                                        {score}
-                                      </ScoreButton>
-                                    ))}
-                                  </ScoreButtons>
-                                </ScoreRow>
+                              {(activePass === 1
+                                ? selectedSubmission.pass1
+                                : selectedSubmission.pass2
+                              ).aggregate.consensus || 'N/A'}
+                            </ConsensusBadge>
+                            <VoteBreakdown>
+                              {Object.entries(
+                                (activePass === 1
+                                  ? selectedSubmission.pass1
+                                  : selectedSubmission.pass2
+                                ).aggregate.decisions
+                              ).map(([decision, count]) => (
+                                <VoteCount key={decision} $decision={decision}>
+                                  {decision}: {count}
+                                </VoteCount>
                               ))}
-                            </ScoresGrid>
-                          )}
+                            </VoteBreakdown>
+                          </ConsensusDisplay>
+                        </AggregateSection>
+                      )}
+                    </ReviewersSection>
+
+                    {/* Your Scores Form */}
+                    <YourScoresSection>
+                      <SectionTitle>Your Scores</SectionTitle>
+                      {(activePass === 1
+                        ? selectedSubmission.pass1.aggregate.reviewCount >=
+                          PASS_1_MAX_REVIEWERS
+                        : selectedSubmission.pass2.aggregate.reviewCount >=
+                          PASS_2_MAX_REVIEWERS) &&
+                      !(activePass === 1
+                        ? selectedSubmission.myPass1Score
+                        : selectedSubmission.myPass2Score) ? (
+                        <CapReached>
+                          This pass has reached its maximum reviewer count (
+                          {activePass === 1
+                            ? PASS_1_MAX_REVIEWERS
+                            : PASS_2_MAX_REVIEWERS}
+                          ).
+                        </CapReached>
+                      ) : (
+                        <>
+                          <ScoresGrid>
+                            {CRITERIA.map((criterion) => (
+                              <ScoreRow key={criterion}>
+                                <ScoreLabel>
+                                  <strong>{CRITERIA_LABELS[criterion]}</strong>
+                                  <ScoreHint>
+                                    {CRITERIA_HINTS[criterion]}
+                                  </ScoreHint>
+                                </ScoreLabel>
+                                <ScoreButtons>
+                                  {[1, 2, 3, 4, 5].map((score) => (
+                                    <ScoreButton
+                                      key={score}
+                                      $selected={
+                                        localScores[criterion] === score
+                                      }
+                                      onClick={() =>
+                                        setLocalScores((prev) => ({
+                                          ...prev,
+                                          [criterion]: score,
+                                        }))
+                                      }
+                                    >
+                                      {score}
+                                    </ScoreButton>
+                                  ))}
+                                </ScoreButtons>
+                              </ScoreRow>
+                            ))}
+                          </ScoresGrid>
 
                           <DecisionRow>
-                            <DecisionLabel>
-                              {activePass === 'final'
-                                ? 'Final Decision:'
-                                : 'Decision:'}
-                            </DecisionLabel>
+                            <DecisionLabel>Decision:</DecisionLabel>
                             <DecisionButtons>
                               {activePass === 1 ? (
                                 <>
@@ -831,7 +1107,7 @@ export default function JudgePortal() {
                                     No
                                   </DecisionBtn>
                                 </>
-                              ) : activePass === 2 ? (
+                              ) : (
                                 <>
                                   <DecisionBtn
                                     $variant="yes"
@@ -855,202 +1131,239 @@ export default function JudgePortal() {
                                     No
                                   </DecisionBtn>
                                 </>
-                              ) : (
-                                <>
-                                  <FinalDecisionBtn
-                                    $variant="finalist"
-                                    $selected={localDecision === 'finalist'}
-                                    onClick={() => setLocalDecision('finalist')}
-                                  >
-                                    🏆 Finalist
-                                  </FinalDecisionBtn>
-                                  <FinalDecisionBtn
-                                    $variant="waitlist"
-                                    $selected={localDecision === 'waitlist'}
-                                    onClick={() => setLocalDecision('waitlist')}
-                                  >
-                                    ⏳ Waitlist
-                                  </FinalDecisionBtn>
-                                  <FinalDecisionBtn
-                                    $variant="not_selected"
-                                    $selected={localDecision === 'not_selected'}
-                                    onClick={() =>
-                                      setLocalDecision('not_selected')
-                                    }
-                                  >
-                                    Not Selected
-                                  </FinalDecisionBtn>
-                                </>
                               )}
                             </DecisionButtons>
                           </DecisionRow>
 
-                          {activePass !== 'final' ? (
-                            <NotesWrapper>
-                              <NeoInput
-                                label="Notes"
-                                multiline
-                                value={localNotes}
-                                onChange={(
-                                  e: ChangeEvent<HTMLTextAreaElement>
-                                ) => setLocalNotes(e.target.value)}
-                                placeholder="Please include your name (e.g., [Abhinav] Great demo video...)"
-                              />
-                            </NotesWrapper>
-                          ) : (
-                            <PreviousNotesSection>
-                              <PreviousNotesTitle>
-                                Previous Review Notes
-                              </PreviousNotesTitle>
-                              {sub.judgingNotes?.pass_1_notes && (
-                                <PreviousNote>
-                                  <strong>Pass 1:</strong>{' '}
-                                  {sub.judgingNotes.pass_1_notes}
-                                </PreviousNote>
-                              )}
-                              {sub.judgingNotes?.pass_2_notes && (
-                                <PreviousNote>
-                                  <strong>Pass 2:</strong>{' '}
-                                  {sub.judgingNotes.pass_2_notes}
-                                </PreviousNote>
-                              )}
-                              {!sub.judgingNotes?.pass_1_notes &&
-                                !sub.judgingNotes?.pass_2_notes && (
-                                  <PreviousNote>No notes recorded</PreviousNote>
-                                )}
-                            </PreviousNotesSection>
-                          )}
+                          <NotesWrapper>
+                            <NeoInput
+                              label="Notes"
+                              multiline
+                              value={localNotes}
+                              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                                setLocalNotes(e.target.value)
+                              }
+                              placeholder="Add your notes here..."
+                            />
+                          </NotesWrapper>
 
                           <ActionButtons>
                             <NeoButton
                               variant="primary"
-                              onClick={handleSave}
-                              loading={savingTeamId === sub.teamId}
+                              onClick={handleSaveScore}
+                              loading={savingScore}
                             >
-                              Save
-                            </NeoButton>
-                            <NeoButton
-                              variant="secondary"
-                              onClick={handleClose}
-                            >
-                              Close
+                              Save Score
                             </NeoButton>
                           </ActionButtons>
-                        </ScoringSection>
-                      </ExpandedContent>
-                    </ExpandedCell>
-                  </ExpandedRow>
+                        </>
+                      )}
+                    </YourScoresSection>
+                  </>
                 )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </Table>
 
-        {filteredSubmissions.length === 0 && (
-          <EmptyState>No submissions match your filters</EmptyState>
-        )}
+                {activePass === 'final' && (
+                  <FinalDecisionSection>
+                    <SectionTitle>Final Decision</SectionTitle>
 
-        {filteredSubmissions.length > 0 && (
-          <PaginationRow>
-            <PaginationInfo>
-              Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-
-              {Math.min(
-                currentPage * ITEMS_PER_PAGE,
-                filteredSubmissions.length
-              )}{' '}
-              of {filteredSubmissions.length}
-            </PaginationInfo>
-            <PaginationButtons>
-              <PaginationButton
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                ← Prev
-              </PaginationButton>
-              <PageIndicator>
-                {currentPage} / {totalPages}
-              </PageIndicator>
-              <PaginationButton
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages}
-              >
-                Next →
-              </PaginationButton>
-            </PaginationButtons>
-          </PaginationRow>
-        )}
-      </TableContainer>
+                    <PreviousNotesSection>
+                      <PreviousNotesTitle>Review Summary</PreviousNotesTitle>
+                      <ReviewSummaryGrid>
+                        <ReviewSummaryCard>
+                          <ReviewSummaryTitle>Pass 1</ReviewSummaryTitle>
+                          <ReviewSummaryScore>
+                            Avg:{' '}
+                            {selectedSubmission.pass1Avg?.toFixed(1) ?? '-'}
+                          </ReviewSummaryScore>
+                          <ConsensusBadge
+                            $decision={
+                              selectedSubmission.pass1.aggregate.consensus
+                            }
+                          >
+                            {selectedSubmission.pass1.aggregate.consensus ||
+                              'N/A'}
+                          </ConsensusBadge>
+                        </ReviewSummaryCard>
+                        <ReviewSummaryCard>
+                          <ReviewSummaryTitle>Pass 2</ReviewSummaryTitle>
+                          <ReviewSummaryScore>
+                            Avg:{' '}
+                            {selectedSubmission.pass2Avg?.toFixed(1) ?? '-'}
+                          </ReviewSummaryScore>
+                          <ConsensusBadge
+                            $decision={
+                              selectedSubmission.pass2.aggregate.consensus
+                            }
+                          >
+                            {selectedSubmission.pass2.aggregate.consensus ||
+                              'N/A'}
+                          </ConsensusBadge>
+                        </ReviewSummaryCard>
+                      </ReviewSummaryGrid>
+                    </PreviousNotesSection>
+
+                    <DecisionRow>
+                      <DecisionLabel>Final Decision:</DecisionLabel>
+                      <DecisionButtons>
+                        <FinalDecisionBtn
+                          $variant="finalist"
+                          $selected={localDecision === 'finalist'}
+                          onClick={() => setLocalDecision('finalist')}
+                        >
+                          Finalist
+                        </FinalDecisionBtn>
+                        <FinalDecisionBtn
+                          $variant="waitlist"
+                          $selected={localDecision === 'waitlist'}
+                          onClick={() => setLocalDecision('waitlist')}
+                        >
+                          Waitlist
+                        </FinalDecisionBtn>
+                        <FinalDecisionBtn
+                          $variant="not_selected"
+                          $selected={localDecision === 'not_selected'}
+                          onClick={() => setLocalDecision('not_selected')}
+                        >
+                          Not Selected
+                        </FinalDecisionBtn>
+                      </DecisionButtons>
+                    </DecisionRow>
+
+                    <ActionButtons>
+                      <NeoButton
+                        variant="primary"
+                        onClick={handleSaveFinalDecision}
+                        loading={savingFinalDecision}
+                      >
+                        Save Final Decision
+                      </NeoButton>
+                    </ActionButtons>
+                  </FinalDecisionSection>
+                )}
+              </ScoringContent>
+            </>
+          ) : (
+            <EmptyDetail>Select a team to view details</EmptyDetail>
+          )}
+        </DetailPanel>
+      </SplitContainer>
     </PageContainer>
   );
 }
 
 // Styled components
 const PageContainer = styled.div`
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
   background: ${neoColors.background};
   min-height: 100vh;
+  outline: none;
+
+  @media (min-width: 900px) {
+    padding: 2rem;
+  }
 `;
 
 const Header = styled.div`
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 `;
 
 const Title = styled.h1`
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 900;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0;
   color: ${neoColors.text};
+
+  @media (min-width: 900px) {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
 `;
 
 const StatsRow = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 `;
 
 const StatBadge = styled.span`
   background: ${neoColors.surface};
   border: ${neoBorders.standard};
-  padding: 0.5rem 1rem;
+  padding: 0.25rem 0.5rem;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
+
+  @media (min-width: 900px) {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
 `;
 
-const FiltersRow = styled.div`
+const SplitContainer = styled.div`
   display: flex;
   gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.5rem;
-  align-items: flex-end;
+  height: calc(100vh - 150px);
+
+  @media (max-width: 899px) {
+    height: calc(100vh - 120px);
+  }
+`;
+
+const ListPanel = styled.div<{ $showOnMobile: boolean }>`
+  width: 400px;
+  min-width: 350px;
+  display: flex;
+  flex-direction: column;
+  background: ${neoColors.surface};
+  border: ${neoBorders.thick};
+  overflow: hidden;
+
+  @media (max-width: 899px) {
+    display: ${({ $showOnMobile }) => ($showOnMobile ? 'flex' : 'none')};
+    width: 100%;
+    min-width: unset;
+  }
+`;
+
+const FiltersSection = styled.div`
+  padding: 0.75rem;
+  border-bottom: ${neoBorders.standard};
+  background: ${neoColors.background};
 `;
 
 const SearchWrapper = styled.div`
-  flex: 1;
-  min-width: 200px;
-  max-width: 300px;
+  margin-bottom: 0.5rem;
+`;
+
+const FilterRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const FilterGroup = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
 `;
 
 const FilterLabel = styled.span`
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 `;
 
 const Select = styled.select`
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   border: ${neoBorders.standard};
   background: ${neoColors.surface};
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   cursor: pointer;
 
   &:focus {
@@ -1060,7 +1373,7 @@ const Select = styled.select`
 `;
 
 const SortButton = styled.button`
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   border: ${neoBorders.standard};
   background: ${neoColors.surface};
   cursor: pointer;
@@ -1071,69 +1384,184 @@ const SortButton = styled.button`
   }
 `;
 
-const TableContainer = styled.div`
-  overflow-x: auto;
+const TeamList = styled.div`
+  flex: 1;
+  overflow-y: auto;
 `;
 
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
+const TeamListItem = styled.div<{ $selected: boolean }>`
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  background: ${({ $selected }) =>
+    $selected ? neoColors.accent.blue + '20' : neoColors.surface};
+  border-left: 3px solid
+    ${({ $selected }) => ($selected ? neoColors.accent.blue : 'transparent')};
+
+  &:hover {
+    background: ${({ $selected }) =>
+      $selected ? neoColors.accent.blue + '20' : neoColors.background};
+  }
+`;
+
+const TeamInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+`;
+
+const TeamName = styled.div`
+  font-weight: 700;
+  font-size: 0.9rem;
+`;
+
+const TeamMeta = styled.div`
+  display: flex;
+  gap: 0.25rem;
+`;
+
+const TrackBadge = styled.span<{ $sdg: number }>`
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border: 2px solid;
+  background: ${({ $sdg }) => getSDGColor($sdg).bg};
+  border-color: ${({ $sdg }) => getSDGColor($sdg).border};
+  color: ${({ $sdg }) => getSDGColor($sdg).border};
+`;
+
+const HWBadge = styled.span`
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: ${neoColors.accent.yellow};
+  border: 2px solid #000;
+`;
+
+const ScoreSummary = styled.div`
+  display: flex;
+  gap: 1rem;
+`;
+
+const PassSummary = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+`;
+
+const PassLabel = styled.span`
+  font-weight: 700;
+  color: ${neoColors.textMuted};
+`;
+
+const ReviewCount = styled.span<{ $complete: boolean }>`
+  font-weight: 600;
+  color: ${({ $complete }) =>
+    $complete ? neoColors.status.success : neoColors.textMuted};
+`;
+
+const AvgScore = styled.span`
+  font-weight: 700;
+`;
+
+const ConsensusBadge = styled.span<{
+  $decision: string | null;
+  $large?: boolean;
+}>`
+  display: inline-block;
+  padding: ${({ $large }) =>
+    $large ? '0.25rem 0.75rem' : '0.125rem 0.375rem'};
+  font-size: ${({ $large }) => ($large ? '0.85rem' : '0.65rem')};
+  font-weight: 700;
+  text-transform: uppercase;
+  background: ${({ $decision }) => getDecisionColors($decision).bg};
+  border: 2px solid ${({ $decision }) => getDecisionColors($decision).border};
+  color: ${({ $decision }) =>
+    $decision ? getDecisionColors($decision).border : '#999'};
+`;
+
+const ListFooter = styled.div`
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: ${neoColors.textMuted};
+  border-top: ${neoBorders.standard};
+  background: ${neoColors.background};
+`;
+
+const DetailPanel = styled.div<{ $showOnMobile: boolean }>`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   background: ${neoColors.surface};
   border: ${neoBorders.thick};
+  overflow-y: auto;
+
+  @media (max-width: 899px) {
+    display: ${({ $showOnMobile }) => ($showOnMobile ? 'flex' : 'none')};
+  }
 `;
 
-const Th = styled.th`
-  text-align: left;
+const DetailHeader = styled.div`
   padding: 1rem;
-  font-weight: 700;
-  font-size: 0.85rem;
-  text-transform: uppercase;
   border-bottom: ${neoBorders.standard};
   background: ${neoColors.background};
 `;
 
-const Td = styled.td`
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #eee;
-  font-size: 0.9rem;
-`;
-
-const TableRow = styled.tr<{ $expanded: boolean }>`
+const BackButton = styled.button`
+  display: none;
+  padding: 0.25rem 0.5rem;
+  border: ${neoBorders.standard};
+  background: ${neoColors.surface};
   cursor: pointer;
-  background: ${({ $expanded }) =>
-    $expanded ? neoColors.background : neoColors.surface};
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
 
-  &:hover {
-    background: ${neoColors.background};
+  @media (max-width: 899px) {
+    display: inline-block;
   }
 `;
 
-const ExpandedRow = styled.tr`
-  background: ${neoColors.background};
+const DetailTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 900;
+  margin: 0 0 0.5rem 0;
 `;
 
-const ExpandedCell = styled.td`
-  padding: 0 !important;
+const ProjectTitle = styled.span`
+  font-weight: 400;
+  color: ${neoColors.textMuted};
 `;
 
-const ExpandedContent = styled.div`
-  display: grid;
-  grid-template-columns: 250px 1fr;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  border-top: ${neoBorders.standard};
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
+const DetailMeta = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 `;
 
-const LinksSection = styled.div``;
+const HardwareBadge = styled.div`
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background: ${neoColors.accent.yellow};
+  border: ${neoBorders.standard};
+  font-weight: 700;
+  font-size: 0.75rem;
+`;
+
+const LinksSection = styled.div`
+  padding: 1rem;
+  border-bottom: ${neoBorders.standard};
+`;
 
 const SectionTitle = styled.h4`
-  margin: 0 0 1rem 0;
-  font-size: 0.9rem;
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
   text-transform: uppercase;
+  color: ${neoColors.textMuted};
 `;
 
 const LinksGrid = styled.div`
@@ -1158,44 +1586,163 @@ const LinkButton = styled.a`
   }
 `;
 
-const HardwareBadge = styled.div`
-  margin-top: 1rem;
-  padding: 0.5rem;
-  background: ${neoColors.accent.yellow};
-  border: ${neoBorders.standard};
-  font-weight: 700;
-  font-size: 0.75rem;
-  text-align: center;
-`;
-
-const ScoringSection = styled.div``;
-
 const PassTabs = styled.div`
   display: flex;
-  gap: 0;
+  border-bottom: ${neoBorders.standard};
+`;
+
+const PassTab = styled.button<{ $active: boolean; $disabled?: boolean }>`
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-bottom: 3px solid
+    ${({ $active }) => ($active ? neoColors.accent.blue : 'transparent')};
+  background: ${({ $active }) =>
+    $active ? neoColors.surface : neoColors.background};
+  color: ${({ $disabled }) =>
+    $disabled ? neoColors.textMuted : neoColors.text};
+  font-weight: 700;
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
+
+  &:hover:not(:disabled) {
+    background: ${neoColors.surface};
+  }
+`;
+
+const ScoringContent = styled.div`
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+`;
+
+const ReviewersSection = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const ReviewersList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   margin-bottom: 1rem;
 `;
 
-const PassTab = styled.button<{ $active: boolean }>`
-  padding: 0.75rem 1.5rem;
+const ReviewerCard = styled.div<{ $isMe: boolean }>`
+  padding: 0.75rem;
+  background: ${({ $isMe }) =>
+    $isMe ? neoColors.accent.blue + '10' : neoColors.background};
   border: ${neoBorders.standard};
-  background: ${({ $active }) =>
-    $active ? neoColors.accent.blue : neoColors.surface};
-  color: ${({ $active }) => ($active ? '#fff' : neoColors.text)};
-  font-weight: 700;
-  cursor: pointer;
-  margin-right: -2px;
+  border-left: 3px solid
+    ${({ $isMe }) => ($isMe ? neoColors.accent.blue : 'transparent')};
+`;
 
-  &:first-child {
-    border-right: none;
-  }
+const ReviewerName = styled.div`
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+`;
+
+const ReviewerScores = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+`;
+
+const ScorePill = styled.span<{ $highlight?: boolean }>`
+  padding: 0.25rem 0.5rem;
+  background: ${({ $highlight }) =>
+    $highlight ? neoColors.accent.yellow : '#eee'};
+  border: 1px solid #ccc;
+  font-size: 0.75rem;
+  font-weight: ${({ $highlight }) => ($highlight ? 700 : 400)};
+`;
+
+const ReviewerDecision = styled.div<{ $decision: string | null }>`
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: ${({ $decision }) => getDecisionColors($decision).bg};
+  border: 2px solid ${({ $decision }) => getDecisionColors($decision).border};
+  color: ${({ $decision }) =>
+    $decision ? getDecisionColors($decision).border : '#999'};
+`;
+
+const ReviewerNotes = styled.div`
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: ${neoColors.textMuted};
+  font-style: italic;
+`;
+
+const EmptyReviews = styled.div`
+  padding: 1rem;
+  text-align: center;
+  color: ${neoColors.textMuted};
+  font-style: italic;
+`;
+
+const AggregateSection = styled.div`
+  padding: 0.75rem;
+  background: ${neoColors.background};
+  border: ${neoBorders.standard};
+`;
+
+const AggregateTitle = styled.div`
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+`;
+
+const AggregateScores = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+`;
+
+const ConsensusDisplay = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+
+const ConsensusLabel = styled.span`
+  font-weight: 700;
+  font-size: 0.85rem;
+`;
+
+const VoteBreakdown = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const VoteCount = styled.span<{ $decision: string }>`
+  font-size: 0.75rem;
+  color: ${({ $decision }) => getDecisionColors($decision).border};
+`;
+
+const YourScoresSection = styled.div`
+  padding: 1rem;
+  background: ${neoColors.background};
+  border: ${neoBorders.standard};
+`;
+
+const CapReached = styled.div`
+  padding: 1rem;
+  text-align: center;
+  color: ${neoColors.status.error};
+  font-weight: 600;
 `;
 
 const ScoresGrid = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 `;
 
 const ScoreRow = styled.div`
@@ -1245,6 +1792,7 @@ const DecisionRow = styled.div`
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 `;
 
 const DecisionLabel = styled.span`
@@ -1254,6 +1802,7 @@ const DecisionLabel = styled.span`
 const DecisionButtons = styled.div`
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 `;
 
 const DecisionBtn = styled.button<{
@@ -1286,11 +1835,15 @@ const NotesWrapper = styled.div`
   margin-bottom: 1rem;
 `;
 
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const FinalDecisionSection = styled.div``;
+
 const PreviousNotesSection = styled.div`
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: ${neoColors.background};
-  border: ${neoBorders.standard};
+  margin-bottom: 1.5rem;
 `;
 
 const PreviousNotesTitle = styled.div`
@@ -1301,54 +1854,29 @@ const PreviousNotesTitle = styled.div`
   color: ${neoColors.textMuted};
 `;
 
-const PreviousNote = styled.div`
-  font-size: 0.9rem;
+const ReviewSummaryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+`;
+
+const ReviewSummaryCard = styled.div`
+  padding: 1rem;
+  background: ${neoColors.background};
+  border: ${neoBorders.standard};
+  text-align: center;
+`;
+
+const ReviewSummaryTitle = styled.div`
+  font-weight: 700;
+  font-size: 0.85rem;
   margin-bottom: 0.5rem;
-  line-height: 1.4;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
 `;
 
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const TrackBadge = styled.span<{ $sdg: number }>`
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  border: 2px solid;
-  background: ${({ $sdg }) => getSDGColor($sdg).bg};
-  border-color: ${({ $sdg }) => getSDGColor($sdg).border};
-  color: ${({ $sdg }) => getSDGColor($sdg).border};
-`;
-
-const DecisionBadge = styled.span<{ $decision: string | null }>`
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  background: ${({ $decision }) => getDecisionColors($decision).bg};
-  border: 2px solid ${({ $decision }) => getDecisionColors($decision).border};
-  color: ${({ $decision }) =>
-    $decision ? getDecisionColors($decision).border : '#999'};
-`;
-
-const FinalBadge = styled.span<{ $decision: string | null }>`
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: capitalize;
-  background: ${({ $decision }) => getDecisionColors($decision).bg};
-  border: 2px solid ${({ $decision }) => getDecisionColors($decision).border};
-  color: ${({ $decision }) =>
-    $decision ? getDecisionColors($decision).border : '#999'};
+const ReviewSummaryScore = styled.div`
+  font-size: 1.25rem;
+  font-weight: 900;
+  margin-bottom: 0.5rem;
 `;
 
 const FinalDecisionBtn = styled.button<{
@@ -1371,48 +1899,15 @@ const FinalDecisionBtn = styled.button<{
 
 const EmptyState = styled.div`
   text-align: center;
-  padding: 3rem;
+  padding: 2rem;
+  color: ${neoColors.textMuted};
+`;
+
+const EmptyDetail = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
   color: ${neoColors.textMuted};
   font-size: 1rem;
-`;
-
-const PaginationRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border-top: ${neoBorders.standard};
-  background: ${neoColors.surface};
-`;
-
-const PaginationInfo = styled.span`
-  font-size: 0.85rem;
-  color: ${neoColors.textMuted};
-`;
-
-const PaginationButtons = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const PaginationButton = styled.button<{ disabled?: boolean }>`
-  padding: 0.5rem 1rem;
-  border: ${neoBorders.standard};
-  background: ${({ disabled }) => (disabled ? '#eee' : neoColors.surface)};
-  color: ${({ disabled }) => (disabled ? '#999' : neoColors.text)};
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
-
-  &:hover:not(:disabled) {
-    background: ${neoColors.background};
-  }
-`;
-
-const PageIndicator = styled.span`
-  font-weight: 600;
-  font-size: 0.85rem;
-  min-width: 60px;
-  text-align: center;
 `;
