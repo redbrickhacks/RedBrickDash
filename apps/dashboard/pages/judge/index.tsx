@@ -510,6 +510,16 @@ export default function JudgePortal() {
   // Keyboard navigation
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
+      // Ignore if typing in an input or textarea
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
       if (!filteredSubmissions.length) return;
 
       const currentIndex = filteredSubmissions.findIndex(
