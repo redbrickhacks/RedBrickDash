@@ -12,8 +12,8 @@ import { getAuthenticatedUser } from '../../../../common/auth';
  */
 const ALLOWED_ROLES = [1, 7];
 
-// Submission status that allows judging
-const SUBMITTED_STATUS = 3;
+// Submission status that allows judging (1=not_submitted, 2=submitted, 3=finalist, 4=not_selected)
+const SUBMITTED_STATUS = 2;
 
 // Reviewer caps per pass
 const PASS_1_MAX_REVIEWERS = 4;
@@ -91,10 +91,13 @@ export default async function handler(
 
   const body: ScoreUpdateRequest = req.body;
 
-  // Validate pass
-  if (body.pass !== 1 && body.pass !== 2) {
+  // Validate and normalize pass (handle string "1"/"2" from some clients)
+  const passNum =
+    typeof body.pass === 'string' ? parseInt(body.pass, 10) : body.pass;
+  if (passNum !== 1 && passNum !== 2) {
     return res.status(400).json({ message: 'pass must be 1 or 2' });
   }
+  body.pass = passNum as 1 | 2;
 
   // Validate score values (1-5 if provided)
   const scoreFields = [

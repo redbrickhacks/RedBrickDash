@@ -12,8 +12,8 @@ import { getAuthenticatedUser } from '../../../../common/auth';
  */
 const ALLOWED_ROLES = [1, 7];
 
-// Submission status that allows judging
-const SUBMITTED_STATUS = 3;
+// Submission status that allows judging (1=not_submitted, 2=submitted, 3=finalist, 4=not_selected)
+const SUBMITTED_STATUS = 2;
 
 interface FinalDecisionUpdate {
   final_decision?: 'finalist' | 'waitlist' | 'not_selected' | null;

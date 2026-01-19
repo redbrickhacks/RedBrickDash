@@ -162,7 +162,7 @@ export default async function handler(
     const { count: totalCount, error: countError } = await supabase
       .from('teams')
       .select('*', { count: 'exact', head: true })
-      .eq('submission_status', 3);
+      .eq('submission_status', 2);
 
     if (countError) {
       console.error('[judge/submissions] Count error:', countError);
@@ -177,7 +177,7 @@ export default async function handler(
       });
     }
 
-    // Get paginated teams with submission_status = 3 (submitted)
+    // Get paginated teams with submission_status = 2 (SUBMITTED)
     const { data: teams, error: teamsError } = await supabase
       .from('teams')
       .select(
@@ -195,7 +195,7 @@ export default async function handler(
         )
       `
       )
-      .eq('submission_status', 3)
+      .eq('submission_status', 2)
       .order('name', { ascending: true })
       .range(offset, offset + limit - 1);
 
