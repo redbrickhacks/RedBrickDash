@@ -272,116 +272,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      email_jobs: {
-        Row: {
-          completed_at: string | null;
-          created_at: string;
-          created_by: string | null;
-          custom_body: string | null;
-          error_message: string | null;
-          failed_count: number;
-          id: string;
-          sent_count: number;
-          started_at: string | null;
-          status: string;
-          subject: string;
-          target_status: number[];
-          template: string;
-          total_recipients: number;
-        };
-        Insert: {
-          completed_at?: string | null;
-          created_at?: string;
-          created_by?: string | null;
-          custom_body?: string | null;
-          error_message?: string | null;
-          failed_count?: number;
-          id?: string;
-          sent_count?: number;
-          started_at?: string | null;
-          status?: string;
-          subject: string;
-          target_status: number[];
-          template: string;
-          total_recipients?: number;
-        };
-        Update: {
-          completed_at?: string | null;
-          created_at?: string;
-          created_by?: string | null;
-          custom_body?: string | null;
-          error_message?: string | null;
-          failed_count?: number;
-          id?: string;
-          sent_count?: number;
-          started_at?: string | null;
-          status?: string;
-          subject?: string;
-          target_status?: number[];
-          template?: string;
-          total_recipients?: number;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'email_jobs_created_by_fkey';
-            columns: ['created_by'];
-            isOneToOne: false;
-            referencedRelation: 'user_profiles';
-            referencedColumns: ['user_id'];
-          }
-        ];
-      };
-      email_logs: {
-        Row: {
-          created_at: string;
-          error_message: string | null;
-          id: string;
-          job_id: string;
-          recipient_email: string;
-          recipient_id: string | null;
-          resend_id: string | null;
-          sent_at: string | null;
-          status: string;
-        };
-        Insert: {
-          created_at?: string;
-          error_message?: string | null;
-          id?: string;
-          job_id: string;
-          recipient_email: string;
-          recipient_id?: string | null;
-          resend_id?: string | null;
-          sent_at?: string | null;
-          status?: string;
-        };
-        Update: {
-          created_at?: string;
-          error_message?: string | null;
-          id?: string;
-          job_id?: string;
-          recipient_email?: string;
-          recipient_id?: string | null;
-          resend_id?: string | null;
-          sent_at?: string | null;
-          status?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'email_logs_job_id_fkey';
-            columns: ['job_id'];
-            isOneToOne: false;
-            referencedRelation: 'email_jobs';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'email_logs_recipient_id_fkey';
-            columns: ['recipient_id'];
-            isOneToOne: false;
-            referencedRelation: 'user_profiles';
-            referencedColumns: ['user_id'];
-          }
-        ];
-      };
       event_log: {
         Row: {
           check_in_time: string;
@@ -1020,6 +910,8 @@ export type Database = {
           email: string | null;
           first_name: string;
           last_name: string;
+          monkeytype_duel_otp: string | null;
+          monkeytype_duel_settings: Json;
           referral_code: string | null;
           referred_by: string | null;
           role: number | null;
@@ -1038,6 +930,8 @@ export type Database = {
           email?: string | null;
           first_name: string;
           last_name: string;
+          monkeytype_duel_otp?: string | null;
+          monkeytype_duel_settings?: Json;
           referral_code?: string | null;
           referred_by?: string | null;
           role?: number | null;
@@ -1056,6 +950,8 @@ export type Database = {
           email?: string | null;
           first_name?: string;
           last_name?: string;
+          monkeytype_duel_otp?: string | null;
+          monkeytype_duel_settings?: Json;
           referral_code?: string | null;
           referred_by?: string | null;
           role?: number | null;
@@ -1163,6 +1059,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      gen_monkeytype_otp: { Args: never; Returns: string };
       get_sponsors: { Args: never; Returns: string[] };
       get_volunteers: { Args: never; Returns: string[] };
       is_valid_url: { Args: { url: string }; Returns: boolean };
