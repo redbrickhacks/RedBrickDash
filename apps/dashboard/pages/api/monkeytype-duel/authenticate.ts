@@ -51,8 +51,11 @@ export default async function handler(
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  const otp = (req.body as { otp?: unknown } | undefined)?.otp;
-  if (typeof otp !== 'string' || otp.trim().length === 0) {
+  if (typeof req.body['otp'] !== 'string') {
+    return res.status(400).json({ message: '`otp` is required' });
+  }
+  const otp = (req.body as { otp: string })?.otp.trim();
+  if (otp.length !== 0) {
     return res.status(400).json({ message: '`otp` is required' });
   }
 
