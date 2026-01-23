@@ -148,6 +148,10 @@ export default function JudgePortal() {
     new Set()
   );
 
+  // Bulk operations state
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+
   // Count active dropdown filters (not including search/quick filters)
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -348,10 +352,11 @@ export default function JudgePortal() {
       if (pass === 2 && selectedSubmission.pass1.aggregate.reviewCount === 0) {
         return;
       }
-      // Check if can switch to final (needs at least one P2 review with decision)
+      // Check if can switch to final (needs at least one P2 review OR already has final decision)
       if (
         pass === 'final' &&
-        selectedSubmission.pass2.aggregate.reviewCount === 0
+        selectedSubmission.pass2.aggregate.reviewCount === 0 &&
+        !selectedSubmission.finalDecision
       ) {
         return;
       }
@@ -635,6 +640,33 @@ export default function JudgePortal() {
     return { total, p1Reviewed, p1Complete, p2Reviewed, finalists };
   }, [submissions]);
 
+  // Track breakdown for finalists and waitlist
+  const trackBreakdown = useMemo(() => {
+    const countByTrack = (
+      subs: typeof submissions,
+      decision: 'finalist' | 'waitlist'
+    ) => {
+      const filtered = subs.filter((s) => s.finalDecision === decision);
+      const teams: Record<number, number> = { 4: 0, 11: 0, 13: 0 };
+      const users: Record<number, number> = { 4: 0, 11: 0, 13: 0 };
+      let totalUsers = 0;
+      for (const s of filtered) {
+        const sdg = s.track?.sdgNumber;
+        totalUsers += s.memberCount || 0;
+        if (sdg && sdg in teams) {
+          teams[sdg]++;
+          users[sdg] += s.memberCount || 0;
+        }
+      }
+      return { teams, users, totalTeams: filtered.length, totalUsers };
+    };
+
+    return {
+      finalists: countByTrack(submissions, 'finalist'),
+      waitlist: countByTrack(submissions, 'waitlist'),
+    };
+  }, [submissions]);
+
   // Selected teams user count
   const selectedStats = useMemo(() => {
     const selectedSubs = submissions.filter((s) =>
@@ -663,6 +695,144 @@ export default function JudgePortal() {
       });
     },
     []
+  );
+
+  // Select/deselect all visible teams
+  const handleSelectAllVisible = useCallback(() => {
+    const visibleIds = filteredSubmissions.map((s) => s.teamId);
+    const allSelected = visibleIds.every((id) => selectedTeamIds.has(id));
+
+    if (allSelected) {
+      // Deselect all visible
+      setSelectedTeamIds((prev) => {
+        const next = new Set(prev);
+        visibleIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      // Select all visible
+      setSelectedTeamIds((prev) => {
+        const next = new Set(prev);
+        visibleIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+  }, [filteredSubmissions, selectedTeamIds]);
+
+  // Check if all visible are selected (for checkbox state)
+  const allVisibleSelected = useMemo(() => {
+    if (filteredSubmissions.length === 0) return false;
+    return filteredSubmissions.every((s) => selectedTeamIds.has(s.teamId));
+  }, [filteredSubmissions, selectedTeamIds]);
+
+  const someVisibleSelected = useMemo(() => {
+    return (
+      filteredSubmissions.some((s) => selectedTeamIds.has(s.teamId)) &&
+      !allVisibleSelected
+    );
+  }, [filteredSubmissions, selectedTeamIds, allVisibleSelected]);
+
+  // Bulk mark decision
+  const handleBulkMarkDecision = useCallback(
+    async (decision: 'finalist' | 'waitlist' | 'not_selected') => {
+      if (selectedTeamIds.size === 0) return;
+
+      const confirmMsg = `Mark ${selectedTeamIds.size} team(s) as "${decision}"?`;
+      if (!confirm(confirmMsg)) return;
+
+      setBulkActionLoading(true);
+      try {
+        const res = await fetch('/api/judge/bulk-decision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teamIds: Array.from(selectedTeamIds),
+            decision,
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || 'Failed to update decisions');
+        }
+
+        await fetchSubmissions();
+        setSelectedTeamIds(new Set());
+        showSaveSuccess(`Marked ${selectedTeamIds.size} teams as ${decision}`);
+      } catch (e) {
+        console.error('Bulk decision error:', e);
+        alert(e instanceof Error ? e.message : 'Failed to update decisions');
+      } finally {
+        setBulkActionLoading(false);
+      }
+    },
+    [selectedTeamIds, fetchSubmissions, showSaveSuccess]
+  );
+
+  // Export teams by decision
+  const handleExport = useCallback(
+    async (decision: 'finalist' | 'waitlist') => {
+      setExportLoading(true);
+      try {
+        const res = await fetch(`/api/judge/export?decision=${decision}`);
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || 'Failed to export');
+        }
+
+        const data = await res.json();
+
+        // Convert to CSV (escape quotes by doubling them)
+        const escapeCSV = (str: string) =>
+          `"${(str || '').replace(/"/g, '""')}"`;
+
+        const csvRows: string[] = [];
+        csvRows.push('Team Name,Project Title,Member Name,Email');
+
+        for (const team of data.teams) {
+          if (team.members.length === 0) {
+            csvRows.push(
+              `${escapeCSV(team.teamName)},${escapeCSV(
+                team.projectTitle || ''
+              )},"",""`
+            );
+          } else {
+            for (const member of team.members) {
+              const name = [member.firstName, member.lastName]
+                .filter(Boolean)
+                .join(' ');
+              csvRows.push(
+                `${escapeCSV(team.teamName)},${escapeCSV(
+                  team.projectTitle || ''
+                )},${escapeCSV(name)},${escapeCSV(member.email)}`
+              );
+            }
+          }
+        }
+
+        // Download CSV
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], {
+          type: 'text/csv;charset=utf-8;',
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${decision}-teams-${
+          new Date().toISOString().split('T')[0]
+        }.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        showSaveSuccess(`Exported ${data.count} ${decision} teams`);
+      } catch (e) {
+        console.error('Export error:', e);
+        alert(e instanceof Error ? e.message : 'Failed to export');
+      } finally {
+        setExportLoading(false);
+      }
+    },
+    [showSaveSuccess]
   );
 
   // Auto-select first team if none selected
@@ -710,6 +880,96 @@ export default function JudgePortal() {
             </StatBadge>
           )}
         </StatsRow>
+
+        {/* Track Breakdown Summary */}
+        {(trackBreakdown.finalists.totalTeams > 0 ||
+          trackBreakdown.waitlist.totalTeams > 0) && (
+          <TrackSummaryRow>
+            <TrackSummaryGroup>
+              <TrackSummaryLabel>
+                Finalists: {trackBreakdown.finalists.totalTeams} teams (
+                {trackBreakdown.finalists.totalUsers} people)
+              </TrackSummaryLabel>
+              <TrackBadgeSmall $sdg={4}>
+                SDG4: {trackBreakdown.finalists.teams[4]} (
+                {trackBreakdown.finalists.users[4]})
+              </TrackBadgeSmall>
+              <TrackBadgeSmall $sdg={11}>
+                SDG11: {trackBreakdown.finalists.teams[11]} (
+                {trackBreakdown.finalists.users[11]})
+              </TrackBadgeSmall>
+              <TrackBadgeSmall $sdg={13}>
+                SDG13: {trackBreakdown.finalists.teams[13]} (
+                {trackBreakdown.finalists.users[13]})
+              </TrackBadgeSmall>
+            </TrackSummaryGroup>
+            <TrackSummaryGroup>
+              <TrackSummaryLabel>
+                Waitlist: {trackBreakdown.waitlist.totalTeams} teams (
+                {trackBreakdown.waitlist.totalUsers} people)
+              </TrackSummaryLabel>
+              <TrackBadgeSmall $sdg={4}>
+                SDG4: {trackBreakdown.waitlist.teams[4]} (
+                {trackBreakdown.waitlist.users[4]})
+              </TrackBadgeSmall>
+              <TrackBadgeSmall $sdg={11}>
+                SDG11: {trackBreakdown.waitlist.teams[11]} (
+                {trackBreakdown.waitlist.users[11]})
+              </TrackBadgeSmall>
+              <TrackBadgeSmall $sdg={13}>
+                SDG13: {trackBreakdown.waitlist.teams[13]} (
+                {trackBreakdown.waitlist.users[13]})
+              </TrackBadgeSmall>
+            </TrackSummaryGroup>
+          </TrackSummaryRow>
+        )}
+
+        {/* Bulk Actions Bar */}
+        <ActionsRow>
+          {selectedStats.teamCount > 0 && (
+            <BulkActionsGroup>
+              <ActionLabel>Bulk Actions:</ActionLabel>
+              <ActionButton
+                $variant="success"
+                onClick={() => handleBulkMarkDecision('finalist')}
+                disabled={bulkActionLoading}
+              >
+                Mark as Finalist
+              </ActionButton>
+              <ActionButton
+                $variant="warning"
+                onClick={() => handleBulkMarkDecision('waitlist')}
+                disabled={bulkActionLoading}
+              >
+                Mark as Waitlist
+              </ActionButton>
+              <ActionButton
+                $variant="neutral"
+                onClick={() => setSelectedTeamIds(new Set())}
+                disabled={bulkActionLoading}
+              >
+                Clear Selection
+              </ActionButton>
+            </BulkActionsGroup>
+          )}
+          <ExportGroup>
+            <ActionLabel>Export:</ActionLabel>
+            <ActionButton
+              $variant="neutral"
+              onClick={() => handleExport('finalist')}
+              disabled={exportLoading}
+            >
+              Finalists CSV
+            </ActionButton>
+            <ActionButton
+              $variant="neutral"
+              onClick={() => handleExport('waitlist')}
+              disabled={exportLoading}
+            >
+              Waitlist CSV
+            </ActionButton>
+          </ExportGroup>
+        </ActionsRow>
       </Header>
 
       <SplitContainer>
@@ -869,6 +1129,20 @@ export default function JudgePortal() {
               </CollapsibleFilters>
             )}
           </FiltersSection>
+
+          <SelectAllRow>
+            <SelectAllCheckbox
+              type="checkbox"
+              checked={allVisibleSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someVisibleSelected;
+              }}
+              onChange={handleSelectAllVisible}
+            />
+            <SelectAllLabel onClick={handleSelectAllVisible}>
+              Select all visible ({filteredSubmissions.length})
+            </SelectAllLabel>
+          </SelectAllRow>
 
           <TeamList>
             {filteredSubmissions.length === 0 ? (
@@ -1055,7 +1329,8 @@ export default function JudgePortal() {
                 <PassTab
                   $active={activePass === 'final'}
                   $disabled={
-                    selectedSubmission.pass2.aggregate.reviewCount === 0
+                    selectedSubmission.pass2.aggregate.reviewCount === 0 &&
+                    !selectedSubmission.finalDecision
                   }
                   onClick={() => handleSwitchPass('final')}
                 >
@@ -1488,13 +1763,137 @@ const StatBadge = styled.span<{ $highlight?: boolean }>`
   }
 `;
 
+const TrackSummaryRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: ${neoColors.surface};
+  border: ${neoBorders.standard};
+`;
+
+const TrackSummaryGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const TrackSummaryLabel = styled.span`
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: ${neoColors.text};
+`;
+
+const TrackBadgeSmall = styled.span<{ $sdg: number }>`
+  padding: 0.125rem 0.375rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid;
+  background: ${({ $sdg }) => getSDGColor($sdg).bg};
+  border-color: ${({ $sdg }) => getSDGColor($sdg).border};
+  color: ${({ $sdg }) => getSDGColor($sdg).border};
+`;
+
+const ActionsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  align-items: center;
+`;
+
+const BulkActionsGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const ExportGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+
+  @media (max-width: 899px) {
+    margin-left: 0;
+  }
+`;
+
+const ActionLabel = styled.span`
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: ${neoColors.textMuted};
+`;
+
+const ActionButton = styled.button<{
+  $variant: 'success' | 'warning' | 'neutral';
+}>`
+  padding: 0.375rem 0.75rem;
+  border: ${neoBorders.standard};
+  font-weight: 600;
+  font-size: 0.75rem;
+  cursor: pointer;
+  background: ${({ $variant }) => {
+    switch ($variant) {
+      case 'success':
+        return neoColors.status.success;
+      case 'warning':
+        return '#E65100';
+      default:
+        return neoColors.surface;
+    }
+  }};
+  color: ${({ $variant }) =>
+    $variant === 'neutral' ? neoColors.text : '#fff'};
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const SelectAllRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: ${neoBorders.standard};
+  background: ${neoColors.background};
+`;
+
+const SelectAllCheckbox = styled.input`
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: ${neoColors.accent.blue};
+`;
+
+const SelectAllLabel = styled.span`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: ${neoColors.textMuted};
+  cursor: pointer;
+
+  &:hover {
+    color: ${neoColors.text};
+  }
+`;
+
 const SplitContainer = styled.div`
   display: flex;
   gap: 1rem;
-  height: calc(100vh - 150px);
+  height: calc(100vh - 240px);
 
   @media (max-width: 899px) {
-    height: calc(100vh - 120px);
+    height: calc(100vh - 220px);
   }
 `;
 
