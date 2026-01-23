@@ -80,6 +80,7 @@ export interface SubmissionForJudging {
   teamId: string;
   teamName: string;
   projectTitle: string | null;
+  memberCount: number;
   track: {
     id: number;
     name: string;
@@ -217,6 +218,30 @@ export default async function handler(
     }
 
     const teamIds = teams.map((t) => t.team_id);
+
+    // Get member counts per team
+    const { data: memberCounts, error: memberCountError } = await supabase
+      .from('user_profiles')
+      .select('team_id')
+      .in('team_id', teamIds);
+
+    if (memberCountError) {
+      console.error(
+        '[judge/submissions] Member count fetch error:',
+        memberCountError
+      );
+    }
+
+    // Build member count map
+    const memberCountByTeam = new Map<string, number>();
+    for (const profile of memberCounts || []) {
+      if (profile.team_id) {
+        memberCountByTeam.set(
+          profile.team_id,
+          (memberCountByTeam.get(profile.team_id) || 0) + 1
+        );
+      }
+    }
 
     // Get latest submission for each team
     const { data: submissions, error: submissionsError } = await supabase
@@ -465,6 +490,7 @@ export default async function handler(
         teamId: team.team_id,
         teamName: team.name,
         projectTitle: team.project_title,
+        memberCount: memberCountByTeam.get(team.team_id) || 0,
         track: extractTrack(team.tracks),
         isHardware: team.is_hardware ?? false,
         submission: sub

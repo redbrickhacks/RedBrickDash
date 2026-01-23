@@ -143,6 +143,11 @@ export default function JudgePortal() {
   const [myUnreviewedP2, setMyUnreviewedP2] = useState(false);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
+  // Selection for counting users
+  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(
+    new Set()
+  );
+
   // Count active dropdown filters (not including search/quick filters)
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -630,6 +635,36 @@ export default function JudgePortal() {
     return { total, p1Reviewed, p1Complete, p2Reviewed, finalists };
   }, [submissions]);
 
+  // Selected teams user count
+  const selectedStats = useMemo(() => {
+    const selectedSubs = submissions.filter((s) =>
+      selectedTeamIds.has(s.teamId)
+    );
+    const teamCount = selectedSubs.length;
+    const userCount = selectedSubs.reduce(
+      (sum, s) => sum + (s.memberCount || 0),
+      0
+    );
+    return { teamCount, userCount };
+  }, [submissions, selectedTeamIds]);
+
+  // Toggle team selection
+  const handleToggleTeamSelection = useCallback(
+    (teamId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      setSelectedTeamIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(teamId)) {
+          next.delete(teamId);
+        } else {
+          next.add(teamId);
+        }
+        return next;
+      });
+    },
+    []
+  );
+
   // Auto-select first team if none selected
   useEffect(() => {
     if (!selectedTeamId && filteredSubmissions.length > 0 && !loading) {
@@ -668,6 +703,12 @@ export default function JudgePortal() {
           </StatBadge>
           <StatBadge>P2: {stats.p2Reviewed}</StatBadge>
           <StatBadge>Finalists: {stats.finalists}</StatBadge>
+          {selectedStats.teamCount > 0 && (
+            <StatBadge $highlight>
+              Selected: {selectedStats.userCount} users (
+              {selectedStats.teamCount} teams)
+            </StatBadge>
+          )}
         </StatsRow>
       </Header>
 
@@ -839,53 +880,72 @@ export default function JudgePortal() {
                   $selected={selectedTeamId === sub.teamId}
                   onClick={() => handleSelectTeam(sub.teamId)}
                 >
-                  <TeamInfo>
-                    <TeamName>{sub.teamName}</TeamName>
-                    <TeamMeta>
-                      {sub.isHardware && <HWBadge>HW</HWBadge>}
-                      {sub.track && (
-                        <TrackBadge $sdg={sub.track.sdgNumber}>
-                          SDG {sub.track.sdgNumber}
-                        </TrackBadge>
-                      )}
-                    </TeamMeta>
-                  </TeamInfo>
-                  <ScoreSummary>
-                    <PassSummary>
-                      <PassLabel>P1</PassLabel>
-                      <ReviewCount
-                        $complete={
-                          sub.pass1.aggregate.reviewCount >=
-                          PASS_1_MAX_REVIEWERS
-                        }
-                      >
-                        {sub.pass1.aggregate.reviewCount}/{PASS_1_MAX_REVIEWERS}
-                      </ReviewCount>
-                      {sub.pass1Avg !== null && (
-                        <AvgScore>{sub.pass1Avg.toFixed(1)}</AvgScore>
-                      )}
-                      <ConsensusBadge $decision={sub.pass1.aggregate.consensus}>
-                        {sub.pass1.aggregate.consensus || '-'}
-                      </ConsensusBadge>
-                    </PassSummary>
-                    <PassSummary>
-                      <PassLabel>P2</PassLabel>
-                      <ReviewCount
-                        $complete={
-                          sub.pass2.aggregate.reviewCount >=
-                          PASS_2_MAX_REVIEWERS
-                        }
-                      >
-                        {sub.pass2.aggregate.reviewCount}/{PASS_2_MAX_REVIEWERS}
-                      </ReviewCount>
-                      {sub.pass2Avg !== null && (
-                        <AvgScore>{sub.pass2Avg.toFixed(1)}</AvgScore>
-                      )}
-                      <ConsensusBadge $decision={sub.pass2.aggregate.consensus}>
-                        {sub.pass2.aggregate.consensus || '-'}
-                      </ConsensusBadge>
-                    </PassSummary>
-                  </ScoreSummary>
+                  <TeamItemRow>
+                    <SelectionCheckbox
+                      type="checkbox"
+                      checked={selectedTeamIds.has(sub.teamId)}
+                      onClick={(e) => handleToggleTeamSelection(sub.teamId, e)}
+                      onChange={() => {}}
+                    />
+                    <TeamItemContent>
+                      <TeamInfo>
+                        <TeamName>
+                          {sub.teamName}
+                          <MemberCount>({sub.memberCount || 0})</MemberCount>
+                        </TeamName>
+                        <TeamMeta>
+                          {sub.isHardware && <HWBadge>HW</HWBadge>}
+                          {sub.track && (
+                            <TrackBadge $sdg={sub.track.sdgNumber}>
+                              SDG {sub.track.sdgNumber}
+                            </TrackBadge>
+                          )}
+                        </TeamMeta>
+                      </TeamInfo>
+                      <ScoreSummary>
+                        <PassSummary>
+                          <PassLabel>P1</PassLabel>
+                          <ReviewCount
+                            $complete={
+                              sub.pass1.aggregate.reviewCount >=
+                              PASS_1_MAX_REVIEWERS
+                            }
+                          >
+                            {sub.pass1.aggregate.reviewCount}/
+                            {PASS_1_MAX_REVIEWERS}
+                          </ReviewCount>
+                          {sub.pass1Avg !== null && (
+                            <AvgScore>{sub.pass1Avg.toFixed(1)}</AvgScore>
+                          )}
+                          <ConsensusBadge
+                            $decision={sub.pass1.aggregate.consensus}
+                          >
+                            {sub.pass1.aggregate.consensus || '-'}
+                          </ConsensusBadge>
+                        </PassSummary>
+                        <PassSummary>
+                          <PassLabel>P2</PassLabel>
+                          <ReviewCount
+                            $complete={
+                              sub.pass2.aggregate.reviewCount >=
+                              PASS_2_MAX_REVIEWERS
+                            }
+                          >
+                            {sub.pass2.aggregate.reviewCount}/
+                            {PASS_2_MAX_REVIEWERS}
+                          </ReviewCount>
+                          {sub.pass2Avg !== null && (
+                            <AvgScore>{sub.pass2Avg.toFixed(1)}</AvgScore>
+                          )}
+                          <ConsensusBadge
+                            $decision={sub.pass2.aggregate.consensus}
+                          >
+                            {sub.pass2.aggregate.consensus || '-'}
+                          </ConsensusBadge>
+                        </PassSummary>
+                      </ScoreSummary>
+                    </TeamItemContent>
+                  </TeamItemRow>
                 </TeamListItem>
               ))
             )}
@@ -1414,11 +1474,12 @@ const StatsRow = styled.div`
   flex-wrap: wrap;
 `;
 
-const StatBadge = styled.span`
-  background: ${neoColors.surface};
+const StatBadge = styled.span<{ $highlight?: boolean }>`
+  background: ${({ $highlight }) =>
+    $highlight ? neoColors.accent.yellow : neoColors.surface};
   border: ${neoBorders.standard};
   padding: 0.25rem 0.5rem;
-  font-weight: 600;
+  font-weight: ${({ $highlight }) => ($highlight ? 700 : 600)};
   font-size: 0.75rem;
 
   @media (min-width: 900px) {
@@ -1598,6 +1659,33 @@ const TeamListItem = styled.div<{ $selected: boolean }>`
     background: ${({ $selected }) =>
       $selected ? neoColors.accent.blue + '20' : neoColors.background};
   }
+`;
+
+const TeamItemRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+`;
+
+const SelectionCheckbox = styled.input`
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: ${neoColors.accent.blue};
+  flex-shrink: 0;
+`;
+
+const TeamItemContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const MemberCount = styled.span`
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: ${neoColors.textMuted};
+  margin-left: 0.25rem;
 `;
 
 const TeamInfo = styled.div`
