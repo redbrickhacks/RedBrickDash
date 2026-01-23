@@ -50,6 +50,36 @@ type SortField =
   | 'p1ReviewCount'
   | 'p2ReviewCount';
 
+// Tally profile types for team member display
+interface TallyProfile {
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  university: string | null;
+  program: string | null;
+  major: string | null;
+  graduationYear: string | null;
+  state: string | null;
+  country: string | null;
+  devpostUrl: string | null;
+  githubUrl: string | null;
+  linkedinUrl: string | null;
+  twitterUrl: string | null;
+  portfolioUrl: string | null;
+}
+
+interface MemberProfile {
+  userId: string;
+  email: string | null;
+  firstName: string;
+  lastName: string;
+  appId: string | null;
+  tallyProfile: TallyProfile | null;
+  tallyError: string | null;
+}
+
 // Decision color mapping
 type DecisionColorType = 'success' | 'warning' | 'error' | 'neutral';
 const DECISION_COLORS: Record<
@@ -151,6 +181,13 @@ export default function JudgePortal() {
   // Bulk operations state
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+
+  // Team member profiles state
+  const [teamProfilesExpanded, setTeamProfilesExpanded] = useState(false);
+  const [teamProfiles, setTeamProfiles] = useState<MemberProfile[] | null>(
+    null
+  );
+  const [teamProfilesLoading, setTeamProfilesLoading] = useState(false);
 
   // Count active dropdown filters (not including search/quick filters)
   const activeFilterCount = useMemo(() => {
@@ -339,6 +376,9 @@ export default function JudgePortal() {
       setActivePass(1);
       loadScoresForPass(sub, 1);
       setIsMobileDetailView(true);
+      // Reset team profiles when switching teams
+      setTeamProfilesExpanded(false);
+      setTeamProfiles(null);
     },
     [selectedTeamId, submissions, hasUnsavedChanges, loadScoresForPass]
   );
@@ -372,6 +412,34 @@ export default function JudgePortal() {
     },
     [selectedSubmission, hasUnsavedChanges, loadScoresForPass]
   );
+
+  // Fetch team member profiles from Tally
+  const fetchTeamProfiles = useCallback(async () => {
+    if (!selectedTeamId) return;
+    setTeamProfilesLoading(true);
+    try {
+      const res = await fetch(
+        `/api/judge/team-profiles?teamId=${selectedTeamId}`
+      );
+      if (!res.ok) {
+        throw new Error('Failed to fetch team profiles');
+      }
+      const data = await res.json();
+      setTeamProfiles(data.members || []);
+    } catch (e) {
+      console.error('[fetchTeamProfiles]', e);
+      setTeamProfiles([]);
+    } finally {
+      setTeamProfilesLoading(false);
+    }
+  }, [selectedTeamId]);
+
+  // Fetch profiles when section is expanded
+  useEffect(() => {
+    if (teamProfilesExpanded && teamProfiles === null && selectedTeamId) {
+      fetchTeamProfiles();
+    }
+  }, [teamProfilesExpanded, teamProfiles, selectedTeamId, fetchTeamProfiles]);
 
   // Save score
   const handleSaveScore = useCallback(async () => {
@@ -1307,6 +1375,126 @@ export default function JudgePortal() {
                   )}
                 </LinksGrid>
               </LinksSection>
+
+              {/* Member Profiles Section */}
+              <MemberProfilesSection>
+                <ProfilesSectionHeader
+                  onClick={() => setTeamProfilesExpanded(!teamProfilesExpanded)}
+                >
+                  <SectionTitle style={{ margin: 0 }}>
+                    Team Members ({selectedSubmission.memberCount || '?'})
+                  </SectionTitle>
+                  <ExpandIcon $expanded={teamProfilesExpanded}>▼</ExpandIcon>
+                </ProfilesSectionHeader>
+                {teamProfilesExpanded && (
+                  <ProfilesContent>
+                    {teamProfilesLoading ? (
+                      <ProfilesLoadingText>
+                        Loading member profiles...
+                      </ProfilesLoadingText>
+                    ) : teamProfiles && teamProfiles.length > 0 ? (
+                      teamProfiles.map((member) => (
+                        <MemberCard key={member.userId}>
+                          <MemberName>
+                            {member.firstName} {member.lastName}
+                          </MemberName>
+                          <MemberEmail>
+                            {member.email || 'No email'}
+                          </MemberEmail>
+                          {member.tallyProfile ? (
+                            <ProfileDetails>
+                              {member.tallyProfile.university && (
+                                <ProfileField>
+                                  <ProfileLabel>University</ProfileLabel>
+                                  <ProfileValue>
+                                    {member.tallyProfile.university}
+                                  </ProfileValue>
+                                </ProfileField>
+                              )}
+                              {member.tallyProfile.program && (
+                                <ProfileField>
+                                  <ProfileLabel>Program</ProfileLabel>
+                                  <ProfileValue>
+                                    {member.tallyProfile.program}
+                                  </ProfileValue>
+                                </ProfileField>
+                              )}
+                              {member.tallyProfile.major && (
+                                <ProfileField>
+                                  <ProfileLabel>Major</ProfileLabel>
+                                  <ProfileValue>
+                                    {member.tallyProfile.major}
+                                  </ProfileValue>
+                                </ProfileField>
+                              )}
+                              {member.tallyProfile.graduationYear && (
+                                <ProfileField>
+                                  <ProfileLabel>Graduation</ProfileLabel>
+                                  <ProfileValue>
+                                    {member.tallyProfile.graduationYear}
+                                  </ProfileValue>
+                                </ProfileField>
+                              )}
+                              {member.tallyProfile.state && (
+                                <ProfileField>
+                                  <ProfileLabel>State</ProfileLabel>
+                                  <ProfileValue>
+                                    {member.tallyProfile.state}
+                                  </ProfileValue>
+                                </ProfileField>
+                              )}
+                              <ProfileLinksRow>
+                                {member.tallyProfile.githubUrl && (
+                                  <ProfileLink
+                                    href={member.tallyProfile.githubUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    GitHub
+                                  </ProfileLink>
+                                )}
+                                {member.tallyProfile.linkedinUrl && (
+                                  <ProfileLink
+                                    href={member.tallyProfile.linkedinUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    LinkedIn
+                                  </ProfileLink>
+                                )}
+                                {member.tallyProfile.portfolioUrl && (
+                                  <ProfileLink
+                                    href={member.tallyProfile.portfolioUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    Portfolio
+                                  </ProfileLink>
+                                )}
+                                {member.tallyProfile.devpostUrl && (
+                                  <ProfileLink
+                                    href={member.tallyProfile.devpostUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    Devpost
+                                  </ProfileLink>
+                                )}
+                              </ProfileLinksRow>
+                            </ProfileDetails>
+                          ) : member.tallyError ? (
+                            <ProfileError>{member.tallyError}</ProfileError>
+                          ) : null}
+                        </MemberCard>
+                      ))
+                    ) : (
+                      <ProfilesLoadingText>
+                        No members found
+                      </ProfilesLoadingText>
+                    )}
+                  </ProfilesContent>
+                )}
+              </MemberProfilesSection>
 
               <PassTabs>
                 <PassTab
@@ -2284,6 +2472,109 @@ const LinkButton = styled.a`
     transform: translate(1px, 1px);
     box-shadow: 1px 1px 0 #000;
   }
+`;
+
+// Member Profiles styled components
+const MemberProfilesSection = styled.div`
+  border-bottom: ${neoBorders.standard};
+`;
+
+const ProfilesSectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  background: ${neoColors.background};
+
+  &:hover {
+    background: ${neoColors.surface};
+  }
+`;
+
+const ExpandIcon = styled.span<{ $expanded: boolean }>`
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+  transform: ${({ $expanded }) =>
+    $expanded ? 'rotate(180deg)' : 'rotate(0deg)'};
+`;
+
+const ProfilesContent = styled.div`
+  padding: 0.5rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const ProfilesLoadingText = styled.div`
+  color: ${neoColors.textMuted};
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+`;
+
+const MemberCard = styled.div`
+  padding: 0.75rem;
+  background: ${neoColors.surface};
+  border: ${neoBorders.standard};
+`;
+
+const MemberName = styled.div`
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+`;
+
+const MemberEmail = styled.div`
+  font-size: 0.8rem;
+  color: ${neoColors.textMuted};
+  margin-bottom: 0.5rem;
+`;
+
+const ProfileDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+`;
+
+const ProfileField = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const ProfileLabel = styled.span`
+  color: ${neoColors.textMuted};
+  min-width: 80px;
+`;
+
+const ProfileValue = styled.span`
+  color: ${neoColors.text};
+`;
+
+const ProfileLinksRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const ProfileLink = styled.a`
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: ${neoColors.accent.blue};
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid #000;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const ProfileError = styled.div`
+  font-size: 0.75rem;
+  color: ${neoColors.status.error};
+  font-style: italic;
 `;
 
 const PassTabs = styled.div`
