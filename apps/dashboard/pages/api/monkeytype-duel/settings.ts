@@ -42,7 +42,7 @@ export default async function handler(
       .from('user_profiles')
       .update({ monkeytype_duel_settings: settings })
       .eq('user_id', user.user_id)
-      .select('monkeytype_duel_settings,created_at')
+      .select('monkeytype_duel_settings')
       .single();
 
     if (error) {
@@ -52,7 +52,6 @@ export default async function handler(
 
     return res.status(200).json({
       settings: data.monkeytype_duel_settings,
-      updatedAt: data.created_at,
     });
   } catch (e) {
     console.error('[dashboard/monkeytype-settings] Error:', e);

@@ -22,7 +22,7 @@ SET DEFAULT public.gen_monkeytype_otp();
 
 -- Backfill existing rows that don't yet have an OTP
 UPDATE user_profiles
-SET monkeytype_duel_otp = lpad((floor(random() * 10000))::int::text, 4, '0')
+SET monkeytype_duel_otp = public.gen_monkeytype_otp()
 WHERE monkeytype_duel_otp IS NULL;
 
 ALTER TABLE user_profiles
