@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { HibiscusRole, HibiscusUser } from '@hibiscus/types';
 import {
   FaHouse,
   FaUsers,
@@ -17,26 +18,40 @@ const CONTACT = {
   phone: '+91 90500 14105',
 };
 
-const NAV_ITEMS = [
-  { path: '/', label: 'Home', icon: FaHouse },
-  { path: '/team', label: 'Team', icon: FaUsers },
-  { path: '/submit', label: 'Submit', icon: FaCloudArrowUp },
-  { path: '/apply', label: 'Profile', icon: FaUser },
-];
+const NAV_ITEMS = (user: HibiscusUser) =>
+  user.role === HibiscusRole.FINALIST
+    ? [
+        { path: '/finalist', label: 'Home', icon: FaHouse },
+        { path: '/team', label: 'Team', icon: FaUsers },
+        { path: '/submit', label: 'Submit', icon: FaCloudArrowUp },
+        { path: '/apply', label: 'Profile', icon: FaUser },
+      ]
+    : [
+        { path: '/', label: 'Home', icon: FaHouse },
+        { path: '/team', label: 'Team', icon: FaUsers },
+        { path: '/submit', label: 'Submit', icon: FaCloudArrowUp },
+        { path: '/apply', label: 'Profile', icon: FaUser },
+      ];
 
 function isActiveRoute(itemPath: string, currentPath: string): boolean {
   if (itemPath === '/') return currentPath === '/';
   return currentPath.startsWith(itemPath);
 }
 
-export function NeoSidebar() {
+export interface NeoSidebarProps {
+  user: HibiscusUser;
+}
+
+export function NeoSidebar({ user }: NeoSidebarProps) {
   const router = useRouter();
   const currentPath = router.pathname;
+
+  const navItems = useMemo(() => NAV_ITEMS(user), [user]);
 
   return (
     <SidebarWrapper>
       <Nav aria-label="Main navigation">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = isActiveRoute(item.path, currentPath);
           const Icon = item.icon;
 

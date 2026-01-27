@@ -40,7 +40,7 @@ function PortalLayout({ children }: PortalLayoutProps) {
     <LayoutWrapper>
       <NeoTopBar userTag={user.tag} role={user.role} />
       <MainContent>
-        {!isMobile && <NeoSidebar />}
+        {!isMobile && <NeoSidebar user={user} />}
         <ContentArea $hasMobileNav={isMobile}>{children}</ContentArea>
       </MainContent>
       {isMobile && <NeoBottomNav />}
