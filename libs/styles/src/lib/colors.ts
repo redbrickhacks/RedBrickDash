@@ -67,5 +67,9 @@ export namespace Colors2023 {
       light: BLUE.LIGHT,
       standard: BLUE.STANDARD,
     },
+    [HibiscusRole.FINALIST]: {
+      light: PURPLE.LIGHT,
+      standard: PURPLE.STANDARD,
+    },
   };
 }

@@ -37,9 +37,9 @@ app.post('/api/invite/:role/:email', async (c) => {
         INTERNAL_SERVER_ERROR
       );
     }
-    // role should be between 1 and 7
+    // role should be between 1 and 8
     // maybe we shouldn't hardcode this, but I'm not sure how to change this for now
-    if (role > 0 && role < 8) {
+    if (role > 0 && role < 9) {
       const result = await supabase.from('user_invites').insert({
         role: role,
         email: email,
@@ -52,7 +52,7 @@ app.post('/api/invite/:role/:email', async (c) => {
       return c.json(
         {
           error: 'PARAMETER_ERROR',
-          message: 'Role number not recognized should be between 1 and 7',
+          message: 'Role number not recognized should be between 1 and 8',
         },
         INTERNAL_SERVER_ERROR
       );
