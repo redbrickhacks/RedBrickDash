@@ -26,5 +26,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // This matches everything except for static files and Tally webhook endpoints
-  matcher: ['/((?!_next/static|static|favicon.ico|api/tally/).*)'],
+  // Monkeytype duel endpoints are authenticated via MONKEYTYPE_DUEL_SECRET and must be callable
+  // without an SSO session (e.g., via curl/server-to-server).
+  matcher: [
+    '/((?!_next/static|static|favicon.ico|api/tally/|api/monkeytype-duel/authenticate|api/monkeytype-duel/finalists|api/monkeytype-duel/update-leaderboard).*)',
+  ],
 };

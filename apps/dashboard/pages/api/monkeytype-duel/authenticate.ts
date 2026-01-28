@@ -14,10 +14,12 @@ type TeamBasicInfo = {
 type ResponseBody =
   | { message: string }
   | {
+      id: string;
       first_name: string;
       last_name: string;
       team: TeamBasicInfo | null;
       monkeytype_duel_settings: unknown;
+      monkeytype_wpm: number | null;
     };
 
 function getBearerToken(req: NextApiRequest): string | null {
@@ -55,7 +57,7 @@ export default async function handler(
     return res.status(400).json({ message: '`otp` is required' });
   }
   const otp = (req.body as { otp: string })?.otp.trim();
-  if (otp.length !== 0) {
+  if (otp.length === 0) {
     return res.status(400).json({ message: '`otp` is required' });
   }
 
@@ -67,7 +69,7 @@ export default async function handler(
     const { data: userProfile, error: userError } = await supabase
       .from('user_profiles')
       .select(
-        'user_id,first_name,last_name,team_id,monkeytype_duel_settings,monkeytype_duel_otp'
+        'user_id,first_name,last_name,team_id,monkeytype_duel_settings,monkeytype_duel_otp,monkeytype_wpm'
       )
       .eq('monkeytype_duel_otp', otp)
       .maybeSingle();
@@ -104,10 +106,12 @@ export default async function handler(
     }
 
     return res.status(200).json({
+      id: userProfile.user_id,
       first_name: userProfile.first_name,
       last_name: userProfile.last_name,
       team,
       monkeytype_duel_settings: userProfile.monkeytype_duel_settings ?? {},
+      monkeytype_wpm: userProfile.monkeytype_wpm ?? null,
     });
   } catch (e) {
     console.error('[monkeytype-duel/authenticate] Error:', e);

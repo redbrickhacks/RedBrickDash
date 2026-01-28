@@ -910,8 +910,9 @@ export type Database = {
           email: string | null;
           first_name: string;
           last_name: string;
-          monkeytype_duel_otp: string | null;
+          monkeytype_duel_otp: string;
           monkeytype_duel_settings: Json;
+          monkeytype_wpm: number | null;
           referral_code: string | null;
           referred_by: string | null;
           role: number | null;
@@ -930,8 +931,9 @@ export type Database = {
           email?: string | null;
           first_name: string;
           last_name: string;
-          monkeytype_duel_otp?: string | null;
+          monkeytype_duel_otp?: string;
           monkeytype_duel_settings?: Json;
+          monkeytype_wpm?: number | null;
           referral_code?: string | null;
           referred_by?: string | null;
           role?: number | null;
@@ -950,8 +952,9 @@ export type Database = {
           email?: string | null;
           first_name?: string;
           last_name?: string;
-          monkeytype_duel_otp?: string | null;
+          monkeytype_duel_otp?: string;
           monkeytype_duel_settings?: Json;
+          monkeytype_wpm?: number | null;
           referral_code?: string | null;
           referred_by?: string | null;
           role?: number | null;
@@ -1060,9 +1063,11 @@ export type Database = {
     };
     Functions: {
       gen_monkeytype_otp: { Args: never; Returns: string };
+      gen_unique_monkeytype_otp: { Args: never; Returns: string };
       get_sponsors: { Args: never; Returns: string[] };
       get_volunteers: { Args: never; Returns: string[] };
       is_valid_url: { Args: { url: string }; Returns: boolean };
+      set_monkeytype_wpm_bulk: { Args: { updates: Json }; Returns: Json };
       swap_stamp: {
         Args: {
           p_giver_id: string;
