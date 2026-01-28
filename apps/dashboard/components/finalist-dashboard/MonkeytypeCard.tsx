@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaArrowRotateRight } from 'react-icons/fa6';
 import { NeoButton } from '../neo-ui/NeoButton';
 import { neoColors } from '../neo-ui/theme';
 import {
@@ -44,16 +45,16 @@ export function MonkeytypeCard(props: MonkeytypeCardProps) {
         </div>
         <ButtonRow>
           <NeoButton
-            variant="secondary"
-            onClick={() => alert('Copy coming soon')}
-          >
-            Copy
-          </NeoButton>
-          <NeoButton
-            variant="secondary"
+            variant="ghost"
+            aria-label="Reset OTP"
             onClick={() => alert('Reset OTP coming soon')}
+            style={{ padding: '0.55rem' }}
           >
-            Reset
+            <FaArrowRotateRight
+              size={15}
+              aria-hidden="true"
+              style={{ transform: 'rotate(270deg)' }}
+            />
           </NeoButton>
         </ButtonRow>
       </OtpInline>

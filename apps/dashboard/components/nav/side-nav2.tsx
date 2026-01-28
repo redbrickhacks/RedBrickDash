@@ -58,6 +58,10 @@ const SideNav = ({ options }: Props) => {
         <div style={{ fontSize: 11, margin: 25 }}>
           <div style={{ marginBottom: 5 }}>Contact RBH Support</div>
           <div>+91 90500 14105</div>
+          <div style={{ marginTop: 6, color: '#666', lineHeight: 1.3 }}>
+            This phone number is managed by a full-time student. Please call
+            between 10:00 AM–6:00 PM IST.
+          </div>
           <div>redbrickhacks@ashoka.edu.in</div>
         </div>
         <LogoutButton onClick={logout}>

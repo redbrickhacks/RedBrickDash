@@ -16,6 +16,7 @@ import { neoColors, neoBorders, neoTransition } from './theme';
 const CONTACT = {
   email: 'redbrickhacks@ashoka.edu.in',
   phone: '+91 90500 14105',
+  phoneHours: '10:00 AM–6:00 PM IST',
 };
 
 const NAV_ITEMS = (user: HibiscusUser) =>
@@ -78,6 +79,12 @@ export function NeoSidebar({ user }: NeoSidebarProps) {
           <FaPhone />
           <span>{CONTACT.phone}</span>
         </ContactLink>
+        {CONTACT.phoneHours ? (
+          <ContactNote>
+            This phone number is managed by a full-time student. Please call
+            between {CONTACT.phoneHours}.
+          </ContactNote>
+        ) : null}
       </ContactSection>
     </SidebarWrapper>
   );
@@ -169,4 +176,11 @@ const ContactLink = styled.a`
   span {
     word-break: break-all;
   }
+`;
+
+const ContactNote = styled.p`
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: ${neoColors.textMuted};
 `;

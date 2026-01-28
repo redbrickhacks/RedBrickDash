@@ -12,6 +12,8 @@ import {
 
 export interface TravelCardProps {
   myGateOtp: string;
+  venueName: string;
+  venueLine: string;
 }
 
 export function TravelCard(props: TravelCardProps) {
@@ -107,6 +109,12 @@ export function TravelCard(props: TravelCardProps) {
             </MapOverlay>
           </MapWrap>
 
+          <VenueBox aria-label="Venue">
+            <VenueLabel>Venue</VenueLabel>
+            <VenueName>{props.venueName}</VenueName>
+            <VenueLine>{props.venueLine}</VenueLine>
+          </VenueBox>
+
           <OtpInline style={{ marginTop: 0 }}>
             <div>
               <OtpInlineLabel>MyGate OTP</OtpInlineLabel>
@@ -193,6 +201,33 @@ const RouteTitle = styled.div`
   margin-bottom: 0.35rem;
   line-height: 1.2;
   font-size: 1.1rem;
+`;
+
+const VenueBox = styled.div`
+  border: ${neoBorders.standard};
+  background: ${neoColors.background};
+  padding: 0.9rem;
+`;
+
+const VenueLabel = styled.div`
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: ${neoColors.textMuted};
+  margin-bottom: 0.25rem;
+`;
+
+const VenueName = styled.div`
+  font-weight: 900;
+  line-height: 1.2;
+  font-size: 1.05rem;
+`;
+
+const VenueLine = styled.div`
+  color: ${neoColors.textMuted};
+  margin-top: 0.2rem;
+  line-height: 1.2;
+  font-size: 0.9rem;
 `;
 
 const MapWrap = styled.div`
