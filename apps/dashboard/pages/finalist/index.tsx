@@ -27,10 +27,9 @@ const hackathon = {
   checkIn: '8:30 AM IST',
   kickoff: '10:00 AM IST',
   venueName: 'Ashoka University',
-  venueLine: 'Rajiv Gandhi Education City, Sonipat, Haryana',
+  venueLine:
+    'Plot No. 2, Rajiv Gandhi Education City, Kundli, Sonipat, Haryana 131028',
 } as const;
-
-const myGateOtp = '742913' as const;
 
 const travelReimbursement = {
   currentStatus: 'UNDER_REVIEW' as
@@ -47,46 +46,9 @@ const travelReimbursement = {
 const travelReimbursementTallyUrl =
   'https://tally.so/r/3qYB8Z?transparentBackground=1' as const;
 
-const teamRsvp = {
-  teamName: 'Team Bricklayers',
-  deadline: 'Feb 1, 2026',
-  members: [
-    {
-      name: 'Angad',
-      email: 'angad@example.com',
-      attendanceConfirmed: true as boolean | null,
-    },
-    {
-      name: 'Riya',
-      email: 'riya@example.com',
-      attendanceConfirmed: true as boolean | null,
-    },
-    {
-      name: 'Harshit',
-      email: 'harshit@example.com',
-      attendanceConfirmed: false as boolean | null,
-    },
-    {
-      name: 'Zoya',
-      email: 'zoya@example.com',
-      attendanceConfirmed: null as boolean | null,
-    },
-  ],
-} as const;
-
-const monkeytypeThemes = [
-  { id: 'neo-brutal', name: 'Neo Brutal (default)', swatch: '#FFE566' },
-  { id: 'midnight', name: 'Midnight', swatch: '#0077B6' },
-  { id: 'forest', name: 'Forest', swatch: '#2D6A4F' },
-  { id: 'tomato', name: 'Tomato', swatch: '#FF5C5C' },
-  { id: 'mono', name: 'Mono', swatch: '#666' },
-] as const;
-
 export default function FinalistPage() {
   const { user } = useHibiscusUser();
   const router = useRouter();
-  const [selectedMonkeytypeTheme, setSelectedMonkeytypeTheme] =
-    useState<string>('neo-brutal');
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -130,33 +92,25 @@ export default function FinalistPage() {
         date={hackathon.date}
         checkIn={hackathon.checkIn}
         kickoff={hackathon.kickoff}
+      />
+
+      <TravelCard
         venueName={hackathon.venueName}
         venueLine={hackathon.venueLine}
       />
 
-      <TravelCard myGateOtp={myGateOtp} />
-
       <TwoColumn>
         <Column>
-          <RsvpCard
-            teamName={teamRsvp.teamName}
-            deadline={teamRsvp.deadline}
-            members={teamRsvp.members}
-          />
+          <RsvpCard />
         </Column>
 
         <Column>
+          <MonkeytypeCard />
+
           <TravelReimbursementCard
             status={travelReimbursement.currentStatus}
             lastUpdated={travelReimbursement.lastUpdated}
             tallyUrl={travelReimbursementTallyUrl}
-          />
-
-          <MonkeytypeCard
-            otp="0421"
-            themes={[...monkeytypeThemes]}
-            selectedThemeId={selectedMonkeytypeTheme}
-            onSelectTheme={setSelectedMonkeytypeTheme}
           />
         </Column>
       </TwoColumn>

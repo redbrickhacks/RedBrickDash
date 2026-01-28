@@ -226,12 +226,11 @@ export const OtpInlineLabel = styled.div`
   font-size: 0.75rem;
   font-weight: 900;
   text-transform: uppercase;
-  color: ${neoColors.textMuted};
 `;
 
 export const OtpInlineValue = styled.div`
   font-weight: 900;
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   letter-spacing: 0.08em;
   line-height: 1.1;
 `;

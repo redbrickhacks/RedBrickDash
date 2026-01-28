@@ -1,22 +1,44 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { NeoButton } from '../neo-ui/NeoButton';
 import { neoBorders, neoColors } from '../neo-ui/theme';
 import {
   CardTitle,
   FullWidthCard,
-  OtpInline,
   OtpInlineLabel,
   OtpInlineValue,
+  SmallMuted,
 } from './common';
 
 export interface TravelCardProps {
-  myGateOtp: string;
-  venueName: string;
-  venueLine: string;
+  venueName?: string;
+  venueLine?: string;
 }
 
 export function TravelCard(props: TravelCardProps) {
+  const [myGateOtp, setMyGateOtp] = useState<string | null>(null);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const res = await fetch('/api/finalist/mygate-otp');
+        if (!res.ok) return;
+        const body = (await res.json()) as {
+          data?: { myGateOtp?: number | null };
+        };
+        const value = body?.data?.myGateOtp;
+        setMyGateOtp(value == null ? null : String(value));
+      } catch {
+        // ignore
+      }
+    };
+    run();
+  }, []);
+
+  const venueName = props.venueName ?? 'Ashoka University';
+  const venueLine =
+    props.venueLine ??
+    'Plot No. 2, Rajiv Gandhi Education City, Kundli, Sonipat, Haryana 131028';
+
   return (
     <FullWidthCard accent={neoColors.accent.blue}>
       <TravelGrid>
@@ -109,24 +131,27 @@ export function TravelCard(props: TravelCardProps) {
             </MapOverlay>
           </MapWrap>
 
-          <VenueBox aria-label="Venue">
-            <VenueLabel>Venue</VenueLabel>
-            <VenueName>{props.venueName}</VenueName>
-            <VenueLine>{props.venueLine}</VenueLine>
-          </VenueBox>
+          <RightBottomRow>
+            <SubCard aria-label="Venue">
+              <OtpInlineLabel>Venue</OtpInlineLabel>
+              <OtpInlineValue style={{ fontSize: '1.25rem', letterSpacing: 0 }}>
+                {venueName}
+              </OtpInlineValue>
+              <SmallMuted>{venueLine}</SmallMuted>
+            </SubCard>
 
-          <OtpInline style={{ marginTop: 0 }}>
-            <div>
-              <OtpInlineLabel>MyGate OTP</OtpInlineLabel>
-              <OtpInlineValue>{props.myGateOtp}</OtpInlineValue>
-            </div>
-            <NeoButton
-              variant="secondary"
-              onClick={() => alert('Copy coming soon')}
-            >
-              Copy
-            </NeoButton>
-          </OtpInline>
+            <SubCard aria-label="MyGate OTP">
+              <div>
+                <OtpInlineLabel>MyGate OTP</OtpInlineLabel>
+                <OtpInlineValue>{myGateOtp ?? '*****'}</OtpInlineValue>
+                {myGateOtp == null ? (
+                  <SmallMuted>
+                    Will be updated closer to the hackathon date.
+                  </SmallMuted>
+                ) : null}
+              </div>
+            </SubCard>
+          </RightBottomRow>
         </RightStack>
       </TravelGrid>
     </FullWidthCard>
@@ -156,6 +181,16 @@ const RightStack = styled.div`
   flex-direction: column;
   gap: 0.75rem;
   height: 100%;
+`;
+
+const RightBottomRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const List = styled.ul`
@@ -203,31 +238,14 @@ const RouteTitle = styled.div`
   font-size: 1.1rem;
 `;
 
-const VenueBox = styled.div`
+const SubCard = styled.div`
   border: ${neoBorders.standard};
   background: ${neoColors.background};
   padding: 0.9rem;
-`;
-
-const VenueLabel = styled.div`
-  font-size: 0.85rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  color: ${neoColors.textMuted};
-  margin-bottom: 0.25rem;
-`;
-
-const VenueName = styled.div`
-  font-weight: 900;
-  line-height: 1.2;
-  font-size: 1.05rem;
-`;
-
-const VenueLine = styled.div`
-  color: ${neoColors.textMuted};
-  margin-top: 0.2rem;
-  line-height: 1.2;
-  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 140px;
 `;
 
 const MapWrap = styled.div`

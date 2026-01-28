@@ -584,6 +584,21 @@ export type Database = {
         };
         Relationships: [];
       };
+      rsvp_status: {
+        Row: {
+          id: number;
+          status: string;
+        };
+        Insert: {
+          id?: number;
+          status: string;
+        };
+        Update: {
+          id?: number;
+          status?: string;
+        };
+        Relationships: [];
+      };
       sponsor_user_bridge_company: {
         Row: {
           company_id: string;
@@ -913,9 +928,11 @@ export type Database = {
           monkeytype_duel_otp: string;
           monkeytype_duel_settings: Json;
           monkeytype_wpm: number | null;
+          mygate_otp: number | null;
           referral_code: string | null;
           referred_by: string | null;
           role: number | null;
+          rsvp_status: number;
           submission_id: string | null;
           submission_status: number | null;
           submitted_at: string | null;
@@ -934,9 +951,11 @@ export type Database = {
           monkeytype_duel_otp?: string;
           monkeytype_duel_settings?: Json;
           monkeytype_wpm?: number | null;
+          mygate_otp?: number | null;
           referral_code?: string | null;
           referred_by?: string | null;
           role?: number | null;
+          rsvp_status?: number;
           submission_id?: string | null;
           submission_status?: number | null;
           submitted_at?: string | null;
@@ -955,9 +974,11 @@ export type Database = {
           monkeytype_duel_otp?: string;
           monkeytype_duel_settings?: Json;
           monkeytype_wpm?: number | null;
+          mygate_otp?: number | null;
           referral_code?: string | null;
           referred_by?: string | null;
           role?: number | null;
+          rsvp_status?: number;
           submission_id?: string | null;
           submission_status?: number | null;
           submitted_at?: string | null;
@@ -984,6 +1005,13 @@ export type Database = {
             columns: ['role'];
             isOneToOne: false;
             referencedRelation: 'roles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_profiles_rsvp_status_fkey';
+            columns: ['rsvp_status'];
+            isOneToOne: false;
+            referencedRelation: 'rsvp_status';
             referencedColumns: ['id'];
           },
           {
