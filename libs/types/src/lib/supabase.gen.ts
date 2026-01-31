@@ -925,6 +925,7 @@ export type Database = {
           email: string | null;
           first_name: string;
           last_name: string;
+          memento_uuid: string;
           monkeytype_duel_otp: string;
           monkeytype_duel_settings: Json;
           monkeytype_wpm: number | null;
@@ -948,6 +949,7 @@ export type Database = {
           email?: string | null;
           first_name: string;
           last_name: string;
+          memento_uuid?: string;
           monkeytype_duel_otp?: string;
           monkeytype_duel_settings?: Json;
           monkeytype_wpm?: number | null;
@@ -971,6 +973,7 @@ export type Database = {
           email?: string | null;
           first_name?: string;
           last_name?: string;
+          memento_uuid?: string;
           monkeytype_duel_otp?: string;
           monkeytype_duel_settings?: Json;
           monkeytype_wpm?: number | null;

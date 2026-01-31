@@ -29,6 +29,6 @@ export const config = {
   // Monkeytype duel endpoints are authenticated via MONKEYTYPE_DUEL_SECRET and must be callable
   // without an SSO session (e.g., via curl/server-to-server).
   matcher: [
-    '/((?!_next/static|static|favicon.ico|api/tally/|api/monkeytype-duel/authenticate|api/monkeytype-duel/finalists|api/monkeytype-duel/update-leaderboard).*)',
+    '/((?!_next/static|static|favicon.ico|memento|api/memento|api/tally/|api/monkeytype-duel/authenticate|api/monkeytype-duel/finalists|api/monkeytype-duel/update-leaderboard).*)',
   ],
 };
