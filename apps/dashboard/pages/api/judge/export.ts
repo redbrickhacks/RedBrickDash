@@ -68,22 +68,66 @@ export default async function handler(
     hbc.setOptions({ useServiceKey: true });
     const supabase = hbc.getClient();
 
-    // Get teams with the specified final decision
-    const { data: judgingNotes, error: notesError } = await supabase
-      .from('judging_notes')
-      .select('team_id')
-      .eq('final_decision', decision);
+    let teamIds: string[];
 
-    if (notesError) {
-      console.error('[judge/export] Notes fetch error:', notesError);
-      return res.status(500).json({ message: 'Failed to fetch decisions' });
+    if (decision === 'not_selected') {
+      // For not_selected (rejected): get all submitted teams NOT marked as finalist/waitlist
+      // 1. Get all submitted teams
+      const { data: submittedTeams, error: submittedError } = await supabase
+        .from('teams')
+        .select('team_id')
+        .eq('submission_status', 2);
+
+      if (submittedError) {
+        console.error('[judge/export] Submitted teams error:', submittedError);
+        return res.status(500).json({ message: 'Failed to fetch teams' });
+      }
+
+      if (!submittedTeams || submittedTeams.length === 0) {
+        return res.status(200).json({ teams: [], count: 0, decision });
+      }
+
+      // 2. Get teams that ARE finalists or waitlist (to exclude)
+      const { data: selectedNotes, error: selectedError } = await supabase
+        .from('judging_notes')
+        .select('team_id')
+        .in('final_decision', ['finalist', 'waitlist']);
+
+      if (selectedError) {
+        console.error('[judge/export] Selected notes error:', selectedError);
+        return res.status(500).json({ message: 'Failed to fetch decisions' });
+      }
+
+      const selectedTeamIds = new Set(
+        (selectedNotes || []).map((n) => n.team_id)
+      );
+
+      // 3. Filter to submitted teams NOT in finalist/waitlist
+      teamIds = submittedTeams
+        .map((t) => t.team_id)
+        .filter((id) => !selectedTeamIds.has(id));
+
+      if (teamIds.length === 0) {
+        return res.status(200).json({ teams: [], count: 0, decision });
+      }
+    } else {
+      // For finalist/waitlist: get teams with that specific final_decision
+      const { data: judgingNotes, error: notesError } = await supabase
+        .from('judging_notes')
+        .select('team_id')
+        .eq('final_decision', decision);
+
+      if (notesError) {
+        console.error('[judge/export] Notes fetch error:', notesError);
+        return res.status(500).json({ message: 'Failed to fetch decisions' });
+      }
+
+      if (!judgingNotes || judgingNotes.length === 0) {
+        return res.status(200).json({ teams: [], count: 0, decision });
+      }
+
+      teamIds = judgingNotes.map((n) => n.team_id);
     }
-
-    if (!judgingNotes || judgingNotes.length === 0) {
-      return res.status(200).json({ teams: [], count: 0 });
-    }
-
-    const teamIds = judgingNotes.map((n) => n.team_id);
 
     // Get team details
     const { data: teams, error: teamsError } = await supabase

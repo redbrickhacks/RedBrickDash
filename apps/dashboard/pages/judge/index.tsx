@@ -839,7 +839,7 @@ export default function JudgePortal() {
 
   // Export teams by decision
   const handleExport = useCallback(
-    async (decision: 'finalist' | 'waitlist') => {
+    async (decision: 'finalist' | 'waitlist' | 'not_selected') => {
       setExportLoading(true);
       try {
         const res = await fetch(`/api/judge/export?decision=${decision}`);
@@ -1012,6 +1012,13 @@ export default function JudgePortal() {
                 Mark as Waitlist
               </ActionButton>
               <ActionButton
+                $variant="danger"
+                onClick={() => handleBulkMarkDecision('not_selected')}
+                disabled={bulkActionLoading}
+              >
+                Mark as Not Selected
+              </ActionButton>
+              <ActionButton
                 $variant="neutral"
                 onClick={() => setSelectedTeamIds(new Set())}
                 disabled={bulkActionLoading}
@@ -1035,6 +1042,13 @@ export default function JudgePortal() {
               disabled={exportLoading}
             >
               Waitlist CSV
+            </ActionButton>
+            <ActionButton
+              $variant="neutral"
+              onClick={() => handleExport('not_selected')}
+              disabled={exportLoading}
+            >
+              Not Selected CSV
             </ActionButton>
           </ExportGroup>
         </ActionsRow>
