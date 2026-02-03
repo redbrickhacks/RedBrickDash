@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { HibiscusRole, HibiscusUser } from '@hibiscus/types';
 import {
   FaHouse,
   FaUsers,
@@ -15,28 +16,43 @@ import { neoColors, neoBorders, neoTransition } from './theme';
 const CONTACT = {
   email: 'redbrickhacks@ashoka.edu.in',
   phone: '+91 90500 14105',
+  phoneHours: '10:00 AM–6:00 PM IST',
 };
 
-const NAV_ITEMS = [
-  { path: '/', label: 'Home', icon: FaHouse },
-  { path: '/team', label: 'Team', icon: FaUsers },
-  { path: '/submit', label: 'Submit', icon: FaCloudArrowUp },
-  { path: '/apply', label: 'Profile', icon: FaUser },
-];
+const NAV_ITEMS = (user: HibiscusUser) =>
+  user.role === HibiscusRole.FINALIST
+    ? [
+        { path: '/finalist', label: 'Home', icon: FaHouse },
+        { path: '/team', label: 'Team', icon: FaUsers },
+        { path: '/submit', label: 'Submit', icon: FaCloudArrowUp },
+        { path: '/apply', label: 'Profile', icon: FaUser },
+      ]
+    : [
+        { path: '/', label: 'Home', icon: FaHouse },
+        { path: '/team', label: 'Team', icon: FaUsers },
+        { path: '/submit', label: 'Submit', icon: FaCloudArrowUp },
+        { path: '/apply', label: 'Profile', icon: FaUser },
+      ];
 
 function isActiveRoute(itemPath: string, currentPath: string): boolean {
   if (itemPath === '/') return currentPath === '/';
   return currentPath.startsWith(itemPath);
 }
 
-export function NeoSidebar() {
+export interface NeoSidebarProps {
+  user: HibiscusUser;
+}
+
+export function NeoSidebar({ user }: NeoSidebarProps) {
   const router = useRouter();
   const currentPath = router.pathname;
+
+  const navItems = useMemo(() => NAV_ITEMS(user), [user]);
 
   return (
     <SidebarWrapper>
       <Nav aria-label="Main navigation">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = isActiveRoute(item.path, currentPath);
           const Icon = item.icon;
 
@@ -63,6 +79,12 @@ export function NeoSidebar() {
           <FaPhone />
           <span>{CONTACT.phone}</span>
         </ContactLink>
+        {CONTACT.phoneHours ? (
+          <ContactNote>
+            This phone number is managed by a full-time student. Please call
+            between {CONTACT.phoneHours}.
+          </ContactNote>
+        ) : null}
       </ContactSection>
     </SidebarWrapper>
   );
@@ -154,4 +176,11 @@ const ContactLink = styled.a`
   span {
     word-break: break-all;
   }
+`;
+
+const ContactNote = styled.p`
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: ${neoColors.textMuted};
 `;
