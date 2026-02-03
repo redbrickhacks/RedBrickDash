@@ -398,6 +398,157 @@ export type Database = {
           }
         ];
       };
+      judging_notes: {
+        Row: {
+          created_at: string | null;
+          final_decision: string | null;
+          pass_1: string | null;
+          pass_1_at: string | null;
+          pass_1_by: string | null;
+          pass_1_implementation: number | null;
+          pass_1_notes: string | null;
+          pass_1_problem: number | null;
+          pass_1_roadmap: number | null;
+          pass_1_solution: number | null;
+          pass_2: string | null;
+          pass_2_at: string | null;
+          pass_2_by: string | null;
+          pass_2_implementation: number | null;
+          pass_2_notes: string | null;
+          pass_2_problem: number | null;
+          pass_2_roadmap: number | null;
+          pass_2_solution: number | null;
+          team_id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          final_decision?: string | null;
+          pass_1?: string | null;
+          pass_1_at?: string | null;
+          pass_1_by?: string | null;
+          pass_1_implementation?: number | null;
+          pass_1_notes?: string | null;
+          pass_1_problem?: number | null;
+          pass_1_roadmap?: number | null;
+          pass_1_solution?: number | null;
+          pass_2?: string | null;
+          pass_2_at?: string | null;
+          pass_2_by?: string | null;
+          pass_2_implementation?: number | null;
+          pass_2_notes?: string | null;
+          pass_2_problem?: number | null;
+          pass_2_roadmap?: number | null;
+          pass_2_solution?: number | null;
+          team_id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          final_decision?: string | null;
+          pass_1?: string | null;
+          pass_1_at?: string | null;
+          pass_1_by?: string | null;
+          pass_1_implementation?: number | null;
+          pass_1_notes?: string | null;
+          pass_1_problem?: number | null;
+          pass_1_roadmap?: number | null;
+          pass_1_solution?: number | null;
+          pass_2?: string | null;
+          pass_2_at?: string | null;
+          pass_2_by?: string | null;
+          pass_2_implementation?: number | null;
+          pass_2_notes?: string | null;
+          pass_2_problem?: number | null;
+          pass_2_roadmap?: number | null;
+          pass_2_solution?: number | null;
+          team_id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'judging_notes_pass_1_by_fkey';
+            columns: ['pass_1_by'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'judging_notes_pass_2_by_fkey';
+            columns: ['pass_2_by'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          },
+          {
+            foreignKeyName: 'judging_notes_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: true;
+            referencedRelation: 'teams';
+            referencedColumns: ['team_id'];
+          }
+        ];
+      };
+      judging_scores: {
+        Row: {
+          id: string;
+          team_id: string;
+          judge_id: string | null;
+          pass: number;
+          problem: number | null;
+          solution: number | null;
+          implementation: number | null;
+          roadmap: number | null;
+          decision: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          judge_id?: string | null;
+          pass: number;
+          problem?: number | null;
+          solution?: number | null;
+          implementation?: number | null;
+          roadmap?: number | null;
+          decision?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          team_id?: string;
+          judge_id?: string | null;
+          pass?: number;
+          problem?: number | null;
+          solution?: number | null;
+          implementation?: number | null;
+          roadmap?: number | null;
+          decision?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'judging_scores_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['team_id'];
+          },
+          {
+            foreignKeyName: 'judging_scores_judge_id_fkey';
+            columns: ['judge_id'];
+            isOneToOne: false;
+            referencedRelation: 'user_profiles';
+            referencedColumns: ['user_id'];
+          }
+        ];
+      };
       leaderboard: {
         Row: {
           bonus_points: number;
