@@ -110,7 +110,6 @@ export function MonkeytypeCard(props: MonkeytypeCardProps) {
   const [selectedThemeId, setSelectedThemeId] = useState<string>(
     props.themes?.[0]?.id ?? MONKEYTYPE_THEMES[0].id
   );
-  const [resetting, setResetting] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [themeQuery, setThemeQuery] = useState('');
 
@@ -194,24 +193,6 @@ export function MonkeytypeCard(props: MonkeytypeCardProps) {
     }
   };
 
-  const resetOtp = async () => {
-    setResetting(true);
-    try {
-      const res = await fetch('/api/monkeytype-duel/reset-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) return;
-      const body = (await res.json()) as { message?: string; otp?: string };
-      if (typeof body.otp === 'string' && body.otp.length > 0) {
-        setOtp(body.otp);
-      }
-    } finally {
-      setResetting(false);
-    }
-  };
-
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setThemeMenuOpen(false);
@@ -226,32 +207,6 @@ export function MonkeytypeCard(props: MonkeytypeCardProps) {
       {/* <TopStripe aria-hidden="true" $color={selectedTheme.subColor} /> */}
       <TopRow>
         <MonkeytypeTitle $theme={selectedTheme} />
-
-        <ButtonRow>
-          <TooltipWrap>
-            <IconButton
-              type="button"
-              aria-label="Reset OTP"
-              aria-describedby="reset-otp-tooltip"
-              onClick={resetOtp}
-              disabled={resetting}
-              $boxShadowColor={selectedTheme.subColor}
-              style={{
-                backgroundColor: selectedTheme.textColor,
-                color: selectedTheme.mainColor,
-              }}
-            >
-              <FaArrowRotateRight
-                size={16}
-                aria-hidden="true"
-                style={{ transform: 'rotate(270deg)' }}
-              />
-            </IconButton>
-            <Tooltip id="reset-otp-tooltip" role="tooltip">
-              Reset OTP
-            </Tooltip>
-          </TooltipWrap>
-        </ButtonRow>
       </TopRow>
 
       <Row>
