@@ -18,6 +18,7 @@ type Finalist = {
   team: TeamBasicInfo | null;
   monkeytype_duel_settings: unknown;
   monkeytype_wpm: number | null;
+  monkeytype_duel_otp: number | null;
 };
 
 type ResponseBody = { message: string } | { finalists: Finalist[] };
@@ -52,7 +53,6 @@ export default async function handler(
 
   const token = getBearerToken(req);
 
-  console.log({ token, expectedSecret });
   if (!token || token !== expectedSecret) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
@@ -65,7 +65,7 @@ export default async function handler(
     const { data: profiles, error: profilesError } = await supabase
       .from('user_profiles')
       .select(
-        'user_id,first_name,last_name,team_id,monkeytype_duel_settings,monkeytype_wpm'
+        'user_id,first_name,last_name,team_id,monkeytype_duel_settings,monkeytype_wpm,monkeytype_duel_otp'
       )
       .eq('role', FINALIST_ROLE_ID)
       .order('last_name', { ascending: true })
@@ -112,6 +112,7 @@ export default async function handler(
       team: p.team_id ? teamsById.get(p.team_id) ?? null : null,
       monkeytype_duel_settings: p.monkeytype_duel_settings ?? {},
       monkeytype_wpm: p.monkeytype_wpm ?? null,
+      monkeytype_duel_otp: p.monkeytype_duel_otp ?? null,
     }));
 
     return res.status(200).json({ finalists });
